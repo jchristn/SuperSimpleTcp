@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>SuperSimpleTcp</id>
+    <version>1.0.0</version>
+    <title>SuperSimpleTcp</title>
+    <authors>jchristn</authors>
+    <owners>jchristn</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://github.com/jchristn/SimpleTcp/blob/master/LICENSE.TXT</licenseUrl>
+    <projectUrl>https://github.com/jchristn/SimpleTcp</projectUrl>
+    <description>Simple wrapper for TCP client and server in C# with SSL support</description>
+    <summary>Simple wrapper for TCP client and server in C# with SSL support</summary>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>(c)2018 Joel Christner</copyright>
+    <language></language>
+    <tags>tcp messaging socket sockets message</tags>
+  </metadata>
+  <files>
+    <file src="lib\SimpleTcp.dll" target="lib\SimpleTcp.dll" />
+    <file src="lib\SimpleTcp.pdb" target="lib\SimpleTcp.pdb" />
+  </files>
+</package>
