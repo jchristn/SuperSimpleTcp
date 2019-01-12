@@ -60,8 +60,16 @@ namespace ClientTest
                     case "send":
                         Send();
                         break;
+                    case "connected":
+                        IsConnected();
+                        break;
                 }
             }
+        }
+
+        static void IsConnected()
+        {
+            Console.WriteLine("Connected: " + _Client.IsConnected);
         }
 
         static bool Connected()
@@ -89,6 +97,7 @@ namespace ClientTest
             Console.WriteLine(" q            Quit");
             Console.WriteLine(" cls          Clear the screen");
             Console.WriteLine(" send         Send a message to the server");
+            Console.WriteLine(" connected    Display if the client is connected to the server");
         }
 
         static void Send()

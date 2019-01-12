@@ -12,9 +12,8 @@ SimpleTcp is available on NuGet.
 
 Need help or have feedback?  Please file an issue here!
 
-## New in v1.0.0
-
-- Initial version with SSL support 
+## New in v1.0.1
+- ```IsConnected``` property on client
 
 ## Simple Examples
 
@@ -118,3 +117,6 @@ mono --server myapp.exe
 ## Version History
 
 Notes from previous versions (starting with v1.0.0) will be moved here.
+
+v1.0.x
+- Initial version with SSL support 

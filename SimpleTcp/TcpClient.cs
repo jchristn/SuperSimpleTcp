@@ -67,6 +67,21 @@ namespace SimpleTcp
         /// </summary>
         public bool MutuallyAuthenticate = true;
 
+        /// <summary>
+        /// Indicates whether or not the client is connected to the server.
+        /// </summary>
+        public bool IsConnected
+        {
+            get
+            {
+                return _Connected;
+            }
+            private set
+            {
+                IsConnected = value;
+            }
+        }
+
         #endregion
 
         #region Private-Members
