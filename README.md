@@ -6,14 +6,17 @@ For a sample app exercising SimpleTcp, please refer to the ClientTest and Server
 
 SimpleTcp provides simple methods for creating your own TCP-based sockets application.  It is important to note that SimpleTcp does NOT provide message framing.  If you need a solution that provides framing, please see WatsonTcp.  If you don't know what framing is, you probably need WatsonTcp instead of SimpleTcp.
 
-SimpleTcp is available on NuGet.
+SimpleTcp is available on NuGet.  
+
+As of release v1.0.2, SimpleTcp now supports both .NET Core 2.0 and .NET Framework 4.6.1.
 
 ## Help or Feedback
 
 Need help or have feedback?  Please file an issue here!
 
-## New in v1.0.1
-- ```IsConnected``` property on client
+## New in v1.0.2
+
+- Retargeted to both .NET Core 2.0 and .NET Framework 4.6.1.
 
 ## Simple Examples
 
@@ -125,4 +128,5 @@ mono --server myapp.exe
 Notes from previous versions (starting with v1.0.0) will be moved here.
 
 v1.0.x
+- ```IsConnected``` property on client
 - Initial version with SSL support 

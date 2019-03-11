@@ -54,7 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SimpleTcp\SimpleTcp.csproj">
-      <Project>{8bbd7fae-5d22-4abc-9e0f-6ac3a8481409}</Project>
+      <Project>{aee995d8-f936-4af0-9dcb-f60ee36dbfe4}</Project>
       <Name>SimpleTcp</Name>
     </ProjectReference>
   </ItemGroup>
