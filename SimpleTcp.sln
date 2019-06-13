@@ -3,15 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientTestNetFramework", "ClientTestNetFramework\ClientTestNetFramework.csproj", "{4BEDC675-DF95-4307-AD38-A7B8434097CF}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerTestNetFramework", "ServerTestNetFramework\ServerTestNetFramework.csproj", "{50475C93-3DF3-47A1-8BD4-2A08F28A86A7}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleTcp", "SimpleTcp\SimpleTcp.csproj", "{AEE995D8-F936-4AF0-9DCB-F60EE36DBFE4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientTestNetCore", "ClientTestNetCore\ClientTestNetCore.csproj", "{2BB653DA-54E4-4F15-BEB8-3E3C707301AB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientTest", "ClientTest\ClientTest.csproj", "{2BB653DA-54E4-4F15-BEB8-3E3C707301AB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerTestNetCore", "ServerTestNetCore\ServerTestNetCore.csproj", "{3E5644B1-7D9E-4745-BC43-414572D06004}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerTest", "ServerTest\ServerTest.csproj", "{3E5644B1-7D9E-4745-BC43-414572D06004}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
