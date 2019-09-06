@@ -72,22 +72,25 @@ namespace ClientTestNetCore
             Console.WriteLine("Connected: " + _Client.IsConnected);
         }
 
-        static bool Connected()
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task Connected()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             Console.WriteLine("*** Server connected");
-            return true;
         }
 
-        static bool Disconnected()
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task Disconnected()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("*** Server disconnected");
-            return true;
+            Console.WriteLine("*** Server disconnected"); 
         }
 
-        static bool DataReceived(byte[] data)
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task DataReceived(byte[] data)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             Console.WriteLine("[" + _ServerIp + ":" + _ServerPort + "] " + Encoding.UTF8.GetString(data));
-            return true;
         }
 
         static void Menu()

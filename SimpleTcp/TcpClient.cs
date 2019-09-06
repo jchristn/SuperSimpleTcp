@@ -14,7 +14,9 @@ using System.Threading.Tasks;
 namespace SimpleTcp
 {
     /// <summary>
-    /// TCP client with SSL support.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+    /// TCP client with SSL support.  
+    /// Set the Connected, Disconnected, and DataReceived callbacks.  
+    /// Once set, use Connect() to connect to the server.
     /// </summary>
     public class TcpClient : IDisposable
     {
@@ -23,17 +25,17 @@ namespace SimpleTcp
         /// <summary>
         /// Callback to call when the connection is established.
         /// </summary>
-        public Func<bool> Connected = null;
+        public Func<Task> Connected = null;
 
         /// <summary>
         /// Callback to call when the connection is destroyed.
         /// </summary>
-        public Func<bool> Disconnected = null;
+        public Func<Task> Disconnected = null;
 
         /// <summary>
         /// Callback to call when byte data has become available from the server.
         /// </summary>
-        public Func<byte[], bool> DataReceived = null;
+        public Func<byte[], Task> DataReceived = null;
 
         /// <summary>
         /// Receive buffer size to use while reading from the TCP server.
@@ -373,7 +375,7 @@ namespace SimpleTcp
 
                     if (DataReceived != null)
                     {
-                        Task<bool> unawaited = Task.Run(() => DataReceived(data));
+                        Task unawaited = Task.Run(() => DataReceived(data));
                     }
 
                     #endregion

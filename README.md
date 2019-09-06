@@ -2,21 +2,17 @@
 
 ## Simple wrapper for TCP client and server in C# with SSL support
 
-For a sample app exercising SimpleTcp, please refer to the ClientTest and ServerTest projects or see below.
+[![nuget](https://badge.fury.io/nu/Object.svg)](https://www.nuget.org/packages/SuperSimpleTcp/)     
 
-SimpleTcp provides simple methods for creating your own TCP-based sockets application.  It is important to note that SimpleTcp does NOT provide message framing.  If you need a solution that provides framing, please see WatsonTcp.  If you don't know what framing is, you probably need WatsonTcp instead of SimpleTcp.
+SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
+ 
+## New in v1.1.0
 
-SimpleTcp is available on NuGet.  
-
-As of release v1.0.2, SimpleTcp now supports both .NET Core 2.0 and .NET Framework 4.6.1.
+- Breaking changes!  Task-based callbacks and minor cleanup
 
 ## Help or Feedback
 
 Need help or have feedback?  Please file an issue here!
-
-## New in v1.0.2
-
-- Retargeted to both .NET Core 2.0 and .NET Framework 4.6.1.
 
 ## Simple Examples
 
@@ -42,22 +38,19 @@ void Main(string[] args)
 	Console.ReadKey();
 }
 
-bool ClientConnected(string client)
+static async Task ClientConnected(string client)
 {
 	Console.WriteLine(client + " connected");
-	return true;
 } 
 
-bool ClientDisconnected(string client)
+static async Task ClientDisconnected(string client)
 {
 	Console.WriteLine(client + " disconnected");
-	return true;
 }
 
-bool DataReceived(string client, byte[] data)
+static async Task DataReceived(string client, byte[] data)
 {
 	Console.WriteLine(client + ": " + Encoding.UTF8.GetString(data));
-	return true;
 }
 ```
 
@@ -83,22 +76,19 @@ void Main(string[] args)
 	Console.ReadKey();
 }
 
-bool Connected()
+static async Task Connected()
 {
 	Console.WriteLine("Connected");
-	return true;
 } 
 
-bool Disconnected()
+static async Task Disconnected()
 {
 	Console.WriteLine("Disconnected");
-	return true;
 }
 
-bool DataReceived(byte[] data)
+static async Task DataReceived(byte[] data)
 {
 	Console.WriteLine(Encoding.UTF8.GetString(data));
-	return true;
 }
 ```
 
@@ -116,7 +106,7 @@ A certificate named ```simpletcp.pfx``` is provided for simple testing.  It shou
 
 ## Running under Mono
 
-SimpleTcp should work well in Mono environments.  It is recommended that when running under Mono, you execute the containing EXE using --server and after using the Mono Ahead-of-Time Compiler (AOT).
+.NET Core is the preferred environment for cross-platform deployment on Windows, Linux, and Mac.  For those that use Mono, SimpleTcp should work well in Mono environments.  It is recommended that you execute the containing EXE using --server and after using the Mono Ahead-of-Time Compiler (AOT).
 
 ```
 mono --aot=nrgctx-trampolines=8096,nimt-trampolines=8096,ntrampolines=4048 --server myapp.exe
@@ -128,5 +118,7 @@ mono --server myapp.exe
 Notes from previous versions (starting with v1.0.0) will be moved here.
 
 v1.0.x
+
+- Retargeted to both .NET Core 2.0 and .NET Framework 4.6.1.
 - ```IsConnected``` property on client
 - Initial version with SSL support 

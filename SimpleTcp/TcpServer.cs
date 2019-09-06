@@ -15,7 +15,9 @@ using System.Threading.Tasks;
 namespace SimpleTcp
 {
     /// <summary>
-    /// TCP server with SSL support.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+    /// TCP server with SSL support.  
+    /// Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  
+    /// Once set, use Start() to begin listening for connections.
     /// </summary>
     public class TcpServer : IDisposable
     {
@@ -24,17 +26,17 @@ namespace SimpleTcp
         /// <summary>
         /// Callback to call when a client connects.  A string containing the client IP:port will be passed.
         /// </summary>
-        public Func<string, bool> ClientConnected = null;
+        public Func<string, Task> ClientConnected = null;
 
         /// <summary>
         /// Callback to call when a client disconnects.  A string containing the client IP:port will be passed.
         /// </summary>
-        public Func<string, bool> ClientDisconnected = null;
+        public Func<string, Task> ClientDisconnected = null;
 
         /// <summary>
         /// Callback to call when byte data has become available from the client.  A string containing the client IP:port and a byte array containing the data will be passed.
         /// </summary>
-        public Func<string, byte[], bool> DataReceived = null;
+        public Func<string, byte[], Task> DataReceived = null;
 
         /// <summary>
         /// Receive buffer size to use while reading from connected TCP clients.
@@ -405,7 +407,7 @@ namespace SimpleTcp
 
                         if (DataReceived != null)
                         {
-                            Task<bool> unawaited = Task.Run(() => DataReceived(client.IpPort, data));
+                            Task unawaited = Task.Run(() => DataReceived(client.IpPort, data));
                         }
                     }
                     catch (Exception)
