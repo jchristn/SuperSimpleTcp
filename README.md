@@ -1,4 +1,6 @@
-﻿# SimpleTcp
+﻿![alt tag](https://github.com/jchristn/simpletcp/blob/master/assets/icon.ico)
+
+# SimpleTcp
 
 ## Simple wrapper for TCP client and server in C# with SSL support
 
