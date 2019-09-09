@@ -10,6 +10,7 @@ SimpleTcp provides simple methods for creating your own TCP-based sockets applic
  
 ## New in v1.1.0
 
+- Dispose fixes, better disconnect handling under five key use cases listed below
 - Breaking changes!  Task-based callbacks and minor cleanup
 
 ## Help or Feedback
@@ -105,6 +106,18 @@ Both TcpClient and TcpServer have settable values for:
 ### Testing with SSL
 
 A certificate named ```simpletcp.pfx``` is provided for simple testing.  It should not expire for a really long time.  It's a self-signed certificate and you should NOT use it in production.  Its export password is ```simpletcp```.
+
+## Disconnection Handling
+
+The project TcpTest (https://github.com/jchristn/TcpTest) was built specifically to provide a reference for SimpleTcp to handle a variety of disconnection scenarios.  These include:
+
+| Test case | Description | Pass/Fail |
+|---|---|---|
+| Server-side dispose | Graceful termination of all client connections | PASS |
+| Server-side client removal | Graceful termination of a single client | PASS |
+| Server-side termination | Abrupt termination due to process abort or CTRL-C | PASS |
+| Client-side dispose | Graceful termination of a client connection | PASS |
+| Client-side termination | Abrupt termination due to a process abort or CTRL-C | PASS |
 
 ## Running under Mono
 

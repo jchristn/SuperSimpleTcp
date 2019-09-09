@@ -55,9 +55,25 @@ namespace SimpleTcp
         }
 
         /// <summary>
+        /// The number of seconds to wait when attempting to connect.
+        /// </summary>
+        public int ConnectTimeoutSeconds
+        {
+            get
+            {
+                return _ConnectTimeoutSeconds;
+            }
+            set
+            {
+                if (value < 1) throw new ArgumentException("ConnectTimeoutSeconds must be greater than zero.");
+                _ConnectTimeoutSeconds = value;
+            }
+        }
+
+        /// <summary>
         /// Enable or disable logging to the console.
         /// </summary>
-        public bool ConsoleLogging { get; set; }
+        public bool Debug { get; set; }
 
         /// <summary>
         /// Enable or disable acceptance of invalid SSL certificates.
@@ -87,28 +103,23 @@ namespace SimpleTcp
         #endregion
 
         #region Private-Members
-
-        private bool _Disposed = false;
-
+         
         private int _ReceiveBufferSize;
-
+        private int _ConnectTimeoutSeconds = 5;
         private string _ServerIp;
         private IPAddress _IPAddress;
         private int _Port;
+        private System.Net.Sockets.TcpClient _TcpClient;
+        private NetworkStream _NetworkStream;
+
         private bool _Ssl;
         private string _PfxCertFilename;
         private string _PfxPassword;
-
-        private System.Net.Sockets.TcpClient _TcpClient;
-
         private SslStream _SslStream;
-        private X509Certificate2 _SslCertificate;
-        private X509Certificate2Collection _SslCertificateCollection;
+        private X509Certificate2 _SslCert;
+        private X509Certificate2Collection _SslCertCollection;
 
-        private readonly object _SendLock;
-
-        private string _SourceIp;
-        private int _SourcePort;
+        private readonly object _SendLock; 
         private bool _Connected = false;
 
         private CancellationTokenSource _TokenSource;
@@ -131,38 +142,37 @@ namespace SimpleTcp
             if (String.IsNullOrEmpty(serverIp)) throw new ArgumentNullException(nameof(serverIp));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
-            _ReceiveBufferSize = 4096;
-
+            _ReceiveBufferSize = 4096; 
+            _TokenSource = new CancellationTokenSource();
+            _Token = _TokenSource.Token;
+            _SendLock = new object(); 
             _ServerIp = serverIp;
             _IPAddress = IPAddress.Parse(_ServerIp);
             _Port = port;
             _Ssl = ssl;
             _PfxCertFilename = pfxCertFilename;
-            _PfxPassword = pfxPassword;
-            _TcpClient = new System.Net.Sockets.TcpClient();
-
-            _SendLock = new object();
-
-            ConsoleLogging = false;
-
+            _PfxPassword = pfxPassword; 
+            _TcpClient = new System.Net.Sockets.TcpClient(); 
             _SslStream = null;
-            _SslCertificate = null;
-            _SslCertificateCollection = null;
+            _SslCert = null;
+            _SslCertCollection = null;
+
+            Debug = false;
 
             if (_Ssl)
             {
                 if (String.IsNullOrEmpty(pfxPassword))
                 {
-                    _SslCertificate = new X509Certificate2(pfxCertFilename);
+                    _SslCert = new X509Certificate2(pfxCertFilename);
                 }
                 else
                 {
-                    _SslCertificate = new X509Certificate2(pfxCertFilename, pfxPassword);
+                    _SslCert = new X509Certificate2(pfxCertFilename, pfxPassword);
                 }
 
-                _SslCertificateCollection = new X509Certificate2Collection
+                _SslCertCollection = new X509Certificate2Collection
                 {
-                    _SslCertificate
+                    _SslCert
                 };
             }
         }
@@ -175,9 +185,38 @@ namespace SimpleTcp
         /// Dispose of the TCP client.
         /// </summary>
         public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+        { 
+            _Connected = false;
+
+            if (_TokenSource != null)
+            {
+                if (!_TokenSource.IsCancellationRequested) _TokenSource.Cancel();
+                _TokenSource.Dispose();
+                _TokenSource = null;
+            }
+             
+            if (_SslStream != null)
+            {
+                _SslStream.Close();
+                _SslStream.Dispose();
+                _SslStream = null;
+            } 
+                 
+            if (_NetworkStream != null)
+            {
+                _NetworkStream.Close();
+                _NetworkStream.Dispose();
+                _NetworkStream = null;
+            } 
+                 
+            if (_TcpClient != null)
+            {
+                _TcpClient.Close();
+                _TcpClient.Dispose();
+                _TcpClient = null;
+            } 
+
+            Log("Dispose complete");
         }
 
         /// <summary>
@@ -190,31 +229,29 @@ namespace SimpleTcp
 
             try
             {
-                if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(5), false))
+                if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(_ConnectTimeoutSeconds), false))
                 {
                     _TcpClient.Close();
                     throw new TimeoutException("Timeout connecting to " + _ServerIp + ":" + _Port);
                 }
 
-                _TcpClient.EndConnect(ar);
-
-                _SourceIp = ((IPEndPoint)_TcpClient.Client.LocalEndPoint).Address.ToString();
-                _SourcePort = ((IPEndPoint)_TcpClient.Client.LocalEndPoint).Port;
+                _TcpClient.EndConnect(ar); 
+                _NetworkStream = _TcpClient.GetStream();
 
                 if (_Ssl)
                 {
                     if (AcceptInvalidCertificates)
                     {
                         // accept invalid certs
-                        _SslStream = new SslStream(_TcpClient.GetStream(), false, new RemoteCertificateValidationCallback(AcceptCertificate));
+                        _SslStream = new SslStream(_NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
                     }
                     else
                     {
                         // do not accept invalid SSL certificates
-                        _SslStream = new SslStream(_TcpClient.GetStream(), false);
+                        _SslStream = new SslStream(_NetworkStream, false);
                     }
 
-                    _SslStream.AuthenticateAsClient(_ServerIp, _SslCertificateCollection, SslProtocols.Tls12, !AcceptInvalidCertificates);
+                    _SslStream.AuthenticateAsClient(_ServerIp, _SslCertCollection, SslProtocols.Tls12, !AcceptInvalidCertificates);
 
                     if (!_SslStream.IsEncrypted)
                     {
@@ -230,7 +267,7 @@ namespace SimpleTcp
                     {
                         throw new AuthenticationException("Mutual authentication failed");
                     }
-                }
+                } 
 
                 _Connected = true;
             }
@@ -248,9 +285,7 @@ namespace SimpleTcp
                 Task.Run(() => Connected());
             }
 
-            _TokenSource = new CancellationTokenSource();
-            _Token = _TokenSource.Token;
-            Task.Run(async () => await DataReceiver(_Token), _Token);
+            Task.Run(() => DataReceiver(_Token), _Token);
         }
 
         /// <summary>
@@ -265,23 +300,14 @@ namespace SimpleTcp
             lock (_SendLock)
             {
                 if (!_Ssl)
-                {
-                    #region TCP
-
-                    NetworkStream ns = _TcpClient.GetStream();
-                    ns.Write(data, 0, data.Length);
-                    ns.Flush();
-
-                    #endregion
+                { 
+                    _NetworkStream.Write(data, 0, data.Length);
+                    _NetworkStream.Flush(); 
                 }
                 else
-                {
-                    #region SSL
-
+                { 
                     _SslStream.Write(data, 0, data.Length);
-                    _SslStream.Flush();
-
-                    #endregion
+                    _SslStream.Flush(); 
                 }
             }
         }
@@ -289,86 +315,35 @@ namespace SimpleTcp
         #endregion
 
         #region Private-Methods
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_Disposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                if (_TcpClient != null)
-                {
-                    if (_TcpClient.Connected)
-                    {
-                        NetworkStream ns = _TcpClient.GetStream();
-                        if (ns != null)
-                        {
-                            ns.Close();
-                        }
-                    }
-
-                    _TcpClient.Close();
-                }
-
-                if (_SslStream != null)
-                {
-                    _SslStream.Dispose();
-                }
-
-                _TokenSource.Cancel();
-                _TokenSource.Dispose();
-
-                _Connected = false;
-            }
-
-            _Disposed = true;
-        }
-
+         
         private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        {
-            // return true; // Allow untrusted certificates.
+        { 
             return AcceptInvalidCertificates;
         }
 
         private void Log(string msg)
         {
-            if (ConsoleLogging) Console.WriteLine(msg);
+            if (Debug) Console.WriteLine(msg);
         }
 
-        private async Task DataReceiver(CancellationToken? cancelToken = null)
+        private async Task DataReceiver(CancellationToken token)
         {
             try
-            {
-                #region Wait-for-Data
-
+            { 
                 while (true)
                 {
-                    cancelToken?.ThrowIfCancellationRequested();
-
-                    #region Check-if-Client-Connected-to-Server
-
-                    if (_TcpClient == null)
+                    if (token.IsCancellationRequested
+                        || _TcpClient == null 
+                        || !_TcpClient.Connected)
                     {
-                        Log("*** DataReceiver null TCP interface detected, disconnection or close assumed");
+                        Log("Disconnection detected");
                         break;
                     }
-
-                    if (!_TcpClient.Connected)
-                    {
-                        Log("*** DataReceiver server disconnected");
-                        break;
-                    }
-
-                    #endregion
-
-                    #region Read-Message-and-Handle
-
-                    byte[] data = await DataReadAsync();
+                     
+                    byte[] data = await DataReadAsync(token);
                     if (data == null)
                     {
+                        Console.WriteLine("null data received");
                         await Task.Delay(30);
                         continue;
                     }
@@ -376,112 +351,81 @@ namespace SimpleTcp
                     if (DataReceived != null)
                     {
                         Task unawaited = Task.Run(() => DataReceived(data));
-                    }
-
-                    #endregion
-                }
-
-                #endregion
+                    } 
+                } 
             }
-            catch (OperationCanceledException)
+            catch (Exception e)
             {
-                throw; // normal cancellation
+                Log(
+                    Environment.NewLine + 
+                    "Data receiver exception:" + 
+                    Environment.NewLine + 
+                    e.ToString() + 
+                    Environment.NewLine);
             }
-            catch (Exception)
+             
+            if (Disconnected != null)
             {
-                Log("*** DataReceiver server disconnected");
-            }
-            finally
-            {
-                _Connected = false;
-                Disconnected?.Invoke();
-            }
+                Task unawaited = Task.Run(() => Disconnected());
+            } 
         }
 
-        private async Task<byte[]> DataReadAsync()
-        {
-            /*
-             *
-             * Do not catch exceptions, let them get caught by the data reader
-             * to destroy the connection
-             *
-             */
+        private async Task<byte[]> DataReadAsync(CancellationToken token)
+        { 
+            if (_TcpClient == null 
+                || !_TcpClient.Connected
+                || token.IsCancellationRequested) 
+                throw new OperationCanceledException();
 
-            try
-            {
-                if (_TcpClient == null)
+            if (!_NetworkStream.CanRead)
+                throw new IOException();
+
+            if (_Ssl && !_SslStream.CanRead)
+                throw new IOException();
+             
+            byte[] buffer = new byte[_ReceiveBufferSize];
+            int read = 0;
+
+            if (!_Ssl)
+            { 
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    Log("*** DataReadAsync null client supplied");
-                    return null;
-                }
-
-                if (!_TcpClient.Connected)
-                {
-                    Log("*** DataReadAsync supplied client is not connected");
-                    return null;
-                }
-
-                if (_Ssl && !_SslStream.CanRead)
-                {
-                    Log("*** DataReadAsync SSL stream is unreadable");
-                    return null;
-                }
-
-                byte[] buffer = new byte[_ReceiveBufferSize];
-                int read = 0;
-
-                if (!_Ssl)
-                {
-                    #region TCP
-
-                    NetworkStream networkStream = _TcpClient.GetStream();
-                    if (!networkStream.CanRead && !networkStream.DataAvailable)
+                    while (true)
                     {
-                        return null;
-                    }
+                        read = await _NetworkStream.ReadAsync(buffer, 0, buffer.Length);
 
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        while (true)
+                        if (read > 0)
                         {
-                            read = await networkStream.ReadAsync(buffer, 0, buffer.Length);
-
-                            if (read > 0)
-                            {
-                                ms.Write(buffer, 0, read);
-                                return ms.ToArray();
-                            }
+                            ms.Write(buffer, 0, read);
+                            return ms.ToArray();
+                        }
+                        else
+                        {
+                            throw new SocketException();
                         }
                     }
-
-                    #endregion
-                }
-                else
+                } 
+            }
+            else
+            { 
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    #region SSL
-
-                    using (MemoryStream ms = new MemoryStream())
+                    while (true)
                     {
-                        while (true)
-                        {
-                            read = await _SslStream.ReadAsync(buffer, 0, buffer.Length);
+                        read = await _SslStream.ReadAsync(buffer, 0, buffer.Length);
 
-                            if (read > 0)
-                            {
-                                ms.Write(buffer, 0, read);
-                                return ms.ToArray();
-                            }
+                        if (read > 0)
+                        {
+                            ms.Write(buffer, 0, read);
+                            return ms.ToArray();
+                        }
+                        else
+                        {
+                            throw new SocketException();
                         }
                     }
-
-                    #endregion
-                }
-            }
-            catch (Exception)
-            {
-                Log("*** DataReadAsync server disconnected");
-                return null;
-            }
+                } 
+            } 
         }
 
         #endregion

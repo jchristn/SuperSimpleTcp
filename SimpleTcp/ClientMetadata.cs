@@ -2,6 +2,8 @@
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SimpleTcp
 {
@@ -9,11 +11,11 @@ namespace SimpleTcp
     {
         #region Public-Members
 
-        internal System.Net.Sockets.TcpClient TcpClient
+        internal System.Net.Sockets.TcpClient Client
         {
             get { return _TcpClient; }
         }
-
+         
         internal NetworkStream NetworkStream
         {
             get { return _NetworkStream; }
@@ -30,17 +32,19 @@ namespace SimpleTcp
             get { return _IpPort; }
         }
 
-        internal object Lock
+        internal object SendLock
         {
             get { return _Lock; }
         }
 
+        internal CancellationTokenSource TokenSource { get; set; }
+
+        internal CancellationToken Token { get; set; }
+
         #endregion
 
         #region Private-Members
-
-        private bool _Disposed = false;
-
+         
         private System.Net.Sockets.TcpClient _TcpClient = null;
         private NetworkStream _NetworkStream = null;
         private SslStream _SslStream = null;
@@ -53,11 +57,13 @@ namespace SimpleTcp
 
         internal ClientMetadata(System.Net.Sockets.TcpClient tcp)
         {
-            _TcpClient = tcp ?? throw new ArgumentNullException(nameof(tcp));
+            if (tcp == null) throw new ArgumentNullException(nameof(tcp));
 
+            _TcpClient = tcp;
             _NetworkStream = tcp.GetStream();
-
             _IpPort = tcp.Client.RemoteEndPoint.ToString();
+            TokenSource = new CancellationTokenSource();
+            Token = TokenSource.Token;
         }
 
         #endregion
@@ -66,41 +72,38 @@ namespace SimpleTcp
 
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            if (TokenSource != null)
+            {
+                if (!TokenSource.IsCancellationRequested) TokenSource.Cancel();
+                TokenSource.Dispose();
+                TokenSource = null;
+            }
+
+            if (_SslStream != null)
+            {
+                _SslStream.Close();
+                _SslStream.Dispose();
+                _SslStream = null;
+            }
+
+            if (_NetworkStream != null)
+            {
+                _NetworkStream.Close();
+                _NetworkStream.Dispose();
+                _NetworkStream = null;
+            }
+
+            if (_TcpClient != null)
+            {
+                _TcpClient.Close();
+                _TcpClient.Dispose();
+                _TcpClient = null;
+            }
         }
 
         #endregion
 
         #region Private-Methods
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_Disposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                if (_SslStream != null)
-                {
-                    _SslStream.Close();
-                }
-
-                if (_NetworkStream != null)
-                {
-                    _NetworkStream.Close();
-                }
-
-                if (_TcpClient != null)
-                {
-                    _TcpClient.Close();
-                }
-            }
-
-            _Disposed = true;
-        }
 
         #endregion
     }

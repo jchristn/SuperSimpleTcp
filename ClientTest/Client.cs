@@ -5,23 +5,23 @@ using System.Text;
 using System.Threading.Tasks;
 using SimpleTcp;
 
-namespace ServerTestNetCore
+namespace ClientTestNetCore
 {
     class Program
     {
-        static string _ListenerIp;
-        static int _ListenerPort;
+        static string _ServerIp;
+        static int _ServerPort;
         static bool _Ssl;
         static string _PfxFilename = null;
         static string _PfxPassword = null;
 
-        static TcpServer _Server;
+        static TcpClient _Client;
         static bool _RunForever = true;
 
         static void Main(string[] args)
         {
-            _ListenerIp = InputString("Listener IP:", "127.0.0.1", false);
-            _ListenerPort = InputInteger("Listener Port:", 9000, true, false);
+            _ServerIp = InputString("Listener IP:", "127.0.0.1", false);
+            _ServerPort = InputInteger("Listener Port:", 9000, true, false);
             _Ssl = InputBoolean("Use SSL:", false);
 
             if (_Ssl)
@@ -30,15 +30,15 @@ namespace ServerTestNetCore
                 _PfxPassword = InputString("PFX File Password:", "simpletcp", false);
             }
 
-            _Server = new TcpServer(_ListenerIp, _ListenerPort, _Ssl, _PfxFilename, _PfxPassword);
+            _Client = new TcpClient(_ServerIp, _ServerPort, _Ssl, _PfxFilename, _PfxPassword);
 
-            _Server.ClientConnected = ClientConnected;
-            _Server.ClientDisconnected = ClientDisconnected;
-            _Server.DataReceived = DataReceived;
-            _Server.ConsoleLogging = true;
-            _Server.MutuallyAuthenticate = false;
-            _Server.AcceptInvalidCertificates = true;
-            _Server.Start();
+            _Client.Connected = Connected;
+            _Client.Disconnected = Disconnected;
+            _Client.DataReceived = DataReceived;
+            _Client.Debug = false;
+            _Client.MutuallyAuthenticate = false;
+            _Client.AcceptInvalidCertificates = true;
+            _Client.Connect();
 
             while (_RunForever)
             {
@@ -57,35 +57,43 @@ namespace ServerTestNetCore
                     case "cls":
                         Console.Clear();
                         break;
-                    case "list":
-                        ListClients();
-                        break;
                     case "send":
                         Send();
+                        break;
+                    case "connected":
+                        IsConnected();
+                        break;
+                    case "dispose":
+                        _Client.Dispose();
                         break;
                 }
             }
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task ClientConnected(string ipPort)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void IsConnected()
         {
-            Console.WriteLine("*** Client connected [" + ipPort + "]");
+            Console.WriteLine("Connected: " + _Client.IsConnected);
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task ClientDisconnected(string ipPort)
+        static async Task Connected()
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("*** Client disconnected [" + ipPort + "]");
+            Console.WriteLine("*** Server connected");
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task DataReceived(string ipPort, byte[] data)
+        static async Task Disconnected()
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("[" + ipPort + "] " + Encoding.UTF8.GetString(data));
+            Console.WriteLine("*** Server disconnected"); 
+        }
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        static async Task DataReceived(byte[] data)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        {
+            Console.WriteLine("[" + _ServerIp + ":" + _ServerPort + "] " + Encoding.UTF8.GetString(data));
         }
 
         static void Menu()
@@ -94,30 +102,18 @@ namespace ServerTestNetCore
             Console.WriteLine(" ?            Help, this menu");
             Console.WriteLine(" q            Quit");
             Console.WriteLine(" cls          Clear the screen");
-            Console.WriteLine(" list         List connected clients");
-            Console.WriteLine(" send         Send a message to a client");
-        }
-
-        static void ListClients()
-        {
-            List<string> clients = _Server.GetClients();
-            if (clients != null && clients.Count > 0)
-            {
-                foreach (string curr in clients) Console.WriteLine(curr);
-            }
-            else Console.WriteLine("None");
+            Console.WriteLine(" send         Send a message to the server");
+            Console.WriteLine(" connected    Display if the client is connected to the server");
+            Console.WriteLine(" dispose      Dispose of the client");
+            Console.WriteLine("");
         }
 
         static void Send()
         {
-            string clientIp = InputString("Client IP:port:", null, true);
-            if (!String.IsNullOrEmpty(clientIp))
+            string data = InputString("Data:", "Hello!", true);
+            if (!String.IsNullOrEmpty(data))
             {
-                string data = InputString("Data:", "Hello!", true);
-                if (!String.IsNullOrEmpty(data))
-                {
-                    _Server.Send(clientIp, Encoding.UTF8.GetBytes(data));
-                }
+                _Client.Send(Encoding.UTF8.GetBytes(data));
             }
         }
 
