@@ -8,10 +8,9 @@
 
 SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
  
-## New in v1.1.0
+## New in v1.1.4
 
-- Dispose fixes, better disconnect handling under five key use cases listed below
-- Breaking changes!  Task-based callbacks and minor cleanup
+- XML documentation
 
 ## Help or Feedback
 
@@ -130,10 +129,4 @@ mono --server myapp.exe
 
 ## Version History
 
-Notes from previous versions (starting with v1.0.0) will be moved here.
-
-v1.0.x
-
-- Retargeted to both .NET Core 2.0 and .NET Framework 4.6.1.
-- ```IsConnected``` property on client
-- Initial version with SSL support 
+Please refer to CHANGELOG.md.

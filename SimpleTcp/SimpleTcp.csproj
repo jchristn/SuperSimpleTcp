@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.3</Version>
+    <Version>1.1.4</Version>
     <Authors>Joel Christner</Authors>
     <Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
     <Copyright>(c)2019 Joel Christner</Copyright>
@@ -16,6 +16,18 @@
     <PackageId>SuperSimpleTcp</PackageId>
     <Product>SuperSimpleTcp</Product>
     <PackageIconUrl>https://raw.githubusercontent.com/jchristn/SimpleTcp/master/assets/icon.ico</PackageIconUrl>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netstandard2.0|AnyCPU'">
+    <DocumentationFile>C:\Code\Misc\SimpleTcp-1.1\SimpleTcp\SimpleTcp.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE.md">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
