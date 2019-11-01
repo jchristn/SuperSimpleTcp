@@ -35,6 +35,7 @@ namespace ServerTestNetCore
             _Server.ClientConnected = ClientConnected;
             _Server.ClientDisconnected = ClientDisconnected;
             _Server.DataReceived = DataReceived;
+            // _Server.IdleClientTimeoutSeconds = 10;
             _Server.Debug = false;
             _Server.MutuallyAuthenticate = false;
             _Server.AcceptInvalidCertificates = true;
@@ -83,10 +84,10 @@ namespace ServerTestNetCore
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task ClientDisconnected(string ipPort)
+        static async Task ClientDisconnected(string ipPort, DisconnectReason reason)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            Console.WriteLine("[" + ipPort + "] client disconnected");
+            Console.WriteLine("[" + ipPort + "] client disconnected: " + reason.ToString());
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -111,7 +112,7 @@ namespace ServerTestNetCore
 
         static void ListClients()
         {
-            List<string> clients = _Server.GetClients();
+            List<string> clients = _Server.GetClients().ToList();
             if (clients != null && clients.Count > 0)
             {
                 foreach (string curr in clients) Console.WriteLine(curr);

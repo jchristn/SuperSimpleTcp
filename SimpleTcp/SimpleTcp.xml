@@ -4,6 +4,26 @@
         <name>SimpleTcp</name>
     </assembly>
     <members>
+        <member name="T:SimpleTcp.DisconnectReason">
+            <summary>
+            Reason why a client disconnected.
+            </summary>
+        </member>
+        <member name="F:SimpleTcp.DisconnectReason.Normal">
+            <summary>
+            Normal disconnection.
+            </summary>
+        </member>
+        <member name="F:SimpleTcp.DisconnectReason.Kicked">
+            <summary>
+            Client connection was intentionally terminated programmatically or by the server.
+            </summary>
+        </member>
+        <member name="F:SimpleTcp.DisconnectReason.Timeout">
+            <summary>
+            Client connection timed out; server did not receive data within the timeout window.
+            </summary>
+        </member>
         <member name="T:SimpleTcp.TcpClient">
             <summary>
             TCP client with SSL support.  
@@ -109,6 +129,14 @@
             Receive buffer size to use while reading from connected TCP clients.
             </summary>
         </member>
+        <member name="P:SimpleTcp.TcpServer.IdleClientTimeoutSeconds">
+            <summary>
+            Maximum amount of time to wait before considering a client idle and disconnecting them. 
+            By default, this value is set to 0, which will never disconnect a client due to inactivity.
+            The timeout is reset any time a message is received from a client or a message is sent to a client.
+            For instance, if you set this value to 30, the client will be disconnected if the server has not received a message from the client within 30 seconds or if a message has not been sent to the client in 30 seconds.
+            </summary>
+        </member>
         <member name="P:SimpleTcp.TcpServer.Debug">
             <summary>
             Enable or disable logging to the console.
@@ -148,7 +176,7 @@
             <summary>
             Retrieve a list of client IP:port connected to the server.
             </summary>
-            <returns>List of strings, each containing client IP:port.</returns>
+            <returns>IEnumerable of strings, each containing client IP:port.</returns>
         </member>
         <member name="M:SimpleTcp.TcpServer.IsConnected(System.String)">
             <summary>

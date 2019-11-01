@@ -31,7 +31,7 @@ namespace SimpleTcp
         /// <summary>
         /// Callback to call when a client disconnects.  A string containing the client IP:port will be passed.
         /// </summary>
-        public Func<string, Task> ClientDisconnected = null;
+        public Func<string, DisconnectReason, Task> ClientDisconnected = null;
 
         /// <summary>
         /// Callback to call when byte data has become available from the client.  A string containing the client IP:port and a byte array containing the data will be passed.
@@ -56,6 +56,25 @@ namespace SimpleTcp
         }
 
         /// <summary>
+        /// Maximum amount of time to wait before considering a client idle and disconnecting them. 
+        /// By default, this value is set to 0, which will never disconnect a client due to inactivity.
+        /// The timeout is reset any time a message is received from a client or a message is sent to a client.
+        /// For instance, if you set this value to 30, the client will be disconnected if the server has not received a message from the client within 30 seconds or if a message has not been sent to the client in 30 seconds.
+        /// </summary>
+        public int IdleClientTimeoutSeconds
+        {
+            get
+            {
+                return _IdleClientTimeoutSeconds;
+            }
+            set
+            {
+                if (value < 0) throw new ArgumentException("IdleClientTimeoutSeconds must be zero or greater.");
+                _IdleClientTimeoutSeconds = value;
+            }
+        }
+
+        /// <summary>
         /// Enable or disable logging to the console.
         /// </summary>
         public bool Debug { get; set; }
@@ -73,8 +92,9 @@ namespace SimpleTcp
         #endregion
 
         #region Private-Members
-         
-        private int _ReceiveBufferSize;
+
+        private int _ReceiveBufferSize = 4096;
+        private int _IdleClientTimeoutSeconds = 0;
 
         private string _ListenerIp;
         private IPAddress _IPAddress;
@@ -83,15 +103,18 @@ namespace SimpleTcp
         private string _PfxCertFilename;
         private string _PfxPassword;
 
-        private X509Certificate2 _SslCertificate;
-        private X509Certificate2Collection _SslCertificateCollection;
+        private X509Certificate2 _SslCertificate = null;
+        private X509Certificate2Collection _SslCertificateCollection = null;
 
-        private ConcurrentDictionary<string, ClientMetadata> _Clients;
+        private ConcurrentDictionary<string, ClientMetadata> _Clients = new ConcurrentDictionary<string, ClientMetadata>();
+        private ConcurrentDictionary<string, DateTime> _ClientsLastSeen = new ConcurrentDictionary<string, DateTime>();
+        private ConcurrentDictionary<string, DateTime> _ClientsKicked = new ConcurrentDictionary<string, DateTime>();
+        private ConcurrentDictionary<string, DateTime> _ClientsTimedout = new ConcurrentDictionary<string, DateTime>();
 
         private TcpListener _Listener;
         private bool _Running;
 
-        private CancellationTokenSource _TokenSource;
+        private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
 
         #endregion
@@ -110,26 +133,18 @@ namespace SimpleTcp
         {
             if (String.IsNullOrEmpty(listenerIp)) throw new ArgumentNullException(nameof(listenerIp));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
-
-            _ReceiveBufferSize = 4096;
-
+             
             _ListenerIp = listenerIp;
             _IPAddress = IPAddress.Parse(_ListenerIp);
             _Port = port;
             _Ssl = ssl;
             _PfxCertFilename = pfxCertFilename;
             _PfxPassword = pfxPassword;
-            _Running = false;
-            _Clients = new ConcurrentDictionary<string, ClientMetadata>();
-
-            _TokenSource = new CancellationTokenSource();
+            _Running = false;  
             _Token = _TokenSource.Token;
 
             Debug = false;
-
-            _SslCertificate = null;
-            _SslCertificateCollection = null;
-
+             
             if (_Ssl)
             {
                 if (String.IsNullOrEmpty(pfxPassword))
@@ -146,6 +161,8 @@ namespace SimpleTcp
                     _SslCertificate
                 };
             }
+
+            Task.Run(() => MonitorForIdleClients(), _Token);
         }
 
         #endregion
@@ -210,8 +227,8 @@ namespace SimpleTcp
         /// <summary>
         /// Retrieve a list of client IP:port connected to the server.
         /// </summary>
-        /// <returns>List of strings, each containing client IP:port.</returns>
-        public List<string> GetClients()
+        /// <returns>IEnumerable of strings, each containing client IP:port.</returns>
+        public IEnumerable<string> GetClients()
         {
             List<string> clients = new List<string>(_Clients.Keys);
             return clients;
@@ -273,9 +290,14 @@ namespace SimpleTcp
             }
             else
             {
-                Log("[" + ipPort + "] disposing");
-                client.Dispose();
+                if (!_ClientsTimedout.ContainsKey(ipPort))
+                {
+                    Log("[" + ipPort + "] kicking");
+                    _ClientsKicked.TryAdd(ipPort, DateTime.Now);
+                }
+
                 _Clients.TryRemove(client.IpPort, out ClientMetadata destroyed);
+                client.Dispose();
                 Log("[" + ipPort + "] disposed");
             }
         }
@@ -348,7 +370,8 @@ namespace SimpleTcp
                         }
                     }
 
-                    _Clients.TryAdd(clientIp, client);
+                    _Clients.TryAdd(clientIp, client); 
+                    _ClientsLastSeen.TryAdd(clientIp, DateTime.Now); 
 
                     Log("[" + clientIp + "] starting data receiver");
 
@@ -472,9 +495,32 @@ namespace SimpleTcp
             }  
 
             Log(header + " data receiver terminated");
-            if (ClientDisconnected != null) await Task.Run(() => ClientDisconnected(client.IpPort));
-            client.Dispose();
+
+            if (ClientDisconnected != null)
+            {
+                Task unawaited = null;
+
+                if (_ClientsKicked.ContainsKey(client.IpPort))
+                {
+                    unawaited = Task.Run(() => ClientDisconnected(client.IpPort, DisconnectReason.Kicked));
+                }
+                else if (_ClientsTimedout.ContainsKey(client.IpPort))
+                {
+                    unawaited = Task.Run(() => ClientDisconnected(client.IpPort, DisconnectReason.Timeout));
+                }
+                else
+                {
+                    unawaited = Task.Run(() => ClientDisconnected(client.IpPort, DisconnectReason.Normal));
+                }
+            }
+
+            DateTime removedTs;
             _Clients.TryRemove(client.IpPort, out ClientMetadata destroyed);
+            _ClientsLastSeen.TryRemove(client.IpPort, out removedTs);
+            _ClientsKicked.TryRemove(client.IpPort, out removedTs);
+            _ClientsTimedout.TryRemove(client.IpPort, out removedTs);
+
+            client.Dispose();
         }
            
         private async Task<byte[]> DataReadAsync(ClientMetadata client)
@@ -527,6 +573,44 @@ namespace SimpleTcp
                     }
                 }
             } 
+        }
+
+        private async Task MonitorForIdleClients()
+        {
+            while (!_Token.IsCancellationRequested)
+            {
+                if (_IdleClientTimeoutSeconds > 0 && _ClientsLastSeen.Count > 0)
+                {
+                    MonitorForIdleClientsTask();
+                }
+                await Task.Delay(5000, _Token);
+            }
+        }
+
+        private void MonitorForIdleClientsTask()
+        {
+            DateTime idleTimestamp = DateTime.Now.AddSeconds(-1 * _IdleClientTimeoutSeconds);
+
+            foreach (KeyValuePair<string, DateTime> curr in _ClientsLastSeen)
+            {
+                if (curr.Value < idleTimestamp)
+                {
+                    _ClientsTimedout.TryAdd(curr.Key, DateTime.Now);
+                    Log("Disconnecting client " + curr.Key + " due to idle timeout");
+                    DisconnectClient(curr.Key);
+                }
+            }
+        }
+
+        private void UpdateClientLastSeen(string ipPort)
+        {
+            if (_ClientsLastSeen.ContainsKey(ipPort))
+            {
+                DateTime ts;
+                _ClientsLastSeen.TryRemove(ipPort, out ts);
+            }
+
+            _ClientsLastSeen.TryAdd(ipPort, DateTime.Now);
         }
 
         #endregion

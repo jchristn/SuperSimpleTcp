@@ -8,9 +8,9 @@
 
 SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
  
-## New in v1.1.4
+## New in v1.1.5
 
-- XML documentation
+- Added support for idle client disconnection
 
 ## Help or Feedback
 
@@ -45,9 +45,9 @@ static async Task ClientConnected(string client)
 	Console.WriteLine(client + " connected");
 } 
 
-static async Task ClientDisconnected(string client)
+static async Task ClientDisconnected(string client, DisconnectReason reason)
 {
-	Console.WriteLine(client + " disconnected");
+	Console.WriteLine(client + " disconnected: " + reason);
 }
 
 static async Task DataReceived(string client, byte[] data)
