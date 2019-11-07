@@ -312,6 +312,16 @@ namespace SimpleTcp
             }
         }
 
+        /// <summary>
+        /// Send data to the server.
+        /// </summary>
+        /// <param name="data">String containing data to send.</param>
+        public void Send(string data)
+        {
+            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
+            Send(Encoding.UTF8.GetBytes(data));
+        }
+
         #endregion
 
         #region Private-Methods

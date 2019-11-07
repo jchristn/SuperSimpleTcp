@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v1.1.6
+
+- Added support for Send(string) 
+
+## Previous Versions
+
 v1.1.5
 
 - Added support for idle client disconnection
-
-## Previous Versions
 
 v1.1.4
 

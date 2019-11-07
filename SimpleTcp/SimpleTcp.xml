@@ -102,6 +102,12 @@
             </summary> 
             <param name="data">Byte array containing data to send.</param>
         </member>
+        <member name="M:SimpleTcp.TcpClient.Send(System.String)">
+            <summary>
+            Send data to the server.
+            </summary>
+            <param name="data">String containing data to send.</param>
+        </member>
         <member name="T:SimpleTcp.TcpServer">
             <summary>
             TCP server with SSL support.  
@@ -191,6 +197,13 @@
             </summary>
             <param name="ipPort">The client IP:port string.</param>
             <param name="data">Byte array containing data to send.</param>
+        </member>
+        <member name="M:SimpleTcp.TcpServer.Send(System.String,System.String)">
+            <summary>
+            Send data to the specified client by IP:port.
+            </summary>
+            <param name="ipPort">The client IP:port string.</param>
+            <param name="data">String containing data to send.</param>
         </member>
         <member name="M:SimpleTcp.TcpServer.DisconnectClient(System.String)">
             <summary>

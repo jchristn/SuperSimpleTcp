@@ -277,6 +277,18 @@ namespace SimpleTcp
         }
 
         /// <summary>
+        /// Send data to the specified client by IP:port.
+        /// </summary>
+        /// <param name="ipPort">The client IP:port string.</param>
+        /// <param name="data">String containing data to send.</param>
+        public void Send(string ipPort, string data)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
+            Send(ipPort, Encoding.UTF8.GetBytes(data));
+        }
+
+        /// <summary>
         /// Disconnects the specified client.
         /// </summary>
         /// <param name="ipPort">IP:port of the client.</param>
