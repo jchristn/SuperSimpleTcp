@@ -74,7 +74,7 @@ void Main(string[] args)
 	client.Connect();
 
 	// once connected to the server...
-	client.Send(Encoding.UTF8.GetString("Hello, world!"));
+	client.Send(Encoding.UTF8.GetBytes("Hello, world!"));
 	Console.ReadKey();
 }
 
