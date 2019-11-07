@@ -66,9 +66,9 @@ void Main(string[] args)
 	TcpClient client = new TcpClient("127.0.0.1", 9000, false, null, null);
 
 	// set callbacks
-	server.Connected = Connected;
-	server.Disconnected = Disconnected;
-	server.DataReceived = DataReceived;
+	client.Connected = Connected;
+	client.Disconnected = Disconnected;
+	client.DataReceived = DataReceived;
 
 	// let's go!
 	client.Connect();
