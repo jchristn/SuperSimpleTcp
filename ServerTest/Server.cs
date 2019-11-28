@@ -35,7 +35,7 @@ namespace ServerTestNetCore
             _Server.ClientConnected = ClientConnected;
             _Server.ClientDisconnected = ClientDisconnected;
             _Server.DataReceived = DataReceived;
-            // _Server.IdleClientTimeoutSeconds = 10;
+            _Server.IdleClientTimeoutSeconds = 5;
             _Server.Debug = false;
             _Server.MutuallyAuthenticate = false;
             _Server.AcceptInvalidCertificates = true;

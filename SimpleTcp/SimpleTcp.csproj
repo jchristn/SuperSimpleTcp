@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>1.1.6</Version>
+    <Version>1.1.7</Version>
     <Authors>Joel Christner</Authors>
     <Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
     <Copyright>(c)2019 Joel Christner</Copyright>

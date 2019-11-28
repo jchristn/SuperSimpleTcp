@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v1.1.7
+
+- Bugfix for idle client timeout not being reset upon receiving data (thanks @pha3z!)
+
+## Previous Versions
+
 v1.1.6
 
 - Added support for Send(string) 
-
-## Previous Versions
 
 v1.1.5
 

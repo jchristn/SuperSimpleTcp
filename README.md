@@ -8,9 +8,9 @@
 
 SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
  
-## New in v1.1.6
+## New in v1.1.7
 
-- Added support for Send(string) 
+- Bugfix for idle client timeout not being reset upon receiving data (thanks @pha3z!)
 
 ## Help or Feedback
 
@@ -101,6 +101,10 @@ Both TcpClient and TcpServer have settable values for:
 - ```ConsoleLogging``` - enable or disable logging to the console
 - ```MutuallyAuthenticate``` - only used if SSL is enabled, demands that both client and server mutually authenticate
 - ```AcceptInvalidCertificates``` - accept and allow certificates that are invalid or cannot be validated
+
+TcpServer also has:
+
+- ```IdleClientTimeoutSeconds``` - automatically disconnect a client if data is not received within the specified number of seconds
 
 ### Testing with SSL
 

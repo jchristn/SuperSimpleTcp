@@ -492,6 +492,8 @@ namespace SimpleTcp
                     {
                         Task unawaited = Task.Run(() => DataReceived(client.IpPort, data));
                     }
+
+                    UpdateClientLastSeen(client.IpPort);
                 }
                 catch (Exception e)
                 {
