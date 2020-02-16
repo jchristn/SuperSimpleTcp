@@ -108,6 +108,12 @@
             </summary>
             <param name="data">String containing data to send.</param>
         </member>
+        <member name="M:SimpleTcp.TcpClient.Dispose(System.Boolean)">
+            <summary>
+            Dispose of the TCP client.
+            </summary>
+            <param name="disposing">Dispose of resources.</param>
+        </member>
         <member name="T:SimpleTcp.TcpServer">
             <summary>
             TCP server with SSL support.  
@@ -210,6 +216,12 @@
             Disconnects the specified client.
             </summary>
             <param name="ipPort">IP:port of the client.</param>
+        </member>
+        <member name="M:SimpleTcp.TcpServer.Dispose(System.Boolean)">
+            <summary>
+            Dispose of the TCP server.
+            </summary>
+            <param name="disposing">Dispose of resources.</param>
         </member>
     </members>
 </doc>

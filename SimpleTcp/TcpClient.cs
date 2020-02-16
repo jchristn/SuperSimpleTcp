@@ -96,15 +96,15 @@ namespace SimpleTcp
             }
             private set
             {
-                IsConnected = value;
+                _Connected = value;
             }
         }
 
         #endregion
 
         #region Private-Members
-         
-        private int _ReceiveBufferSize;
+
+        private int _ReceiveBufferSize = 4096;
         private int _ConnectTimeoutSeconds = 5;
         private string _ServerIp;
         private IPAddress _IPAddress;
@@ -119,10 +119,10 @@ namespace SimpleTcp
         private X509Certificate2 _SslCert;
         private X509Certificate2Collection _SslCertCollection;
 
-        private readonly object _SendLock; 
+        private readonly object _SendLock = new object(); 
         private bool _Connected = false;
 
-        private CancellationTokenSource _TokenSource;
+        private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
 
         #endregion
@@ -141,11 +141,8 @@ namespace SimpleTcp
         {
             if (String.IsNullOrEmpty(serverIp)) throw new ArgumentNullException(nameof(serverIp));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
-
-            _ReceiveBufferSize = 4096; 
-            _TokenSource = new CancellationTokenSource();
-            _Token = _TokenSource.Token;
-            _SendLock = new object(); 
+              
+            _Token = _TokenSource.Token; 
             _ServerIp = serverIp;
             _IPAddress = IPAddress.Parse(_ServerIp);
             _Port = port;
@@ -185,38 +182,9 @@ namespace SimpleTcp
         /// Dispose of the TCP client.
         /// </summary>
         public void Dispose()
-        { 
-            _Connected = false;
-
-            if (_TokenSource != null)
-            {
-                if (!_TokenSource.IsCancellationRequested) _TokenSource.Cancel();
-                _TokenSource.Dispose();
-                _TokenSource = null;
-            }
-             
-            if (_SslStream != null)
-            {
-                _SslStream.Close();
-                _SslStream.Dispose();
-                _SslStream = null;
-            } 
-                 
-            if (_NetworkStream != null)
-            {
-                _NetworkStream.Close();
-                _NetworkStream.Dispose();
-                _NetworkStream = null;
-            } 
-                 
-            if (_TcpClient != null)
-            {
-                _TcpClient.Close();
-                _TcpClient.Dispose();
-                _TcpClient = null;
-            } 
-
-            Log("Dispose complete");
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -325,7 +293,49 @@ namespace SimpleTcp
         #endregion
 
         #region Private-Methods
-         
+
+        /// <summary>
+        /// Dispose of the TCP client.
+        /// </summary>
+        /// <param name="disposing">Dispose of resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _Connected = false;
+
+                if (_TokenSource != null)
+                {
+                    if (!_TokenSource.IsCancellationRequested) _TokenSource.Cancel();
+                    _TokenSource.Dispose();
+                    _TokenSource = null;
+                }
+
+                if (_SslStream != null)
+                {
+                    _SslStream.Close();
+                    _SslStream.Dispose();
+                    _SslStream = null;
+                }
+
+                if (_NetworkStream != null)
+                {
+                    _NetworkStream.Close();
+                    _NetworkStream.Dispose();
+                    _NetworkStream = null;
+                }
+
+                if (_TcpClient != null)
+                {
+                    _TcpClient.Close();
+                    _TcpClient.Dispose();
+                    _TcpClient = null;
+                }
+
+                Log("Dispose complete"); 
+            }
+        }
+
         private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         { 
             return AcceptInvalidCertificates;
@@ -373,11 +383,12 @@ namespace SimpleTcp
                     e.ToString() + 
                     Environment.NewLine);
             }
-             
+
+            _Connected = false;
             if (Disconnected != null)
             {
                 Task unawaited = Task.Run(() => Disconnected());
-            } 
+            }
         }
 
         private async Task<byte[]> DataReadAsync(CancellationToken token)

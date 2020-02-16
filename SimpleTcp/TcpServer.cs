@@ -174,39 +174,8 @@ namespace SimpleTcp
         /// </summary>
         public void Dispose()
         {
-            try
-            {
-                if (_Clients != null && _Clients.Count > 0)
-                {
-                    foreach (KeyValuePair<string, ClientMetadata> curr in _Clients)
-                    {
-                        curr.Value.Dispose();
-                        Log("Disconnected client " + curr.Key);
-                    }
-                }
-
-                _TokenSource.Cancel();
-                _TokenSource.Dispose();
-
-                if (_Listener != null && _Listener.Server != null)
-                {
-                    _Listener.Server.Close();
-                    _Listener.Server.Dispose();
-                }
-
-                if (_Listener != null)
-                {
-                    _Listener.Stop();
-                }
-            }
-            catch (Exception e)
-            {
-                Log(Environment.NewLine +
-                    "Dispose exception:" +
-                    Environment.NewLine +
-                    e.ToString() +
-                    Environment.NewLine);
-            }
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -317,7 +286,51 @@ namespace SimpleTcp
         #endregion
 
         #region Private-Methods
-         
+
+        /// <summary>
+        /// Dispose of the TCP server.
+        /// </summary>
+        /// <param name="disposing">Dispose of resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                try
+                {
+                    if (_Clients != null && _Clients.Count > 0)
+                    {
+                        foreach (KeyValuePair<string, ClientMetadata> curr in _Clients)
+                        {
+                            curr.Value.Dispose();
+                            Log("Disconnected client " + curr.Key);
+                        }
+                    }
+
+                    _TokenSource.Cancel();
+                    _TokenSource.Dispose();
+
+                    if (_Listener != null && _Listener.Server != null)
+                    {
+                        _Listener.Server.Close();
+                        _Listener.Server.Dispose();
+                    }
+
+                    if (_Listener != null)
+                    {
+                        _Listener.Stop();
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log(Environment.NewLine +
+                        "Dispose exception:" +
+                        Environment.NewLine +
+                        e.ToString() +
+                        Environment.NewLine);
+                }
+            }
+        }
+
         private void Log(string msg)
         {
             if (Debug) Console.WriteLine(msg);
