@@ -33,9 +33,10 @@ namespace ClientTestNetCore
             _Client.Connected += Connected;
             _Client.Disconnected += Disconnected;
             _Client.DataReceived += DataReceived;
-            _Client.Debug = false;
+             
             _Client.MutuallyAuthenticate = false;
             _Client.AcceptInvalidCertificates = true;
+            // _Client.Logger = Logger;
             _Client.Connect();
 
             while (_RunForever)
@@ -64,6 +65,12 @@ namespace ClientTestNetCore
                     case "dispose":
                         _Client.Dispose();
                         break;
+                    case "stats":
+                        Console.WriteLine(_Client.Stats.ToString());
+                        break;
+                    case "stats reset":
+                        _Client.Stats.Reset();
+                        break;
                 }
             }
         }
@@ -91,22 +98,26 @@ namespace ClientTestNetCore
         static void Menu()
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine(" ?            Help, this menu");
-            Console.WriteLine(" q            Quit");
-            Console.WriteLine(" cls          Clear the screen");
-            Console.WriteLine(" send         Send a message to the server");
-            Console.WriteLine(" connected    Display if the client is connected to the server");
-            Console.WriteLine(" dispose      Dispose of the client");
+            Console.WriteLine(" ?             Help, this menu");
+            Console.WriteLine(" q             Quit");
+            Console.WriteLine(" cls           Clear the screen");
+            Console.WriteLine(" send          Send a message to the server");
+            Console.WriteLine(" connected     Display if the client is connected to the server");
+            Console.WriteLine(" dispose       Dispose of the client"); 
+            Console.WriteLine(" stats         Display client statistics");
+            Console.WriteLine(" stats reset   Reset client statistics");
             Console.WriteLine("");
         }
 
         static void Send()
         {
             string data = InputString("Data:", "Hello!", true);
-            if (!String.IsNullOrEmpty(data))
-            {
-                _Client.Send(Encoding.UTF8.GetBytes(data));
-            }
+            if (!String.IsNullOrEmpty(data)) _Client.Send(data);
+        }
+
+        static void Logger(string msg)
+        {
+            Console.WriteLine(msg);
         }
 
         static bool InputBoolean(string question, bool yesDefault)

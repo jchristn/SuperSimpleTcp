@@ -2,15 +2,25 @@
 
 namespace SimpleTcp
 {
+    /// <summary>
+    /// Arguments for data received from client events.
+    /// </summary>
     public class DataReceivedFromClientEventArgs : EventArgs
     {
-        internal DataReceivedFromClientEventArgs(string ipAndPort, byte[] data)
+        internal DataReceivedFromClientEventArgs(string ipPort, byte[] data)
         {
-            IpAndPort = ipAndPort;
+            IpPort = ipPort;
             Data = data;
         }
 
-        public string IpAndPort { get; }
+        /// <summary>
+        /// The IP address and port number of the connected client socket.
+        /// </summary>
+        public string IpPort { get; }
+
+        /// <summary>
+        /// The data received from the client.
+        /// </summary>
         public byte[] Data { get; }
     }
 }

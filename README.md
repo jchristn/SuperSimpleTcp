@@ -8,9 +8,10 @@
 
 SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
  
-## New in v1.1.8
+## New in v2.0.1
 
-- Fix for IsConnected property (thank you @OpNop)
+- Breaking changes; moved from Func-based callbacks to events (thanks @cmeeren)
+- Added Statistics object
 
 ## Help or Feedback
 
@@ -28,9 +29,9 @@ void Main(string[] args)
 	TcpServer server = new TcpServer("127.0.0.1", 9000, false, null, null);
 
 	// set callbacks
-	server.ClientConnected = ClientConnected;
-	server.ClientDisconnected = ClientDisconnected;
-	server.DataReceived = DataReceived;
+	server.ClientConnected += ClientConnected;
+	server.ClientDisconnected += ClientDisconnected;
+	server.DataReceived += DataReceived;
 
 	// let's go!
 	server.Start();
@@ -40,19 +41,19 @@ void Main(string[] args)
 	Console.ReadKey();
 }
 
-static async Task ClientConnected(string client)
+static void ClientConnected(object sender, ClientConnectedEventArgs e)
 {
-	Console.WriteLine(client + " connected");
-} 
-
-static async Task ClientDisconnected(string client, DisconnectReason reason)
-{
-	Console.WriteLine(client + " disconnected: " + reason);
+    Console.WriteLine("[" + e.IpPort + "] client connected");
 }
 
-static async Task DataReceived(string client, byte[] data)
+static void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
 {
-	Console.WriteLine(client + ": " + Encoding.UTF8.GetString(data));
+    Console.WriteLine("[" + e.IpPort + "] client disconnected: " + e.Reason.ToString());
+}
+
+static void DataReceived(object sender, DataReceivedFromClientEventArgs e)
+{
+    Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data));
 }
 ```
 
@@ -66,9 +67,9 @@ void Main(string[] args)
 	TcpClient client = new TcpClient("127.0.0.1", 9000, false, null, null);
 
 	// set callbacks
-	client.Connected = Connected;
-	client.Disconnected = Disconnected;
-	client.DataReceived = DataReceived;
+	client.Connected += Connected;
+	client.Disconnected += Disconnected;
+	client.DataReceived += DataReceived;
 
 	// let's go!
 	client.Connect();
@@ -78,19 +79,19 @@ void Main(string[] args)
 	Console.ReadKey();
 }
 
-static async Task Connected()
+static void Connected(object sender, EventArgs e)
 {
-	Console.WriteLine("Connected");
-} 
-
-static async Task Disconnected()
-{
-	Console.WriteLine("Disconnected");
+    Console.WriteLine("*** Server connected");
 }
 
-static async Task DataReceived(byte[] data)
+static void Disconnected(object sender, EventArgs e)
 {
-	Console.WriteLine(Encoding.UTF8.GetString(data));
+    Console.WriteLine("*** Server disconnected"); 
+}
+
+static void DataReceived(object sender, DataReceivedFromServerEventArgs e)
+{
+    Console.WriteLine("[" + _ServerIp + ":" + _ServerPort + "] " + Encoding.UTF8.GetString(e.Data));
 }
 ```
 
@@ -98,13 +99,15 @@ static async Task DataReceived(byte[] data)
 
 Both TcpClient and TcpServer have settable values for:
 
-- ```ConsoleLogging``` - enable or disable logging to the console
+- ```Logger``` - method to invoke to send log messages from either TcpClient or TcpServer
 - ```MutuallyAuthenticate``` - only used if SSL is enabled, demands that both client and server mutually authenticate
 - ```AcceptInvalidCertificates``` - accept and allow certificates that are invalid or cannot be validated
 
 TcpServer also has:
 
 - ```IdleClientTimeoutSeconds``` - automatically disconnect a client if data is not received within the specified number of seconds
+
+Additionally, both TcpClient and TcpServer offer a statistics object under ```TcpClient.Stats``` and ```TcpServer.Stats```.  These values (other than start time and uptime) can be reset using the ```Stats.Reset()``` API.
 
 ### Testing with SSL
 

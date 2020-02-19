@@ -69,12 +69,7 @@ namespace SimpleTcp
                 _ConnectTimeoutSeconds = value;
             }
         }
-
-        /// <summary>
-        /// Enable or disable logging to the console.
-        /// </summary>
-        public bool Debug { get; set; }
-
+         
         /// <summary>
         /// Enable or disable acceptance of invalid SSL certificates.
         /// </summary>
@@ -100,6 +95,22 @@ namespace SimpleTcp
             }
         }
 
+        /// <summary>
+        /// Access TCP statistics.
+        /// </summary>
+        public Statistics Stats
+        {
+            get
+            {
+                return _Stats;
+            }
+        }
+
+        /// <summary>
+        /// Method to invoke to send a log message.
+        /// </summary>
+        public Action<string> Logger = null;
+
         #endregion
 
         #region Private-Members
@@ -124,6 +135,8 @@ namespace SimpleTcp
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
+
+        private Statistics _Stats = new Statistics();
 
         #endregion
 
@@ -153,9 +166,7 @@ namespace SimpleTcp
             _SslStream = null;
             _SslCert = null;
             _SslCertCollection = null;
-
-            Debug = false;
-
+             
             if (_Ssl)
             {
                 if (String.IsNullOrEmpty(pfxPassword))
@@ -275,6 +286,8 @@ namespace SimpleTcp
                     _SslStream.Flush(); 
                 }
             }
+             
+            _Stats.SentBytes += data.Length;
         }
 
         /// <summary>
@@ -329,18 +342,13 @@ namespace SimpleTcp
                     _TcpClient = null;
                 }
 
-                Log("Dispose complete"); 
+                Logger?.Invoke("[SimpleTcp.Client] Dispose complete");
             }
         }
 
         private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         { 
             return AcceptInvalidCertificates;
-        }
-
-        private void Log(string msg)
-        {
-            if (Debug) Console.WriteLine(msg);
         }
 
         private async Task DataReceiver(CancellationToken token)
@@ -353,26 +361,28 @@ namespace SimpleTcp
                         || _TcpClient == null 
                         || !_TcpClient.Connected)
                     {
-                        Log("Disconnection detected");
+                        Logger?.Invoke("[SimpleTcp.Client] Disconnection detected");
                         break;
                     }
                      
                     byte[] data = await DataReadAsync(token);
                     if (data == null)
-                    {
-                        Console.WriteLine("null data received");
+                    { 
                         await Task.Delay(30);
                         continue;
                     }
 
                     DataReceived?.Invoke(this, new DataReceivedFromServerEventArgs(data));
+                    _Stats.ReceivedBytes += data.Length;
                 } 
+            }
+            catch (SocketException)
+            {
+                Logger?.Invoke("[SimpleTcp.Server] Data receiver socket exception (disconnection)");
             }
             catch (Exception e)
             {
-                Log(
-                    Environment.NewLine + 
-                    "Data receiver exception:" + 
+                Logger?.Invoke("[SimpleTcp.Client] Data receiver exception:" + 
                     Environment.NewLine + 
                     e.ToString() + 
                     Environment.NewLine);

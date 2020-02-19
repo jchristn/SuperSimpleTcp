@@ -34,10 +34,11 @@ namespace ServerTestNetCore
             _Server.ClientConnected += ClientConnected;
             _Server.ClientDisconnected += ClientDisconnected;
             _Server.DataReceived += DataReceived;
-            _Server.IdleClientTimeoutSeconds = 5;
-            _Server.Debug = false;
+
+            _Server.IdleClientTimeoutSeconds = 5; 
             _Server.MutuallyAuthenticate = false;
             _Server.AcceptInvalidCertificates = true;
+            _Server.Logger = Logger;
             _Server.Start();
 
             while (_RunForever)
@@ -71,35 +72,43 @@ namespace ServerTestNetCore
                     case "dispose":
                         _Server.Dispose();
                         break;
+                    case "stats":
+                        Console.WriteLine(_Server.Stats.ToString());
+                        break;
+                    case "stats reset":
+                        _Server.Stats.Reset();
+                        break;
                 }
             }
         }
 
         static void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            Console.WriteLine("[" + e.IpAndPort + "] client connected");
+            Console.WriteLine("[" + e.IpPort + "] client connected");
         }
 
         static void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            Console.WriteLine("[" + e.IpAndPort + "] client disconnected: " + e.Reason.ToString());
+            Console.WriteLine("[" + e.IpPort + "] client disconnected: " + e.Reason.ToString());
         }
 
         static void DataReceived(object sender, DataReceivedFromClientEventArgs e)
         {
-            Console.WriteLine("[" + e.IpAndPort + "]: " + Encoding.UTF8.GetString(e.Data));
+            Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data));
         }
 
         static void Menu()
         {
             Console.WriteLine("Available commands:");
-            Console.WriteLine(" ?            Help, this menu");
-            Console.WriteLine(" q            Quit");
-            Console.WriteLine(" cls          Clear the screen");
-            Console.WriteLine(" list         List connected clients");
-            Console.WriteLine(" send         Send a message to a client");
-            Console.WriteLine(" remove       Disconnect client");
-            Console.WriteLine(" dispose      Dispose of the server");
+            Console.WriteLine(" ?             Help, this menu");
+            Console.WriteLine(" q             Quit");
+            Console.WriteLine(" cls           Clear the screen");
+            Console.WriteLine(" list          List connected clients");
+            Console.WriteLine(" send          Send a message to a client");
+            Console.WriteLine(" remove        Disconnect client");
+            Console.WriteLine(" dispose       Dispose of the server");
+            Console.WriteLine(" stats         Display server statistics");
+            Console.WriteLine(" stats reset   Reset server statistics");
             Console.WriteLine("");
         }
 
@@ -124,6 +133,11 @@ namespace ServerTestNetCore
                     _Server.Send(clientIp, Encoding.UTF8.GetBytes(data));
                 }
             }
+        }
+
+        static void Logger(string msg)
+        {
+            Console.WriteLine(msg);
         }
 
         static bool InputBoolean(string question, bool yesDefault)

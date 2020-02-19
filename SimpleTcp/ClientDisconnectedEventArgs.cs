@@ -2,15 +2,25 @@
 
 namespace SimpleTcp
 {
+    /// <summary>
+    /// Arguments for client disconnection events.
+    /// </summary>
     public class ClientDisconnectedEventArgs : EventArgs
     {
-        internal ClientDisconnectedEventArgs(string ipAndPort, DisconnectReason reason)
+        internal ClientDisconnectedEventArgs(string ipPort, DisconnectReason reason)
         {
-            IpAndPort = ipAndPort;
+            IpPort = ipPort;
             Reason = reason;
         }
 
-        public string IpAndPort { get; }
+        /// <summary>
+        /// The IP address and port number of the disconnected client socket.
+        /// </summary>
+        public string IpPort { get; }
+
+        /// <summary>
+        /// The reason for the disconnection.
+        /// </summary>
         public DisconnectReason Reason { get; }
     }
 }

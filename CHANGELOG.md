@@ -2,11 +2,16 @@
 
 ## Current Version
 
+v2.0.1
+
+- Breaking changes; moved from Func-based callbacks to events (thanks @cmeeren)
+- Added Statistics object
+
+## Previous Versions
+
 v1.1.8
 
 - Fix for IsConnected property (thank you @OpNop)
-
-## Previous Versions
 
 v1.1.7
 
