@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using SimpleTcp;
 
 namespace ClientTestNetCore
@@ -32,9 +30,9 @@ namespace ClientTestNetCore
 
             _Client = new TcpClient(_ServerIp, _ServerPort, _Ssl, _PfxFilename, _PfxPassword);
 
-            _Client.Connected = Connected;
-            _Client.Disconnected = Disconnected;
-            _Client.DataReceived = DataReceived;
+            _Client.Connected += Connected;
+            _Client.Disconnected += Disconnected;
+            _Client.DataReceived += DataReceived;
             _Client.Debug = false;
             _Client.MutuallyAuthenticate = false;
             _Client.AcceptInvalidCertificates = true;
@@ -75,25 +73,19 @@ namespace ClientTestNetCore
             Console.WriteLine("Connected: " + _Client.IsConnected);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task Connected()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void Connected(object sender, EventArgs e)
         {
             Console.WriteLine("*** Server connected");
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task Disconnected()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void Disconnected(object sender, EventArgs e)
         {
             Console.WriteLine("*** Server disconnected"); 
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task DataReceived(byte[] data)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void DataReceived(object sender, DataReceivedFromServerEventArgs e)
         {
-            Console.WriteLine("[" + _ServerIp + ":" + _ServerPort + "] " + Encoding.UTF8.GetString(data));
+            Console.WriteLine("[" + _ServerIp + ":" + _ServerPort + "] " + Encoding.UTF8.GetString(e.Data));
         }
 
         static void Menu()

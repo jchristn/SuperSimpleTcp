@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using SimpleTcp;
 
 namespace ServerTestNetCore
@@ -32,9 +31,9 @@ namespace ServerTestNetCore
 
             _Server = new TcpServer(_ListenerIp, _ListenerPort, _Ssl, _PfxFilename, _PfxPassword);
 
-            _Server.ClientConnected = ClientConnected;
-            _Server.ClientDisconnected = ClientDisconnected;
-            _Server.DataReceived = DataReceived;
+            _Server.ClientConnected += ClientConnected;
+            _Server.ClientDisconnected += ClientDisconnected;
+            _Server.DataReceived += DataReceived;
             _Server.IdleClientTimeoutSeconds = 5;
             _Server.Debug = false;
             _Server.MutuallyAuthenticate = false;
@@ -76,25 +75,19 @@ namespace ServerTestNetCore
             }
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task ClientConnected(string ipPort)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
-            Console.WriteLine("[" + ipPort + "] client connected");
+            Console.WriteLine("[" + e.IpAndPort + "] client connected");
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task ClientDisconnected(string ipPort, DisconnectReason reason)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
-            Console.WriteLine("[" + ipPort + "] client disconnected: " + reason.ToString());
+            Console.WriteLine("[" + e.IpAndPort + "] client disconnected: " + e.Reason.ToString());
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        static async Task DataReceived(string ipPort, byte[] data)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        static void DataReceived(object sender, DataReceivedFromClientEventArgs e)
         {
-            Console.WriteLine("[" + ipPort + "]: " + Encoding.UTF8.GetString(data));
+            Console.WriteLine("[" + e.IpAndPort + "]: " + Encoding.UTF8.GetString(e.Data));
         }
 
         static void Menu()

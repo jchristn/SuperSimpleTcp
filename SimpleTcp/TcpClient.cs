@@ -25,17 +25,17 @@ namespace SimpleTcp
         /// <summary>
         /// Callback to call when the connection is established.
         /// </summary>
-        public Func<Task> Connected = null;
+        public event EventHandler Connected;
 
         /// <summary>
         /// Callback to call when the connection is destroyed.
         /// </summary>
-        public Func<Task> Disconnected = null;
+        public event EventHandler Disconnected;
 
         /// <summary>
         /// Callback to call when byte data has become available from the server.
         /// </summary>
-        public Func<byte[], Task> DataReceived = null;
+        public event EventHandler<DataReceivedFromServerEventArgs> DataReceived;
 
         /// <summary>
         /// Receive buffer size to use while reading from the TCP server.
@@ -248,10 +248,7 @@ namespace SimpleTcp
                 wh.Close();
             }
 
-            if (Connected != null)
-            {
-                Task.Run(() => Connected());
-            }
+            Connected?.Invoke(this, EventArgs.Empty);
 
             Task.Run(() => DataReceiver(_Token), _Token);
         }
@@ -368,10 +365,7 @@ namespace SimpleTcp
                         continue;
                     }
 
-                    if (DataReceived != null)
-                    {
-                        Task unawaited = Task.Run(() => DataReceived(data));
-                    } 
+                    DataReceived?.Invoke(this, new DataReceivedFromServerEventArgs(data));
                 } 
             }
             catch (Exception e)
@@ -385,10 +379,7 @@ namespace SimpleTcp
             }
 
             _Connected = false;
-            if (Disconnected != null)
-            {
-                Task unawaited = Task.Run(() => Disconnected());
-            }
+            Disconnected?.Invoke(this, EventArgs.Empty);
         }
 
         private async Task<byte[]> DataReadAsync(CancellationToken token)
