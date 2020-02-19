@@ -26,17 +26,17 @@ namespace SimpleTcp
         /// <summary>
         /// Callback to call when a client connects.  A string containing the client IP:port will be passed.
         /// </summary>
-        public Func<string, Task> ClientConnected = null;
+        public event EventHandler<ClientConnectedEventArgs> ClientConnected;
 
         /// <summary>
         /// Callback to call when a client disconnects.  A string containing the client IP:port will be passed.
         /// </summary>
-        public Func<string, DisconnectReason, Task> ClientDisconnected = null;
+        public event EventHandler<ClientDisconnectedEventArgs> ClientDisconnected;
 
         /// <summary>
         /// Callback to call when byte data has become available from the client.  A string containing the client IP:port and a byte array containing the data will be passed.
         /// </summary>
-        public Func<string, byte[], Task> DataReceived = null;
+        public event EventHandler<DataReceivedFromClientEventArgs> DataReceived;
 
         /// <summary>
         /// Receive buffer size to use while reading from connected TCP clients.
@@ -400,8 +400,7 @@ namespace SimpleTcp
 
                     Log("[" + clientIp + "] starting data receiver");
 
-                    if (ClientConnected != null)
-                        await Task.Run(() => ClientConnected(clientIp));
+                    ClientConnected?.Invoke(this, new ClientConnectedEventArgs(clientIp));
 
                     Task dataRecv = Task.Run(() => DataReceiver(client), _Token);
                 }
@@ -501,10 +500,7 @@ namespace SimpleTcp
                         continue;
                     }
 
-                    if (DataReceived != null)
-                    {
-                        Task unawaited = Task.Run(() => DataReceived(client.IpPort, data));
-                    }
+                    DataReceived?.Invoke(this, new DataReceivedFromClientEventArgs(client.IpPort, data));
 
                     UpdateClientLastSeen(client.IpPort);
                 }
@@ -523,22 +519,17 @@ namespace SimpleTcp
 
             Log(header + " data receiver terminated");
 
-            if (ClientDisconnected != null)
+            if (_ClientsKicked.ContainsKey(client.IpPort))
             {
-                Task unawaited = null;
-
-                if (_ClientsKicked.ContainsKey(client.IpPort))
-                {
-                    unawaited = Task.Run(() => ClientDisconnected(client.IpPort, DisconnectReason.Kicked));
-                }
-                else if (_ClientsTimedout.ContainsKey(client.IpPort))
-                {
-                    unawaited = Task.Run(() => ClientDisconnected(client.IpPort, DisconnectReason.Timeout));
-                }
-                else
-                {
-                    unawaited = Task.Run(() => ClientDisconnected(client.IpPort, DisconnectReason.Normal));
-                }
+                ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(client.IpPort, DisconnectReason.Kicked));
+            }
+            else if (_ClientsTimedout.ContainsKey(client.IpPort))
+            {
+                ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(client.IpPort, DisconnectReason.Timeout));
+            }
+            else
+            {
+                ClientDisconnected?.Invoke(this, new ClientDisconnectedEventArgs(client.IpPort, DisconnectReason.Normal));
             }
 
             DateTime removedTs;
