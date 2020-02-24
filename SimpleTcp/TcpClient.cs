@@ -145,19 +145,24 @@ namespace SimpleTcp
         /// <summary>
         /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
         /// </summary>
-        /// <param name="serverIp">The server IP address.</param>
+        /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
         /// <param name="port">The TCP port on which to connect.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
         /// <param name="pfxPassword">The password to the PFX certificate file.</param>
-        public TcpClient(string serverIp, int port, bool ssl, string pfxCertFilename, string pfxPassword)
+        public TcpClient(string serverIpOrHostname, int port, bool ssl, string pfxCertFilename, string pfxPassword)
         {
-            if (String.IsNullOrEmpty(serverIp)) throw new ArgumentNullException(nameof(serverIp));
+            if (String.IsNullOrEmpty(serverIpOrHostname)) throw new ArgumentNullException(nameof(serverIpOrHostname));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
               
             _Token = _TokenSource.Token; 
-            _ServerIp = serverIp;
-            _IPAddress = IPAddress.Parse(_ServerIp);
+            _ServerIp = serverIpOrHostname;
+
+            if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
+            {
+                _IPAddress = Dns.GetHostEntry(serverIpOrHostname).AddressList[0];
+            }
+            
             _Port = port;
             _Ssl = ssl;
             _PfxCertFilename = pfxCertFilename;

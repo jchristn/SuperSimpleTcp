@@ -8,10 +8,9 @@
 
 SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
  
-## New in v2.0.1
+## New in v2.0.2
 
-- Breaking changes; moved from Func-based callbacks to events (thanks @cmeeren)
-- Added Statistics object
+- Support for specifying the server hostname as an alternative to its IP when instantiating the client (thanks @OpNop!)
 
 ## Help or Feedback
 

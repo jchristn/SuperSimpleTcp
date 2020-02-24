@@ -2,12 +2,16 @@
 
 ## Current Version
 
+v2.0.2
+
+- Support for specifying the server hostname as an alternative to its IP when instantiating the client (thanks @OpNop!)
+
+## Previous Versions
+
 v2.0.1
 
 - Breaking changes; moved from Func-based callbacks to events (thanks @cmeeren)
 - Added Statistics object
-
-## Previous Versions
 
 v1.1.8
 
