@@ -75,6 +75,22 @@ namespace SimpleTcp
         }
          
         /// <summary>
+        /// Number of seconds to wait between each iteration of evaluating connected clients to see if they have exceeded the configured timeout interval.
+        /// </summary>
+        public int IdleClientEvaluationIntervalSeconds
+        {
+            get
+            {
+                return _IdleClientEvaluationIntervalSeconds;
+            }
+            set
+            {
+                if (value < 1) throw new ArgumentOutOfRangeException("IdleClientEvaluationTimeIntervalSeconds must be one or greater.");
+                _IdleClientEvaluationIntervalSeconds = value;
+            }
+        }
+
+        /// <summary>
         /// Enable or disable acceptance of invalid SSL certificates.
         /// </summary>
         public bool AcceptInvalidCertificates = true;
@@ -106,6 +122,7 @@ namespace SimpleTcp
 
         private int _ReceiveBufferSize = 4096;
         private int _IdleClientTimeoutSeconds = 0;
+        private int _IdleClientEvaluationIntervalSeconds = 5;
 
         private string _ListenerIp;
         private IPAddress _IPAddress;
@@ -598,30 +615,34 @@ namespace SimpleTcp
         private async Task MonitorForIdleClients()
         {
             while (!_Token.IsCancellationRequested)
-            {
-                if (_IdleClientTimeoutSeconds > 0 && _ClientsLastSeen.Count > 0)
+            { 
+                await Task.Delay(_IdleClientEvaluationIntervalSeconds, _Token);
+
+                if (_IdleClientTimeoutSeconds == 0) continue;
+
+                try
                 {
-                    MonitorForIdleClientsTask();
+                    // Console.WriteLine("Checking for idle clients");
+                    DateTime idleTimestamp = DateTime.Now.AddSeconds(-1 * _IdleClientTimeoutSeconds);
+
+                    foreach (KeyValuePair<string, DateTime> curr in _ClientsLastSeen)
+                    {
+                        // Console.WriteLine("Evaluating " + curr.Key);
+                        if (curr.Value < idleTimestamp)
+                        {
+                            _ClientsTimedout.TryAdd(curr.Key, DateTime.Now);
+                            Logger?.Invoke("[SimpleTcp.Server] Disconnecting " + curr.Key + " due to timeout");
+                            DisconnectClient(curr.Key);
+                        }
+                    }
                 }
-                await Task.Delay(5000, _Token);
+                catch (Exception e)
+                {
+                    Console.WriteLine("Exception in MonitorForIdleClientsTask: " + e.ToString());
+                }
             }
         }
-
-        private void MonitorForIdleClientsTask()
-        {
-            DateTime idleTimestamp = DateTime.Now.AddSeconds(-1 * _IdleClientTimeoutSeconds);
-
-            foreach (KeyValuePair<string, DateTime> curr in _ClientsLastSeen)
-            {
-                if (curr.Value < idleTimestamp)
-                {
-                    _ClientsTimedout.TryAdd(curr.Key, DateTime.Now);
-                    Logger?.Invoke("[SimpleTcp.Server] Disconnecting " + curr.Key + " due to timeout");
-                    DisconnectClient(curr.Key);
-                }
-            }
-        }
-
+         
         private void UpdateClientLastSeen(string ipPort)
         {
             if (_ClientsLastSeen.ContainsKey(ipPort))
@@ -629,7 +650,7 @@ namespace SimpleTcp
                 DateTime ts;
                 _ClientsLastSeen.TryRemove(ipPort, out ts);
             }
-
+             
             _ClientsLastSeen.TryAdd(ipPort, DateTime.Now);
         }
 

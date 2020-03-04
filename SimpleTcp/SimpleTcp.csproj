@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.0.2</Version>
+    <Version>2.0.3</Version>
     <Authors>Joel Christner</Authors>
     <Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
     <Copyright>(c)2020 Joel Christner</Copyright>
@@ -12,7 +12,7 @@
     <RepositoryUrl>https://github.com/jchristn/simpletcp</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
     <PackageTags>tcp messaging socket message sockets api rpc</PackageTags>
-    <PackageReleaseNotes>Add support for using server hostname when instantiating the client (thanks @OpNop!)</PackageReleaseNotes>
+    <PackageReleaseNotes>Minor rework of idle client timeout handling due to intermittent issue (thank you @kopkarmecoindo)</PackageReleaseNotes>
     <PackageId>SuperSimpleTcp</PackageId>
     <Product>SuperSimpleTcp</Product>
     <PackageIconUrl>https://raw.githubusercontent.com/jchristn/SimpleTcp/master/assets/icon.ico</PackageIconUrl>

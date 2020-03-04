@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v2.0.3
+
+- Minor rework of idle client timeout handling due to intermittent issue (thank you @kopkarmecoindo)
+
+## Previous Versions
+
 v2.0.2
 
 - Support for specifying the server hostname as an alternative to its IP when instantiating the client (thanks @OpNop!)
-
-## Previous Versions
 
 v2.0.1
 
