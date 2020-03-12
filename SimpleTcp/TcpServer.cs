@@ -154,7 +154,7 @@ namespace SimpleTcp
         /// <summary>
         /// Instantiates the TCP server.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
         /// </summary>
-        /// <param name="listenerIp">The listener IP address.</param>
+        /// <param name="listenerIp">The listener IP address or hostname.</param>
         /// <param name="port">The TCP port on which to listen.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
@@ -164,8 +164,26 @@ namespace SimpleTcp
             if (String.IsNullOrEmpty(listenerIp)) throw new ArgumentNullException(nameof(listenerIp));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
              
-            _ListenerIp = listenerIp;
-            _IPAddress = IPAddress.Parse(_ListenerIp);
+            if (String.IsNullOrEmpty(listenerIp))
+            {
+                _IPAddress = IPAddress.Loopback;
+                _ListenerIp = _IPAddress.ToString();
+            }
+            else if (listenerIp == "*" || listenerIp == "+")
+            {
+                _IPAddress = IPAddress.Any;
+                _ListenerIp = listenerIp;
+            }
+            else
+            {
+                if (!IPAddress.TryParse(listenerIp, out _IPAddress))
+                {
+                    _IPAddress = Dns.GetHostEntry(listenerIp).AddressList[0];
+                }
+
+                _ListenerIp = listenerIp;
+            }
+              
             _Port = port;
             _Ssl = ssl;
             _PfxCertFilename = pfxCertFilename;
