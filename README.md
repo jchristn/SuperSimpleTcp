@@ -4,7 +4,7 @@
 
 ## Simple wrapper for TCP client and server in C# with SSL support
 
-[![nuget](https://badge.fury.io/nu/Object.svg)](https://www.nuget.org/packages/SuperSimpleTcp/)     
+[![NuGet Version](https://img.shields.io/nuget/v/SuperSimpleTcp.svg?style=flat)](https://www.nuget.org/packages/SuperSimpleTcp/) [![NuGet](https://img.shields.io/nuget/dt/SuperSimpleTcp.svg)](https://www.nuget.org/packages/SuperSimpleTcp)    
 
 SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
  
