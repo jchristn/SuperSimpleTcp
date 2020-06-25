@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v2.0.5
+
+- Fix for ```ClientMetadata.Dispose```
+
+## Previous Versions
+
 v2.0.4
 
 - Fix for server constructor ```IPAddress.Any``` use case in addition to use of server hostname instead of IP address
-
-## Previous Versions
 
 v2.0.3
 

@@ -72,32 +72,35 @@ namespace SimpleTcp
 
         public void Dispose()
         {
-            if (TokenSource != null)
+            lock (_Lock)
             {
-                if (!TokenSource.IsCancellationRequested) TokenSource.Cancel();
-                TokenSource.Dispose();
-                TokenSource = null;
-            }
+                if (TokenSource != null)
+                {
+                    if (!TokenSource.IsCancellationRequested) TokenSource.Cancel();
+                    TokenSource.Dispose();
+                    TokenSource = null;
+                }
 
-            if (_SslStream != null)
-            {
-                _SslStream.Close();
-                _SslStream.Dispose();
-                _SslStream = null;
-            }
+                if (_SslStream != null)
+                {
+                    _SslStream.Close();
+                    _SslStream.Dispose();
+                    _SslStream = null;
+                }
 
-            if (_NetworkStream != null)
-            {
-                _NetworkStream.Close();
-                _NetworkStream.Dispose();
-                _NetworkStream = null;
-            }
+                if (_NetworkStream != null)
+                {
+                    _NetworkStream.Close();
+                    // _NetworkStream.Dispose();
+                    // _NetworkStream = null;
+                }
 
-            if (_TcpClient != null)
-            {
-                _TcpClient.Close();
-                _TcpClient.Dispose();
-                _TcpClient = null;
+                if (_TcpClient != null)
+                {
+                    _TcpClient.Close();
+                    _TcpClient.Dispose();
+                    _TcpClient = null;
+                }
             }
         }
 

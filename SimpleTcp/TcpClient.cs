@@ -21,7 +21,7 @@ namespace SimpleTcp
     public class TcpClient : IDisposable
     {
         #region Public-Members
-
+         
         /// <summary>
         /// Callback to call when the connection is established.
         /// </summary>
@@ -380,6 +380,10 @@ namespace SimpleTcp
                     DataReceived?.Invoke(this, new DataReceivedFromServerEventArgs(data));
                     _Stats.ReceivedBytes += data.Length;
                 } 
+            }
+            catch (ObjectDisposedException)
+            {
+
             }
             catch (SocketException)
             {

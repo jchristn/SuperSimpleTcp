@@ -36,7 +36,7 @@ namespace ClientTestNetCore
              
             _Client.MutuallyAuthenticate = false;
             _Client.AcceptInvalidCertificates = true;
-            // _Client.Logger = Logger;
+            _Client.Logger = Logger;
             _Client.Connect();
 
             while (_RunForever)

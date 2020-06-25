@@ -22,7 +22,7 @@ namespace SimpleTcp
     public class TcpServer : IDisposable
     {
         #region Public-Members
-
+         
         /// <summary>
         /// Callback to call when a client connects.  A string containing the client IP:port will be passed.
         /// </summary>
@@ -639,13 +639,11 @@ namespace SimpleTcp
                 if (_IdleClientTimeoutSeconds == 0) continue;
 
                 try
-                {
-                    // Console.WriteLine("Checking for idle clients");
+                { 
                     DateTime idleTimestamp = DateTime.Now.AddSeconds(-1 * _IdleClientTimeoutSeconds);
 
                     foreach (KeyValuePair<string, DateTime> curr in _ClientsLastSeen)
-                    {
-                        // Console.WriteLine("Evaluating " + curr.Key);
+                    { 
                         if (curr.Value < idleTimestamp)
                         {
                             _ClientsTimedout.TryAdd(curr.Key, DateTime.Now);
@@ -656,7 +654,7 @@ namespace SimpleTcp
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Exception in MonitorForIdleClientsTask: " + e.ToString());
+                    Logger?.Invoke("[SimpleTcp.Server] MonitorForIdleClientsTask exception: " + e.ToString());
                 }
             }
         }
