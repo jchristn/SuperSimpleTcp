@@ -38,19 +38,19 @@ namespace SimpleTcp
         public event EventHandler<DataReceivedFromServerEventArgs> DataReceived;
 
         /// <summary>
-        /// Receive buffer size to use while reading from the TCP server.
+        /// Buffer size to use while interacting with streams. 
         /// </summary>
-        public int ReceiveBufferSize
+        public int StreamBufferSize
         {
             get
             {
-                return _ReceiveBufferSize;
+                return _StreamBufferSize;
             }
             set
             {
-                if (value < 1) throw new ArgumentException("ReceiveBuffer must be one or greater.");
-                if (value > 65536) throw new ArgumentException("ReceiveBuffer must be less than 65,536.");
-                _ReceiveBufferSize = value;
+                if (value < 1) throw new ArgumentException("StreamBufferSize must be one or greater.");
+                if (value > 65536) throw new ArgumentException("StreamBufferSize must be less than 65,536.");
+                _StreamBufferSize = value;
             }
         }
 
@@ -115,7 +115,7 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private int _ReceiveBufferSize = 4096;
+        private int _StreamBufferSize = 65536;
         private int _ConnectTimeoutSeconds = 5;
         private string _ServerIp;
         private IPAddress _IPAddress;
@@ -130,7 +130,7 @@ namespace SimpleTcp
         private X509Certificate2 _SslCert;
         private X509Certificate2Collection _SslCertCollection;
 
-        private readonly object _SendLock = new object(); 
+        private SemaphoreSlim _SendLock = new SemaphoreSlim(1, 1); 
         private bool _Connected = false;
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
@@ -271,38 +271,88 @@ namespace SimpleTcp
 
         /// <summary>
         /// Send data to the server.
+        /// </summary>
+        /// <param name="data">String containing data to send.</param>
+        public void Send(string data)
+        {
+            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
+            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            MemoryStream ms = new MemoryStream();
+            ms.Write(bytes, 0, bytes.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            SendInternal(bytes.Length, ms);
+        }
+
+        /// <summary>
+        /// Send data to the server.
         /// </summary> 
         /// <param name="data">Byte array containing data to send.</param>
         public void Send(byte[] data)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
             if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
-
-            lock (_SendLock)
-            {
-                if (!_Ssl)
-                { 
-                    _NetworkStream.Write(data, 0, data.Length);
-                    _NetworkStream.Flush(); 
-                }
-                else
-                { 
-                    _SslStream.Write(data, 0, data.Length);
-                    _SslStream.Flush(); 
-                }
-            }
-             
-            _Stats.SentBytes += data.Length;
+            MemoryStream ms = new MemoryStream();
+            ms.Write(data, 0, data.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            SendInternal(data.Length, ms); 
         }
 
         /// <summary>
         /// Send data to the server.
         /// </summary>
+        /// <param name="contentLength">The number of bytes to read from the source stream to send.</param>
+        /// <param name="stream">Stream containing the data to send.</param>
+        public void Send(long contentLength, Stream stream)
+        {
+            if (contentLength < 1) return;
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
+            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            SendInternal(contentLength, stream);
+        }
+
+        /// <summary>
+        /// Send data to the server asynchronously.
+        /// </summary>
         /// <param name="data">String containing data to send.</param>
-        public void Send(string data)
+        public async Task SendAsync(string data)
         {
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            Send(Encoding.UTF8.GetBytes(data));
+            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            MemoryStream ms = new MemoryStream();
+            await ms.WriteAsync(bytes, 0, bytes.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            await SendInternalAsync(bytes.Length, ms);
+        }
+
+        /// <summary>
+        /// Send data to the server asynchronously.
+        /// </summary> 
+        /// <param name="data">Byte array containing data to send.</param>
+        public async Task SendAsync(byte[] data)
+        {
+            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
+            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            MemoryStream ms = new MemoryStream();
+            await ms.WriteAsync(data, 0, data.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            await SendInternalAsync(data.Length, ms);
+        }
+
+        /// <summary>
+        /// Send data to the server asynchronously.
+        /// </summary>
+        /// <param name="contentLength">The number of bytes to read from the source stream to send.</param>
+        /// <param name="stream">Stream containing the data to send.</param>
+        public async Task SendAsync(long contentLength, Stream stream)
+        { 
+            if (contentLength < 1) return;
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
+            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            await SendInternalAsync(contentLength, stream);
         }
 
         #endregion
@@ -414,7 +464,7 @@ namespace SimpleTcp
             if (_Ssl && !_SslStream.CanRead)
                 throw new IOException();
              
-            byte[] buffer = new byte[_ReceiveBufferSize];
+            byte[] buffer = new byte[_StreamBufferSize];
             int read = 0;
 
             if (!_Ssl)
@@ -457,6 +507,70 @@ namespace SimpleTcp
                     }
                 } 
             } 
+        }
+
+        private void SendInternal(long contentLength, Stream stream)
+        { 
+            long bytesRemaining = contentLength;
+            int bytesRead = 0;
+            byte[] buffer = new byte[_StreamBufferSize];
+
+            try
+            {
+                _SendLock.Wait();
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        if (!_Ssl) _NetworkStream.Write(buffer, 0, bytesRead);
+                        else _SslStream.Write(buffer, 0, bytesRead);
+
+                        bytesRemaining -= bytesRead;
+                        _Stats.SentBytes += bytesRead;
+                    }
+                }
+
+                if (!_Ssl) _NetworkStream.Flush();
+                else _SslStream.Flush();
+            }
+            finally
+            {
+                _SendLock.Release();
+            }
+        }
+
+        private async Task SendInternalAsync(long contentLength, Stream stream)
+        {
+            long bytesRemaining = contentLength;
+            int bytesRead = 0;
+            byte[] buffer = new byte[_StreamBufferSize];
+
+            try
+            {
+                await _SendLock.WaitAsync();
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        if (!_Ssl) await _NetworkStream.WriteAsync(buffer, 0, bytesRead);
+                        else await _SslStream.WriteAsync(buffer, 0, bytesRead);
+
+                        bytesRemaining -= bytesRead;
+                        _Stats.SentBytes += bytesRead;
+                    }
+                }
+
+                if (!_Ssl) await _NetworkStream.FlushAsync();
+                else await _SslStream.FlushAsync();
+            }
+            finally
+            {
+                _SendLock.Release();
+            }
         }
 
         #endregion

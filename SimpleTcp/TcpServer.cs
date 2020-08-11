@@ -39,19 +39,19 @@ namespace SimpleTcp
         public event EventHandler<DataReceivedFromClientEventArgs> DataReceived;
 
         /// <summary>
-        /// Receive buffer size to use while reading from connected TCP clients.
+        /// Buffer size to use while interacting with streams. 
         /// </summary>
-        public int ReceiveBufferSize
+        public int StreamBufferSize
         {
             get
             {
-                return _ReceiveBufferSize;
+                return _StreamBufferSize;
             }
             set
             {
-                if (value < 1) throw new ArgumentException("ReceiveBuffer must be one or greater.");
-                if (value > 65536) throw new ArgumentException("ReceiveBuffer must be less than 65,536.");
-                _ReceiveBufferSize = value;
+                if (value < 1) throw new ArgumentException("StreamBufferSize must be one or greater.");
+                if (value > 65536) throw new ArgumentException("StreamBufferSize must be less than or equal to 65,536.");
+                _StreamBufferSize = value;
             }
         }
 
@@ -120,7 +120,7 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private int _ReceiveBufferSize = 4096;
+        private int _StreamBufferSize = 65536;
         private int _IdleClientTimeoutSeconds = 0;
         private int _IdleClientEvaluationIntervalSeconds = 5;
 
@@ -266,43 +266,92 @@ namespace SimpleTcp
         /// Send data to the specified client by IP:port.
         /// </summary>
         /// <param name="ipPort">The client IP:port string.</param>
-        /// <param name="data">Byte array containing data to send.</param>
-        public void Send(string ipPort, byte[] data)
+        /// <param name="data">String containing data to send.</param>
+        public void Send(string ipPort, string data)
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-
-            ClientMetadata client = null;
-            if (!_Clients.TryGetValue(ipPort, out client)) return;
-            if (client == null) return;
-
-            lock (client.SendLock)
-            {
-                if (!_Ssl)
-                {
-                    client.NetworkStream.Write(data, 0, data.Length);
-                    client.NetworkStream.Flush();
-                }
-                else
-                {
-                    client.SslStream.Write(data, 0, data.Length);
-                    client.SslStream.Flush();
-                }
-            }
-
-            _Stats.SentBytes += data.Length;
+            if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            MemoryStream ms = new MemoryStream();
+            ms.Write(bytes, 0, bytes.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            SendInternal(ipPort, bytes.Length, ms);
         }
 
         /// <summary>
         /// Send data to the specified client by IP:port.
         /// </summary>
         /// <param name="ipPort">The client IP:port string.</param>
+        /// <param name="data">Byte array containing data to send.</param>
+        public void Send(string ipPort, byte[] data)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
+            MemoryStream ms = new MemoryStream();
+            ms.Write(data, 0, data.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            SendInternal(ipPort, data.Length, ms);
+        }
+
+        /// <summary>
+        /// Send data to the specified client by IP:port.
+        /// </summary>
+        /// <param name="ipPort">The client IP:port string.</param>
+        /// <param name="contentLength">The number of bytes to read from the source stream to send.</param>
+        /// <param name="stream">Stream containing the data to send.</param>
+        public void Send(string ipPort, long contentLength, Stream stream)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            if (contentLength < 1) return;
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
+            SendInternal(ipPort, contentLength, stream);
+        }
+
+        /// <summary>
+        /// Send data to the specified client by IP:port asynchronously.
+        /// </summary>
+        /// <param name="ipPort">The client IP:port string.</param>
         /// <param name="data">String containing data to send.</param>
-        public void Send(string ipPort, string data)
+        public async Task SendAsync(string ipPort, string data)
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            Send(ipPort, Encoding.UTF8.GetBytes(data));
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            MemoryStream ms = new MemoryStream();
+            await ms.WriteAsync(bytes, 0, bytes.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            await SendInternalAsync(ipPort, bytes.Length, ms);
+        }
+
+        /// <summary>
+        /// Send data to the specified client by IP:port asynchronously.
+        /// </summary>
+        /// <param name="ipPort">The client IP:port string.</param>
+        /// <param name="data">Byte array containing data to send.</param>
+        public async Task SendAsync(string ipPort, byte[] data)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
+            MemoryStream ms = new MemoryStream();
+            await ms.WriteAsync(data, 0, data.Length);
+            ms.Seek(0, SeekOrigin.Begin);
+            await SendInternalAsync(ipPort, data.Length, ms);
+        }
+
+        /// <summary>
+        /// Send data to the specified client by IP:port asynchronously.
+        /// </summary>
+        /// <param name="ipPort">The client IP:port string.</param>
+        /// <param name="contentLength">The number of bytes to read from the source stream to send.</param>
+        /// <param name="stream">Stream containing the data to send.</param>
+        public async Task SendAsync(string ipPort, long contentLength, Stream stream)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            if (contentLength < 1) return;
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
+            await SendInternalAsync(ipPort, contentLength, stream);
         }
 
         /// <summary>
@@ -585,7 +634,7 @@ namespace SimpleTcp
             if (!client.NetworkStream.DataAvailable) return null;
             if (_Ssl && !client.SslStream.CanRead) return null;
 
-            byte[] buffer = new byte[_ReceiveBufferSize];
+            byte[] buffer = new byte[_StreamBufferSize];
             int read = 0;
 
             if (!_Ssl)
@@ -668,6 +717,78 @@ namespace SimpleTcp
             }
              
             _ClientsLastSeen.TryAdd(ipPort, DateTime.Now);
+        }
+
+        private void SendInternal(string ipPort, long contentLength, Stream stream)
+        {
+            ClientMetadata client = null;
+            if (!_Clients.TryGetValue(ipPort, out client)) return;
+            if (client == null) return;
+
+            long bytesRemaining = contentLength;
+            int bytesRead = 0;
+            byte[] buffer = new byte[_StreamBufferSize];
+
+            try
+            {
+                client.SendLock.Wait();
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        if (!_Ssl) client.NetworkStream.Write(buffer, 0, bytesRead); 
+                        else client.SslStream.Write(buffer, 0, bytesRead); 
+
+                        bytesRemaining -= bytesRead;
+                        _Stats.SentBytes += bytesRead;
+                    }
+                }
+
+                if (!_Ssl) client.NetworkStream.Flush();
+                else client.SslStream.Flush();
+            }
+            finally
+            {
+                if (client != null) client.SendLock.Release();
+            }
+        }
+
+        private async Task SendInternalAsync(string ipPort, long contentLength, Stream stream)
+        {
+            ClientMetadata client = null;
+            if (!_Clients.TryGetValue(ipPort, out client)) return;
+            if (client == null) return;
+
+            long bytesRemaining = contentLength;
+            int bytesRead = 0;
+            byte[] buffer = new byte[_StreamBufferSize];
+
+            try
+            {
+                await client.SendLock.WaitAsync();
+
+                while (bytesRemaining > 0)
+                {
+                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                    if (bytesRead > 0)
+                    {
+                        if (!_Ssl) await client.NetworkStream.WriteAsync(buffer, 0, bytesRead);
+                        else await client.SslStream.WriteAsync(buffer, 0, bytesRead);
+
+                        bytesRemaining -= bytesRead;
+                        _Stats.SentBytes += bytesRead;
+                    }
+                }
+
+                if (!_Ssl) await client.NetworkStream.FlushAsync();
+                else await client.SslStream.FlushAsync();
+            }
+            finally
+            {
+                if (client != null) client.SendLock.Release();
+            }
         }
 
         #endregion

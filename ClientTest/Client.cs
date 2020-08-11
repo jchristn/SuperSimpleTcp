@@ -59,6 +59,9 @@ namespace ClientTestNetCore
                     case "send":
                         Send();
                         break;
+                    case "sendasync":
+                        SendAsync();
+                        break;
                     case "connected":
                         IsConnected();
                         break;
@@ -102,6 +105,7 @@ namespace ClientTestNetCore
             Console.WriteLine(" q             Quit");
             Console.WriteLine(" cls           Clear the screen");
             Console.WriteLine(" send          Send a message to the server");
+            Console.WriteLine(" sendasync     Send a message to the server asynchronously");
             Console.WriteLine(" connected     Display if the client is connected to the server");
             Console.WriteLine(" dispose       Dispose of the client"); 
             Console.WriteLine(" stats         Display client statistics");
@@ -113,6 +117,12 @@ namespace ClientTestNetCore
         {
             string data = InputString("Data:", "Hello!", true);
             if (!String.IsNullOrEmpty(data)) _Client.Send(data);
+        }
+
+        static void SendAsync()
+        {
+            string data = InputString("Data:", "Hello!", true);
+            if (!String.IsNullOrEmpty(data)) _Client.SendAsync(data).Wait();
         }
 
         static void Logger(string msg)

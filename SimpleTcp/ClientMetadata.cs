@@ -32,10 +32,8 @@ namespace SimpleTcp
             get { return _IpPort; }
         }
 
-        internal object SendLock
-        {
-            get { return _Lock; }
-        }
+        internal SemaphoreSlim SendLock = new SemaphoreSlim(1, 1);
+        internal SemaphoreSlim ReceiveLock = new SemaphoreSlim(1, 1);
 
         internal CancellationTokenSource TokenSource { get; set; }
 
@@ -48,8 +46,7 @@ namespace SimpleTcp
         private System.Net.Sockets.TcpClient _TcpClient = null;
         private NetworkStream _NetworkStream = null;
         private SslStream _SslStream = null;
-        private string _IpPort = null;
-        private readonly object _Lock = new object();
+        private string _IpPort = null; 
 
         #endregion
 
@@ -71,37 +68,32 @@ namespace SimpleTcp
         #region Public-Methods
 
         public void Dispose()
-        {
-            lock (_Lock)
+        { 
+            if (TokenSource != null)
             {
-                if (TokenSource != null)
-                {
-                    if (!TokenSource.IsCancellationRequested) TokenSource.Cancel();
-                    TokenSource.Dispose();
-                    TokenSource = null;
-                }
-
-                if (_SslStream != null)
-                {
-                    _SslStream.Close();
-                    _SslStream.Dispose();
-                    _SslStream = null;
-                }
-
-                if (_NetworkStream != null)
-                {
-                    _NetworkStream.Close();
-                    // _NetworkStream.Dispose();
-                    // _NetworkStream = null;
-                }
-
-                if (_TcpClient != null)
-                {
-                    _TcpClient.Close();
-                    _TcpClient.Dispose();
-                    _TcpClient = null;
-                }
+                if (!TokenSource.IsCancellationRequested) TokenSource.Cancel();
+                TokenSource.Dispose();
+                TokenSource = null;
             }
+
+            if (_SslStream != null)
+            {
+                _SslStream.Close(); 
+            }
+
+            if (_NetworkStream != null)
+            {
+                _NetworkStream.Close();
+                // _NetworkStream.Dispose();
+                // _NetworkStream = null;
+            }
+
+            if (_TcpClient != null)
+            {
+                _TcpClient.Close();
+                _TcpClient.Dispose();
+                _TcpClient = null;
+            } 
         }
 
         #endregion

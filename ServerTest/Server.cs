@@ -13,6 +13,8 @@ namespace ServerTestNetCore
         static bool _Ssl;
         static string _PfxFilename = null;
         static string _PfxPassword = null;
+        static string _LastClientIpPort = null;
+        static int _IdleClientTimeoutSeconds = 0;
 
         static TcpServer _Server;
         static bool _RunForever = true;
@@ -35,7 +37,7 @@ namespace ServerTestNetCore
             _Server.ClientDisconnected += ClientDisconnected;
             _Server.DataReceived += DataReceived;
 
-            _Server.IdleClientTimeoutSeconds = 10; 
+            _Server.IdleClientTimeoutSeconds = _IdleClientTimeoutSeconds; 
             _Server.MutuallyAuthenticate = false;
             _Server.AcceptInvalidCertificates = true;
             _Server.Logger = Logger;
@@ -63,7 +65,10 @@ namespace ServerTestNetCore
                         break;
                     case "send":
                         Send();
-                        break; 
+                        break;
+                    case "sendasync":
+                        SendAsync();
+                        break;
                     case "remove":
                         Console.Write("IP:Port: ");
                         string ipPort = Console.ReadLine();
@@ -84,6 +89,7 @@ namespace ServerTestNetCore
 
         static void ClientConnected(object sender, ClientConnectedEventArgs e)
         {
+            _LastClientIpPort = e.IpPort;
             Console.WriteLine("[" + e.IpPort + "] client connected");
         }
 
@@ -105,6 +111,7 @@ namespace ServerTestNetCore
             Console.WriteLine(" cls           Clear the screen");
             Console.WriteLine(" list          List connected clients");
             Console.WriteLine(" send          Send a message to a client");
+            Console.WriteLine(" sendasync     Send a message to a client asynchronously");
             Console.WriteLine(" remove        Disconnect client");
             Console.WriteLine(" dispose       Dispose of the server");
             Console.WriteLine(" stats         Display server statistics");
@@ -124,13 +131,26 @@ namespace ServerTestNetCore
 
         static void Send()
         {
-            string clientIp = InputString("Client IP:port:", null, true);
+            string clientIp = InputString("Client IP:port:", _LastClientIpPort, true);
             if (!String.IsNullOrEmpty(clientIp))
             {
                 string data = InputString("Data:", "Hello!", true);
                 if (!String.IsNullOrEmpty(data))
                 {
                     _Server.Send(clientIp, Encoding.UTF8.GetBytes(data));
+                }
+            }
+        }
+
+        static void SendAsync()
+        {
+            string clientIp = InputString("Client IP:port:", _LastClientIpPort, true);
+            if (!String.IsNullOrEmpty(clientIp))
+            {
+                string data = InputString("Data:", "Hello!", true);
+                if (!String.IsNullOrEmpty(data))
+                {
+                    _Server.SendAsync(clientIp, Encoding.UTF8.GetBytes(data)).Wait();
                 }
             }
         }

@@ -2,11 +2,16 @@
 
 ## Current Version
 
+v2.0.6
+
+- Async APIs
+- SemaphoreSlim fix
+
+## Previous Versions
+
 v2.0.5
 
 - Fix for ```ClientMetadata.Dispose```
-
-## Previous Versions
 
 v2.0.4
 
