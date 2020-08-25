@@ -145,6 +145,31 @@ namespace SimpleTcp
         /// <summary>
         /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
         /// </summary>
+        /// <param name="ipPort">The IP:port of the server.</param> 
+        /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
+        public TcpClient(string ipPort, bool ssl, string pfxCertFilename, string pfxPassword)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+
+            Common.ParseIpPort(ipPort, out _ServerIp, out _Port);
+            if (_Port < 0) throw new ArgumentException("Port must be zero or greater.");
+            if (String.IsNullOrEmpty(_ServerIp)) throw new ArgumentNullException("Server IP or hostname must not be null.");
+
+            _Token = _TokenSource.Token; 
+
+            if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
+            {
+                _IPAddress = Dns.GetHostEntry(_ServerIp).AddressList[0];
+            }
+
+            InitializeClient(ssl, pfxCertFilename, pfxPassword);
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
         /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
         /// <param name="port">The TCP port on which to connect.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
@@ -154,40 +179,16 @@ namespace SimpleTcp
         {
             if (String.IsNullOrEmpty(serverIpOrHostname)) throw new ArgumentNullException(nameof(serverIpOrHostname));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
-              
-            _Token = _TokenSource.Token; 
+
+            _Token = _TokenSource.Token;
             _ServerIp = serverIpOrHostname;
 
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
                 _IPAddress = Dns.GetHostEntry(serverIpOrHostname).AddressList[0];
             }
-            
-            _Port = port;
-            _Ssl = ssl;
-            _PfxCertFilename = pfxCertFilename;
-            _PfxPassword = pfxPassword; 
-            _TcpClient = new System.Net.Sockets.TcpClient(); 
-            _SslStream = null;
-            _SslCert = null;
-            _SslCertCollection = null;
-             
-            if (_Ssl)
-            {
-                if (String.IsNullOrEmpty(pfxPassword))
-                {
-                    _SslCert = new X509Certificate2(pfxCertFilename);
-                }
-                else
-                {
-                    _SslCert = new X509Certificate2(pfxCertFilename, pfxPassword);
-                }
 
-                _SslCertCollection = new X509Certificate2Collection
-                {
-                    _SslCert
-                };
-            }
+            InitializeClient(ssl, pfxCertFilename, pfxPassword); 
         }
 
         #endregion
@@ -398,6 +399,34 @@ namespace SimpleTcp
                 }
 
                 Logger?.Invoke("[SimpleTcp.Client] Dispose complete");
+            }
+        }
+
+        private void InitializeClient(bool ssl, string pfxCertFilename, string pfxPassword)
+        {
+            _Ssl = ssl;
+            _PfxCertFilename = pfxCertFilename;
+            _PfxPassword = pfxPassword;
+            _TcpClient = new System.Net.Sockets.TcpClient();
+            _SslStream = null;
+            _SslCert = null;
+            _SslCertCollection = null;
+
+            if (_Ssl)
+            {
+                if (String.IsNullOrEmpty(pfxPassword))
+                {
+                    _SslCert = new X509Certificate2(pfxCertFilename);
+                }
+                else
+                {
+                    _SslCert = new X509Certificate2(pfxCertFilename, pfxPassword);
+                }
+
+                _SslCertCollection = new X509Certificate2Collection
+                {
+                    _SslCert
+                };
             }
         }
 
