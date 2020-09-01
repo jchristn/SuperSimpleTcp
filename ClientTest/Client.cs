@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using SimpleTcp;
 
-namespace ClientTestNetCore
+namespace ClientTest
 {
     class Program
     {
@@ -13,14 +13,14 @@ namespace ClientTestNetCore
         static string _PfxFilename = null;
         static string _PfxPassword = null;
 
-        static TcpClient _Client;
+        static SimpleTcpClient _Client;
         static bool _RunForever = true;
 
         static void Main(string[] args)
         {
-            _ServerIp = InputString("Listener IP:", "127.0.0.1", false);
-            _ServerPort = InputInteger("Listener Port:", 9000, true, false);
-            _Ssl = InputBoolean("Use SSL:", false);
+            _ServerIp =    InputString("Server IP   :", "127.0.0.1", false);
+            _ServerPort = InputInteger("Server Port :", 9000, true, false);
+            _Ssl =        InputBoolean("Use SSL     :", false);
 
             if (_Ssl)
             {
@@ -28,14 +28,14 @@ namespace ClientTestNetCore
                 _PfxPassword = InputString("PFX File Password:", "simpletcp", false);
             }
 
-            _Client = new TcpClient(_ServerIp, _ServerPort, _Ssl, _PfxFilename, _PfxPassword);
+            _Client = new SimpleTcpClient(_ServerIp, _ServerPort, _Ssl, _PfxFilename, _PfxPassword);
 
-            _Client.Connected += Connected;
-            _Client.Disconnected += Disconnected;
-            _Client.DataReceived += DataReceived;
+            _Client.Events.Connected += Connected;
+            _Client.Events.Disconnected += Disconnected;
+            _Client.Events.DataReceived += DataReceived;
              
-            _Client.MutuallyAuthenticate = false;
-            _Client.AcceptInvalidCertificates = true;
+            _Client.Settings.MutuallyAuthenticate = false;
+            _Client.Settings.AcceptInvalidCertificates = true;
             _Client.Logger = Logger;
             _Client.Connect();
 
@@ -69,10 +69,10 @@ namespace ClientTestNetCore
                         _Client.Dispose();
                         break;
                     case "stats":
-                        Console.WriteLine(_Client.Stats.ToString());
+                        Console.WriteLine(_Client.Statistics.ToString());
                         break;
                     case "stats reset":
-                        _Client.Stats.Reset();
+                        _Client.Statistics.Reset();
                         break;
                 }
             }

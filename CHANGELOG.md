@@ -2,12 +2,19 @@
 
 ## Current Version
 
+v2.1.0
+
+- Breaking changes
+- Retarget to include .NET Core (includes previous targeting to .NET Standard and .NET Framework)
+- Consolidated settings and event classes
+- Added support for TCP keepalives
+
+## Previous Versions
+
 v2.0.6
 
 - Async APIs
 - SemaphoreSlim fix
-
-## Previous Versions
 
 v2.0.5
 

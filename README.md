@@ -6,12 +6,17 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/SuperSimpleTcp.svg?style=flat)](https://www.nuget.org/packages/SuperSimpleTcp/) [![NuGet](https://img.shields.io/nuget/dt/SuperSimpleTcp.svg)](https://www.nuget.org/packages/SuperSimpleTcp)    
 
-SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  SimpleTcp does NOT provide message framing.  If you need framing (or don't know what framing is), please see WatsonTcp. 
- 
-## New in v2.0.6
+SimpleTcp provides simple methods for creating your own TCP-based sockets application, enabling easy integration of connection management, sending, and receiving data.  
 
-- Async APIs
-- SemaphoreSlim fix
+- If you need integrated framing, please use WatsonTcp (https://github.com/jchristn/WatsonTcp)
+- If you need discrete control over the number of bytes read from or written to a socket, please use CavemanTcp (https://github.com/jchristn/CavemanTcp)
+ 
+## New in v2.1.0
+
+- Breaking changes
+- Retarget to include .NET Core (includes previous targeting to .NET Standard and .NET Framework)
+- Consolidated settings and event classes
+- Added support for TCP keepalives
 
 ## Help or Feedback
 
@@ -26,12 +31,12 @@ using SimpleTcp;
 void Main(string[] args)
 {
 	// instantiate
-	TcpServer server = new TcpServer("127.0.0.1", 9000, false, null, null);
+	SimpleTcpServer server = new TcpServer("127.0.0.1", 9000, false, null, null);
 
-	// set callbacks
-	server.ClientConnected += ClientConnected;
-	server.ClientDisconnected += ClientDisconnected;
-	server.DataReceived += DataReceived;
+	// set events
+	server.Events.ClientConnected += ClientConnected;
+	server.Events.ClientDisconnected += ClientDisconnected;
+	server.Events.DataReceived += DataReceived;
 
 	// let's go!
 	server.Start();
@@ -64,12 +69,12 @@ using SimpleTcp;
 void Main(string[] args)
 {
 	// instantiate
-	TcpClient client = new TcpClient("127.0.0.1", 9000, false, null, null);
+	SimpleTcpClient client = new TcpClient("127.0.0.1", 9000, false, null, null);
 
-	// set callbacks
-	client.Connected += Connected;
-	client.Disconnected += Disconnected;
-	client.DataReceived += DataReceived;
+	// set events
+	client.Events.Connected += Connected;
+	client.Events.Disconnected += Disconnected;
+	client.Events.DataReceived += DataReceived;
 
 	// let's go!
 	client.Connect();
@@ -100,14 +105,14 @@ static void DataReceived(object sender, DataReceivedFromServerEventArgs e)
 Both TcpClient and TcpServer have settable values for:
 
 - ```Logger``` - method to invoke to send log messages from either TcpClient or TcpServer
-- ```MutuallyAuthenticate``` - only used if SSL is enabled, demands that both client and server mutually authenticate
-- ```AcceptInvalidCertificates``` - accept and allow certificates that are invalid or cannot be validated
+- ```Settings.MutuallyAuthenticate``` - only used if SSL is enabled, demands that both client and server mutually authenticate
+- ```Settings.AcceptInvalidCertificates``` - accept and allow certificates that are invalid or cannot be validated
 
 TcpServer also has:
 
-- ```IdleClientTimeoutSeconds``` - automatically disconnect a client if data is not received within the specified number of seconds
+- ```Settings.IdleClientTimeoutSeconds``` - automatically disconnect a client if data is not received within the specified number of seconds
 
-Additionally, both TcpClient and TcpServer offer a statistics object under ```TcpClient.Stats``` and ```TcpServer.Stats```.  These values (other than start time and uptime) can be reset using the ```Stats.Reset()``` API.
+Additionally, both TcpClient and TcpServer offer a statistics object under ```SimpleTcpClient.Statistics``` and ```SimpleTcpServer.Statistics```.  These values (other than start time and uptime) can be reset using the ```Statistics.Reset()``` API.
 
 ### Testing with SSL
 
@@ -115,7 +120,7 @@ A certificate named ```simpletcp.pfx``` is provided for simple testing.  It shou
 
 ## Disconnection Handling
 
-The project TcpTest (https://github.com/jchristn/TcpTest) was built specifically to provide a reference for SimpleTcp to handle a variety of disconnection scenarios.  These include:
+The project TcpTest (https://github.com/jchristn/TcpTest) was built specifically to provide a reference for SimpleTcp to handle a variety of disconnection scenarios.  The disconnection tests for which SimpleTcp is evaluated include:
 
 | Test case | Description | Pass/Fail |
 |---|---|---|
@@ -124,6 +129,23 @@ The project TcpTest (https://github.com/jchristn/TcpTest) was built specifically
 | Server-side termination | Abrupt termination due to process abort or CTRL-C | PASS |
 | Client-side dispose | Graceful termination of a client connection | PASS |
 | Client-side termination | Abrupt termination due to a process abort or CTRL-C | PASS |
+| Network interface down | Network interface disabled or cable removed | Partial (see below) |
+
+Additionally, as of v2.1.0, support for TCP keepalives has been added to SimpleTcp, primarily to address the issue of a network interface being shut down, the cable unplugged, or the media otherwise becoming unavailable.  It is important to note that keepalives are supported in .NET Core and .NET Framework, but NOT .NET Standard.  As of this release, .NET Standard provides no facilities for TCP keepalives.
+
+TCP keepalives are enabled by default.
+```
+server.Keepalive.EnableTcpKeepAlives = true;
+server.Keepalive.TcpKeepAliveInterval = 5;      // seconds to wait before sending subsequent keepalive
+server.Keepalive.TcpKeepAliveTime = 5;          // seconds to wait before sending a keepalive
+server.Keepalive.TcpKeepAliveRetryCount = 5;    // number of failed keepalive probes before terminating connection
+```
+
+Some important notes about TCP keepalives:
+
+- Keepalives only work in .NET Core and .NET Framework
+- Keepalives can be enabled on either client or server, but generally only work on server (being investigated)
+- ```Keepalive.TcpKeepAliveRetryCount``` is only applicable to .NET Core; for .NET Framework, this value is forced to 10
 
 ## Running under Mono
 

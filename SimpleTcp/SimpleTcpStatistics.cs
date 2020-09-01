@@ -5,9 +5,9 @@ using System.Text;
 namespace SimpleTcp
 {
     /// <summary>
-    /// Watson TCP statistics.
+    /// SimpleTcp statistics.
     /// </summary>
-    public class Statistics
+    public class SimpleTcpStatistics
     {
         #region Public-Members
 
@@ -78,7 +78,7 @@ namespace SimpleTcp
         /// <summary>
         /// Initialize the statistics object.
         /// </summary>
-        public Statistics()
+        public SimpleTcpStatistics()
         {
 
         }

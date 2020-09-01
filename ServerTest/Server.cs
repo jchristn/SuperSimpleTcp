@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using SimpleTcp;
 
-namespace ServerTestNetCore
+namespace ServerTest
 {
     class Program
     {
@@ -16,14 +16,14 @@ namespace ServerTestNetCore
         static string _LastClientIpPort = null;
         static int _IdleClientTimeoutSeconds = 0;
 
-        static TcpServer _Server;
+        static SimpleTcpServer _Server;
         static bool _RunForever = true;
 
         static void Main(string[] args)
         {
-            _ListenerIp = InputString("Listener IP:", "127.0.0.1", false);
-            _ListenerPort = InputInteger("Listener Port:", 9000, true, false);
-            _Ssl = InputBoolean("Use SSL:", false);
+            _ListenerIp =    InputString("Listener IP   :", "127.0.0.1", false);
+            _ListenerPort = InputInteger("Listener Port :", 9000, true, false);
+            _Ssl =          InputBoolean("Use SSL       :", false);
 
             if (_Ssl)
             {
@@ -31,15 +31,15 @@ namespace ServerTestNetCore
                 _PfxPassword = InputString("PFX File Password:", "simpletcp", false);
             }
 
-            _Server = new TcpServer(_ListenerIp, _ListenerPort, _Ssl, _PfxFilename, _PfxPassword);
+            _Server = new SimpleTcpServer(_ListenerIp, _ListenerPort, _Ssl, _PfxFilename, _PfxPassword);
 
-            _Server.ClientConnected += ClientConnected;
-            _Server.ClientDisconnected += ClientDisconnected;
-            _Server.DataReceived += DataReceived;
+            _Server.Events.ClientConnected += ClientConnected;
+            _Server.Events.ClientDisconnected += ClientDisconnected;
+            _Server.Events.DataReceived += DataReceived;
 
-            _Server.IdleClientTimeoutSeconds = _IdleClientTimeoutSeconds; 
-            _Server.MutuallyAuthenticate = false;
-            _Server.AcceptInvalidCertificates = true;
+            _Server.Settings.IdleClientTimeoutSeconds = _IdleClientTimeoutSeconds; 
+            _Server.Settings.MutuallyAuthenticate = false;
+            _Server.Settings.AcceptInvalidCertificates = true;
             _Server.Logger = Logger;
             _Server.Start();
 
@@ -78,10 +78,10 @@ namespace ServerTestNetCore
                         _Server.Dispose();
                         break;
                     case "stats":
-                        Console.WriteLine(_Server.Stats.ToString());
+                        Console.WriteLine(_Server.Statistics.ToString());
                         break;
                     case "stats reset":
-                        _Server.Stats.Reset();
+                        _Server.Statistics.Reset();
                         break;
                 }
             }

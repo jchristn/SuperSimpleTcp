@@ -14,72 +14,14 @@ using System.Threading.Tasks;
 namespace SimpleTcp
 {
     /// <summary>
-    /// TCP client with SSL support.  
-    /// Set the Connected, Disconnected, and DataReceived callbacks.  
+    /// SimpleTcp client with SSL support.  
+    /// Set the Connected, Disconnected, and DataReceived events.  
     /// Once set, use Connect() to connect to the server.
     /// </summary>
-    public class TcpClient : IDisposable
+    public class SimpleTcpClient : IDisposable
     {
         #region Public-Members
          
-        /// <summary>
-        /// Callback to call when the connection is established.
-        /// </summary>
-        public event EventHandler Connected;
-
-        /// <summary>
-        /// Callback to call when the connection is destroyed.
-        /// </summary>
-        public event EventHandler Disconnected;
-
-        /// <summary>
-        /// Callback to call when byte data has become available from the server.
-        /// </summary>
-        public event EventHandler<DataReceivedFromServerEventArgs> DataReceived;
-
-        /// <summary>
-        /// Buffer size to use while interacting with streams. 
-        /// </summary>
-        public int StreamBufferSize
-        {
-            get
-            {
-                return _StreamBufferSize;
-            }
-            set
-            {
-                if (value < 1) throw new ArgumentException("StreamBufferSize must be one or greater.");
-                if (value > 65536) throw new ArgumentException("StreamBufferSize must be less than 65,536.");
-                _StreamBufferSize = value;
-            }
-        }
-
-        /// <summary>
-        /// The number of seconds to wait when attempting to connect.
-        /// </summary>
-        public int ConnectTimeoutSeconds
-        {
-            get
-            {
-                return _ConnectTimeoutSeconds;
-            }
-            set
-            {
-                if (value < 1) throw new ArgumentException("ConnectTimeoutSeconds must be greater than zero.");
-                _ConnectTimeoutSeconds = value;
-            }
-        }
-         
-        /// <summary>
-        /// Enable or disable acceptance of invalid SSL certificates.
-        /// </summary>
-        public bool AcceptInvalidCertificates = true;
-
-        /// <summary>
-        /// Enable or disable mutual authentication of SSL client and server.
-        /// </summary>
-        public bool MutuallyAuthenticate = true;
-
         /// <summary>
         /// Indicates whether or not the client is connected to the server.
         /// </summary>
@@ -96,13 +38,61 @@ namespace SimpleTcp
         }
 
         /// <summary>
-        /// Access TCP statistics.
+        /// SimpleTcp client settings.
         /// </summary>
-        public Statistics Stats
+        public SimpleTcpClientSettings Settings
         {
             get
             {
-                return _Stats;
+                return _Settings;
+            }
+            set
+            {
+                if (value == null) _Settings = new SimpleTcpClientSettings();
+                else _Settings = value;
+            }
+        }
+
+        /// <summary>
+        /// SimpleTcp client events.
+        /// </summary>
+        public SimpleTcpClientEvents Events
+        {
+            get
+            {
+                return _Events;
+            }
+            set
+            {
+                if (value == null) _Events = new SimpleTcpClientEvents();
+                else _Events = value;
+            }
+        }
+
+        /// <summary>
+        /// SimpleTcp statistics.
+        /// </summary>
+        public SimpleTcpStatistics Statistics
+        {
+            get
+            {
+                return _Statistics;
+            }
+        }
+
+        /// <summary>
+        /// SimpleTcp keepalive settings.
+        /// </summary>
+        public SimpleTcpKeepaliveSettings Keepalive
+        {
+            get
+            {
+                return _Keepalive;
+            }
+            set
+            {
+                if (value == null) _Keepalive = new SimpleTcpKeepaliveSettings();
+                else _Keepalive = value;
             }
         }
 
@@ -115,12 +105,15 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private int _StreamBufferSize = 65536;
-        private int _ConnectTimeoutSeconds = 5;
+        private SimpleTcpClientSettings _Settings = new SimpleTcpClientSettings();
+        private SimpleTcpClientEvents _Events = new SimpleTcpClientEvents();
+        private SimpleTcpKeepaliveSettings _Keepalive = new SimpleTcpKeepaliveSettings();
+        private SimpleTcpStatistics _Statistics = new SimpleTcpStatistics();
+
         private string _ServerIp;
         private IPAddress _IPAddress;
         private int _Port;
-        private System.Net.Sockets.TcpClient _TcpClient;
+        private System.Net.Sockets.TcpClient _Client;
         private NetworkStream _NetworkStream;
 
         private bool _Ssl;
@@ -135,9 +128,7 @@ namespace SimpleTcp
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
-
-        private Statistics _Stats = new Statistics();
-
+         
         #endregion
 
         #region Constructors-and-Factories
@@ -149,7 +140,7 @@ namespace SimpleTcp
         /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
         /// <param name="pfxPassword">The password to the PFX certificate file.</param>
-        public TcpClient(string ipPort, bool ssl, string pfxCertFilename, string pfxPassword)
+        public SimpleTcpClient(string ipPort, bool ssl, string pfxCertFilename, string pfxPassword)
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
 
@@ -175,13 +166,14 @@ namespace SimpleTcp
         /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
         /// <param name="pfxPassword">The password to the PFX certificate file.</param>
-        public TcpClient(string serverIpOrHostname, int port, bool ssl, string pfxCertFilename, string pfxPassword)
+        public SimpleTcpClient(string serverIpOrHostname, int port, bool ssl, string pfxCertFilename, string pfxPassword)
         {
             if (String.IsNullOrEmpty(serverIpOrHostname)) throw new ArgumentNullException(nameof(serverIpOrHostname));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             _Token = _TokenSource.Token;
             _ServerIp = serverIpOrHostname;
+            _Port = port;
 
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
@@ -209,23 +201,25 @@ namespace SimpleTcp
         /// </summary>
         public void Connect()
         {
-            IAsyncResult ar = _TcpClient.BeginConnect(_ServerIp, _Port, null, null);
+            Console.WriteLine("Connecting to " + _ServerIp + ":" + _Port);
+
+            IAsyncResult ar = _Client.BeginConnect(_ServerIp, _Port, null, null);
             WaitHandle wh = ar.AsyncWaitHandle;
 
             try
             {
-                if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(_ConnectTimeoutSeconds), false))
+                if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(_Settings.ConnectTimeoutSeconds), false))
                 {
-                    _TcpClient.Close();
+                    _Client.Close();
                     throw new TimeoutException("Timeout connecting to " + _ServerIp + ":" + _Port);
                 }
 
-                _TcpClient.EndConnect(ar); 
-                _NetworkStream = _TcpClient.GetStream();
+                _Client.EndConnect(ar); 
+                _NetworkStream = _Client.GetStream();
 
                 if (_Ssl)
                 {
-                    if (AcceptInvalidCertificates)
+                    if (_Settings.AcceptInvalidCertificates)
                     {
                         // accept invalid certs
                         _SslStream = new SslStream(_NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
@@ -236,7 +230,7 @@ namespace SimpleTcp
                         _SslStream = new SslStream(_NetworkStream, false);
                     }
 
-                    _SslStream.AuthenticateAsClient(_ServerIp, _SslCertCollection, SslProtocols.Tls12, !AcceptInvalidCertificates);
+                    _SslStream.AuthenticateAsClient(_ServerIp, _SslCertCollection, SslProtocols.Tls12, !_Settings.AcceptInvalidCertificates);
 
                     if (!_SslStream.IsEncrypted)
                     {
@@ -248,7 +242,7 @@ namespace SimpleTcp
                         throw new AuthenticationException("Stream is not authenticated");
                     }
 
-                    if (MutuallyAuthenticate && !_SslStream.IsMutuallyAuthenticated)
+                    if (_Settings.MutuallyAuthenticate && !_SslStream.IsMutuallyAuthenticated)
                     {
                         throw new AuthenticationException("Mutual authentication failed");
                     }
@@ -265,7 +259,7 @@ namespace SimpleTcp
                 wh.Close();
             }
 
-            Connected?.Invoke(this, EventArgs.Empty);
+            _Events.HandleConnected(this);
 
             Task.Run(() => DataReceiver(_Token), _Token);
         }
@@ -391,11 +385,11 @@ namespace SimpleTcp
                     _NetworkStream = null;
                 }
 
-                if (_TcpClient != null)
+                if (_Client != null)
                 {
-                    _TcpClient.Close();
-                    _TcpClient.Dispose();
-                    _TcpClient = null;
+                    _Client.Close();
+                    _Client.Dispose();
+                    _Client = null;
                 }
 
                 Logger?.Invoke("[SimpleTcp.Client] Dispose complete");
@@ -407,10 +401,12 @@ namespace SimpleTcp
             _Ssl = ssl;
             _PfxCertFilename = pfxCertFilename;
             _PfxPassword = pfxPassword;
-            _TcpClient = new System.Net.Sockets.TcpClient();
+            _Client = new System.Net.Sockets.TcpClient();
             _SslStream = null;
             _SslCert = null;
             _SslCertCollection = null;
+
+            if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
             if (_Ssl)
             {
@@ -432,7 +428,7 @@ namespace SimpleTcp
 
         private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         { 
-            return AcceptInvalidCertificates;
+            return _Settings.AcceptInvalidCertificates;
         }
 
         private async Task DataReceiver(CancellationToken token)
@@ -442,8 +438,8 @@ namespace SimpleTcp
                 while (true)
                 {
                     if (token.IsCancellationRequested
-                        || _TcpClient == null 
-                        || !_TcpClient.Connected)
+                        || _Client == null 
+                        || !_Client.Connected)
                     {
                         Logger?.Invoke("[SimpleTcp.Client] Disconnection detected");
                         break;
@@ -456,8 +452,8 @@ namespace SimpleTcp
                         continue;
                     }
 
-                    DataReceived?.Invoke(this, new DataReceivedFromServerEventArgs(data));
-                    _Stats.ReceivedBytes += data.Length;
+                    _Events.HandleDataReceived(this, new DataReceivedFromServerEventArgs(data));
+                    _Statistics.ReceivedBytes += data.Length;
                 } 
             }
             catch (ObjectDisposedException)
@@ -477,13 +473,13 @@ namespace SimpleTcp
             }
 
             _Connected = false;
-            Disconnected?.Invoke(this, EventArgs.Empty);
+            _Events.HandleDisconnected(this);
         }
 
         private async Task<byte[]> DataReadAsync(CancellationToken token)
         { 
-            if (_TcpClient == null 
-                || !_TcpClient.Connected
+            if (_Client == null 
+                || !_Client.Connected
                 || token.IsCancellationRequested) 
                 throw new OperationCanceledException();
 
@@ -493,7 +489,7 @@ namespace SimpleTcp
             if (_Ssl && !_SslStream.CanRead)
                 throw new IOException();
              
-            byte[] buffer = new byte[_StreamBufferSize];
+            byte[] buffer = new byte[_Settings.StreamBufferSize];
             int read = 0;
 
             if (!_Ssl)
@@ -542,7 +538,7 @@ namespace SimpleTcp
         { 
             long bytesRemaining = contentLength;
             int bytesRead = 0;
-            byte[] buffer = new byte[_StreamBufferSize];
+            byte[] buffer = new byte[_Settings.StreamBufferSize];
 
             try
             {
@@ -557,7 +553,7 @@ namespace SimpleTcp
                         else _SslStream.Write(buffer, 0, bytesRead);
 
                         bytesRemaining -= bytesRead;
-                        _Stats.SentBytes += bytesRead;
+                        _Statistics.SentBytes += bytesRead;
                     }
                 }
 
@@ -574,7 +570,7 @@ namespace SimpleTcp
         {
             long bytesRemaining = contentLength;
             int bytesRead = 0;
-            byte[] buffer = new byte[_StreamBufferSize];
+            byte[] buffer = new byte[_Settings.StreamBufferSize];
 
             try
             {
@@ -589,7 +585,7 @@ namespace SimpleTcp
                         else await _SslStream.WriteAsync(buffer, 0, bytesRead);
 
                         bytesRemaining -= bytesRead;
-                        _Stats.SentBytes += bytesRead;
+                        _Statistics.SentBytes += bytesRead;
                     }
                 }
 
@@ -600,6 +596,36 @@ namespace SimpleTcp
             {
                 _SendLock.Release();
             }
+        }
+
+        private void EnableKeepalives()
+        {
+#if NETCOREAPP
+
+            _Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _Keepalive.TcpKeepAliveTime); 
+            _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, _Keepalive.TcpKeepAliveInterval);
+            _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, _Keepalive.TcpKeepAliveRetryCount);
+
+#elif NETFRAMEWORK 
+
+            byte[] keepAlive = new byte[12];
+
+            // Turn keepalive on
+            Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
+
+            // Set TCP keepalive time
+            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4); 
+
+            // Set TCP keepalive interval
+            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4); 
+
+            // Set keepalive settings on the underlying Socket
+            _Client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
+
+#elif NETSTANDARD
+
+#endif
         }
 
         #endregion
