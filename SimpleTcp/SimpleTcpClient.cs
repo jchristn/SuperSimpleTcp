@@ -203,6 +203,8 @@ namespace SimpleTcp
         {
             Console.WriteLine("Connecting to " + _ServerIp + ":" + _Port);
 
+            if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
+
             IAsyncResult ar = _Client.BeginConnect(_ServerIp, _Port, null, null);
             WaitHandle wh = ar.AsyncWaitHandle;
 
@@ -405,8 +407,6 @@ namespace SimpleTcp
             _SslStream = null;
             _SslCert = null;
             _SslCertCollection = null;
-
-            if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
             if (_Ssl)
             {
