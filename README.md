@@ -31,7 +31,7 @@ using SimpleTcp;
 void Main(string[] args)
 {
 	// instantiate
-	SimpleTcpServer server = new TcpServer("127.0.0.1", 9000, false, null, null);
+	SimpleTcpServer server = new SimpleTcpServer("127.0.0.1", 9000, false, null, null);
 
 	// set events
 	server.Events.ClientConnected += ClientConnected;
@@ -69,7 +69,7 @@ using SimpleTcp;
 void Main(string[] args)
 {
 	// instantiate
-	SimpleTcpClient client = new TcpClient("127.0.0.1", 9000, false, null, null);
+	SimpleTcpClient client = new SimpleTcpClient("127.0.0.1", 9000, false, null, null);
 
 	// set events
 	client.Events.Connected += Connected;
@@ -102,17 +102,17 @@ static void DataReceived(object sender, DataReceivedFromServerEventArgs e)
 
 ### Additional Configuration Options
 
-Both TcpClient and TcpServer have settable values for:
+Both SimpleTcpClient and SimpleTcpServer have settable values for:
 
-- ```Logger``` - method to invoke to send log messages from either TcpClient or TcpServer
+- ```Logger``` - method to invoke to send log messages from either SimpleTcpClient or SimpleTcpServer
 - ```Settings.MutuallyAuthenticate``` - only used if SSL is enabled, demands that both client and server mutually authenticate
 - ```Settings.AcceptInvalidCertificates``` - accept and allow certificates that are invalid or cannot be validated
 
-TcpServer also has:
+SimpleTcpServer also has:
 
 - ```Settings.IdleClientTimeoutSeconds``` - automatically disconnect a client if data is not received within the specified number of seconds
 
-Additionally, both TcpClient and TcpServer offer a statistics object under ```SimpleTcpClient.Statistics``` and ```SimpleTcpServer.Statistics```.  These values (other than start time and uptime) can be reset using the ```Statistics.Reset()``` API.
+Additionally, both SimpleTcpClient and SimpleTcpServer offer a statistics object under ```SimpleTcpClient.Statistics``` and ```SimpleTcpServer.Statistics```.  These values (other than start time and uptime) can be reset using the ```Statistics.Reset()``` API.
 
 ### Testing with SSL
 
