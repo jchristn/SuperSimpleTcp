@@ -105,6 +105,7 @@ namespace SimpleTcp
 
         #region Private-Members
 
+        private string _Header = "[SimpleTcp.Client] ";
         private SimpleTcpClientSettings _Settings = new SimpleTcpClientSettings();
         private SimpleTcpClientEvents _Events = new SimpleTcpClientEvents();
         private SimpleTcpKeepaliveSettings _Keepalive = new SimpleTcpKeepaliveSettings();
@@ -201,7 +202,7 @@ namespace SimpleTcp
         /// </summary>
         public void Connect()
         {
-            Console.WriteLine("Connecting to " + _ServerIp + ":" + _Port);
+            Logger?.Invoke(_Header + "Connecting to " + _ServerIp + ":" + _Port);
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
@@ -394,7 +395,7 @@ namespace SimpleTcp
                     _Client = null;
                 }
 
-                Logger?.Invoke("[SimpleTcp.Client] Dispose complete");
+                Logger?.Invoke(_Header + "Dispose complete");
             }
         }
 
@@ -441,7 +442,7 @@ namespace SimpleTcp
                         || _Client == null 
                         || !_Client.Connected)
                     {
-                        Logger?.Invoke("[SimpleTcp.Client] Disconnection detected");
+                        Logger?.Invoke(_Header + "Disconnection detected");
                         break;
                     }
                      
@@ -462,11 +463,11 @@ namespace SimpleTcp
             }
             catch (SocketException)
             {
-                Logger?.Invoke("[SimpleTcp.Server] Data receiver socket exception (disconnection)");
+                Logger?.Invoke(_Header + "Data receiver socket exception (disconnection)");
             }
             catch (Exception e)
             {
-                Logger?.Invoke("[SimpleTcp.Client] Data receiver exception:" + 
+                Logger?.Invoke(_Header + "Data receiver exception:" + 
                     Environment.NewLine + 
                     e.ToString() + 
                     Environment.NewLine);
@@ -600,32 +601,39 @@ namespace SimpleTcp
 
         private void EnableKeepalives()
         {
+            try
+            {
 #if NETCOREAPP
 
-            _Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-            _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _Keepalive.TcpKeepAliveTime); 
-            _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, _Keepalive.TcpKeepAliveInterval);
-            _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, _Keepalive.TcpKeepAliveRetryCount);
+                _Client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+                _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _Keepalive.TcpKeepAliveTime);
+                _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, _Keepalive.TcpKeepAliveInterval);
+                _Client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, _Keepalive.TcpKeepAliveRetryCount);
 
-#elif NETFRAMEWORK 
+#elif NETFRAMEWORK
 
-            byte[] keepAlive = new byte[12];
+                byte[] keepAlive = new byte[12];
 
-            // Turn keepalive on
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
+                // Turn keepalive on
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
 
-            // Set TCP keepalive time
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4); 
+                // Set TCP keepalive time
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4); 
 
-            // Set TCP keepalive interval
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4); 
+                // Set TCP keepalive interval
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4); 
 
-            // Set keepalive settings on the underlying Socket
-            _Client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
+                // Set keepalive settings on the underlying Socket
+                _Client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
 
 #elif NETSTANDARD
 
 #endif
+            }
+            catch (Exception)
+            {
+                Logger?.Invoke(_Header + "Keepalives not supported on this platform, disabled");
+            }
         }
 
         #endregion

@@ -114,6 +114,16 @@ SimpleTcpServer also has:
 
 Additionally, both SimpleTcpClient and SimpleTcpServer offer a statistics object under ```SimpleTcpClient.Statistics``` and ```SimpleTcpServer.Statistics```.  These values (other than start time and uptime) can be reset using the ```Statistics.Reset()``` API.
 
+### Local vs External Connections
+
+**IMPORTANT**
+* If you specify ```127.0.0.1``` as the listener IP address, it will only be able to accept connections from within the local host.  
+* To accept connections from other machines:
+  * Use a specific interface IP address, or
+  * Use ```null```, ```*```, ```+```, or ```0.0.0.0``` for the listener IP address (requires admin privileges to listen on any IP address)
+* Make sure you create a permit rule on your firewall to allow inbound connections on that port
+* If you use a port number under 1024, admin privileges will be required
+
 ### Testing with SSL
 
 A certificate named ```simpletcp.pfx``` is provided for simple testing.  It should not expire for a really long time.  It's a self-signed certificate and you should NOT use it in production.  Its export password is ```simpletcp```.
