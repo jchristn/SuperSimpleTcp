@@ -42,7 +42,7 @@ void Main(string[] args)
 	server.Start();
 
 	// once a client has connected...
-	server.Send("[ClientIp:Port]", Encoding.UTF8.GetString("Hello, world!"));
+	server.Send("[ClientIp:Port]", "Hello, world!");
 	Console.ReadKey();
 }
 
@@ -80,7 +80,7 @@ void Main(string[] args)
 	client.Connect();
 
 	// once connected to the server...
-	client.Send(Encoding.UTF8.GetBytes("Hello, world!"));
+	client.Send("Hello, world!");
 	Console.ReadKey();
 }
 
