@@ -83,6 +83,12 @@ namespace ServerTest
                     case "stats reset":
                         _Server.Statistics.Reset();
                         break;
+                    case "start":
+                        _Server.Start();
+                        break;
+                    case "stop":
+                        _Server.Stop();
+                        break;
                 }
             }
         }
@@ -109,6 +115,8 @@ namespace ServerTest
             Console.WriteLine(" ?             Help, this menu");
             Console.WriteLine(" q             Quit");
             Console.WriteLine(" cls           Clear the screen");
+            Console.WriteLine(" start         Start the server");
+            Console.WriteLine(" stop          Stop the server");
             Console.WriteLine(" list          List connected clients");
             Console.WriteLine(" send          Send a message to a client");
             Console.WriteLine(" sendasync     Send a message to a client asynchronously");

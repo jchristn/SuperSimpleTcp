@@ -200,17 +200,28 @@ namespace SimpleTcp
         /// </summary>
         public void Start()
         {
-            if (_Running) throw new InvalidOperationException("TcpServer is already running.");
+            if (_Running) throw new InvalidOperationException("SimpleTcpServer is already running.");
 
             _Listener = new TcpListener(_IPAddress, _Port);
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
             _Listener.Start();
-
             _Clients = new ConcurrentDictionary<string, ClientMetadata>();
-
+            _TokenSource = new CancellationTokenSource();
+            _Token = _TokenSource.Token;
             Task.Run(() => AcceptConnections(), _Token);
+        }
+
+        /// <summary>
+        /// Stop the TCP server from accepting new connections.
+        /// </summary>
+        public void Stop()
+        {
+            if (!_Running) throw new InvalidOperationException("SimpleTcpServer is not running.");
+
+            _Listener.Stop();
+            _TokenSource.Cancel();
         }
 
         /// <summary>
@@ -430,6 +441,8 @@ namespace SimpleTcp
 
         private async void AcceptConnections()
         {
+            _Running = true;
+
             while (!_Token.IsCancellationRequested)
             {
                 ClientMetadata client = null;
@@ -468,6 +481,7 @@ namespace SimpleTcp
                 }
                 catch (OperationCanceledException)
                 {
+                    _Running = false;
                     return;
                 }
                 catch (ObjectDisposedException)
@@ -482,6 +496,8 @@ namespace SimpleTcp
                     continue;
                 } 
             }
+
+            _Running = false;
         }
 
         private async Task<bool> StartTls(ClientMetadata client)
