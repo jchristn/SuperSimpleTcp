@@ -77,9 +77,9 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private int _TcpKeepAliveInterval = 5;
-        private int _TcpKeepAliveTime = 5;
-        private int _TcpKeepAliveRetryCount = 5;
+        private int _TcpKeepAliveInterval = 2;
+        private int _TcpKeepAliveTime = 2;
+        private int _TcpKeepAliveRetryCount = 3;
 
         #endregion
 

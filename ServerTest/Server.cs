@@ -115,8 +115,8 @@ namespace ServerTest
             Console.WriteLine(" ?             Help, this menu");
             Console.WriteLine(" q             Quit");
             Console.WriteLine(" cls           Clear the screen");
-            Console.WriteLine(" start         Start the server");
-            Console.WriteLine(" stop          Stop the server");
+            Console.WriteLine(" start         Start listening for connections (listening: " + (_Server != null ? _Server.IsListening.ToString() : "false") + ")");
+            Console.WriteLine(" stop          Stop listening for connections  (listening: " + (_Server != null ? _Server.IsListening.ToString() : "false") + ")");
             Console.WriteLine(" list          List connected clients");
             Console.WriteLine(" send          Send a message to a client");
             Console.WriteLine(" sendasync     Send a message to a client asynchronously");

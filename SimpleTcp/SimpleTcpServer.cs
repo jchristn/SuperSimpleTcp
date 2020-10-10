@@ -24,6 +24,17 @@ namespace SimpleTcp
         #region Public-Members
 
         /// <summary>
+        /// Indicates if the server is listening for connections.
+        /// </summary>
+        public bool IsListening
+        {
+            get
+            {
+                return _IsListening;
+            }
+        }
+
+        /// <summary>
         /// SimpleTcp server settings.
         /// </summary>
         public SimpleTcpServerSettings Settings
@@ -113,7 +124,7 @@ namespace SimpleTcp
         private ConcurrentDictionary<string, DateTime> _ClientsTimedout = new ConcurrentDictionary<string, DateTime>();
 
         private TcpListener _Listener;
-        private bool _Running;
+        private bool _IsListening = false;
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token; 
@@ -159,7 +170,7 @@ namespace SimpleTcp
             _Ssl = ssl;
             _PfxCertFilename = pfxCertFilename;
             _PfxPassword = pfxPassword;
-            _Running = false;  
+            _IsListening = false;  
             _Token = _TokenSource.Token;
              
             if (_Ssl)
@@ -196,32 +207,35 @@ namespace SimpleTcp
         }
 
         /// <summary>
-        /// Start the TCP server and begin accepting connections.
+        /// Start accepting connections.
         /// </summary>
         public void Start()
         {
-            if (_Running) throw new InvalidOperationException("SimpleTcpServer is already running.");
+            if (_IsListening) throw new InvalidOperationException("SimpleTcpServer is already running.");
 
             _Listener = new TcpListener(_IPAddress, _Port);
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
-            _Listener.Start();
-            _Clients = new ConcurrentDictionary<string, ClientMetadata>();
+            _Listener.Start(); 
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
-            Task.Run(() => AcceptConnections(), _Token);
+            _Statistics = new SimpleTcpStatistics();
+            Task.Run(() => AcceptConnections(), _Token); // sets _IsListening
         }
 
         /// <summary>
-        /// Stop the TCP server from accepting new connections.
+        /// Stop accepting new connections.
         /// </summary>
         public void Stop()
         {
-            if (!_Running) throw new InvalidOperationException("SimpleTcpServer is not running.");
+            if (!_IsListening) throw new InvalidOperationException("SimpleTcpServer is not running.");
 
+            _IsListening = false;
             _Listener.Stop();
             _TokenSource.Cancel();
+
+            Logger?.Invoke(_Header + "stopped");
         }
 
         /// <summary>
@@ -349,19 +363,19 @@ namespace SimpleTcp
 
             if (!_Clients.TryGetValue(ipPort, out ClientMetadata client))
             {
-                Logger?.Invoke(_Header + "Unable to find client: " + ipPort); 
+                Logger?.Invoke(_Header + "unable to find client: " + ipPort); 
             }
             else
             {
                 if (!_ClientsTimedout.ContainsKey(ipPort))
                 {
-                    Logger?.Invoke(_Header + "Kicking: " + ipPort); 
+                    Logger?.Invoke(_Header + "kicking: " + ipPort); 
                     _ClientsKicked.TryAdd(ipPort, DateTime.Now);
                 }
 
                 _Clients.TryRemove(client.IpPort, out ClientMetadata destroyed);
                 client.Dispose(); 
-                Logger?.Invoke(_Header + "Disposed: " + ipPort); 
+                Logger?.Invoke(_Header + "disposed: " + ipPort); 
             }
         }
 
@@ -384,8 +398,8 @@ namespace SimpleTcp
                         foreach (KeyValuePair<string, ClientMetadata> curr in _Clients)
                         {
                             curr.Value.Dispose();
-                            Logger?.Invoke(_Header + "Disconnected client: " + curr.Key);
-                        }
+                            Logger?.Invoke(_Header + "disconnected client: " + curr.Key);
+                        } 
                     }
 
                     _TokenSource.Cancel();
@@ -404,11 +418,15 @@ namespace SimpleTcp
                 }
                 catch (Exception e)
                 {
-                    Logger?.Invoke(_Header + "Dispose exception:" +
+                    Logger?.Invoke(_Header + "dispose exception:" +
                         Environment.NewLine +
                         e.ToString() +
                         Environment.NewLine);
                 }
+
+                _IsListening = false;
+
+                Logger?.Invoke(_Header + "disposed");
             }
         }
          
@@ -441,7 +459,7 @@ namespace SimpleTcp
 
         private async void AcceptConnections()
         {
-            _Running = true;
+            _IsListening = true;
 
             while (!_Token.IsCancellationRequested)
             {
@@ -475,13 +493,14 @@ namespace SimpleTcp
 
                     _Clients.TryAdd(clientIp, client); 
                     _ClientsLastSeen.TryAdd(clientIp, DateTime.Now); 
-                    Logger?.Invoke(_Header + "Starting data receiver for: " + clientIp); 
+                    Logger?.Invoke(_Header + "starting data receiver for: " + clientIp); 
                     _Events.HandleClientConnected(this, new ClientConnectedEventArgs(clientIp)); 
                     Task unawaited = Task.Run(() => DataReceiver(client), _Token);
                 }
                 catch (OperationCanceledException)
                 {
-                    _Running = false;
+                    _IsListening = false;
+                    if (client != null) client.Dispose();
                     return;
                 }
                 catch (ObjectDisposedException)
@@ -492,12 +511,12 @@ namespace SimpleTcp
                 catch (Exception e)
                 {
                     if (client != null) client.Dispose();
-                    Logger?.Invoke(_Header + "Exception while awaiting connections: " + e.ToString());
+                    Logger?.Invoke(_Header + "exception while awaiting connections: " + e.ToString());
                     continue;
                 } 
             }
 
-            _Running = false;
+            _IsListening = false;
         }
 
         private async Task<bool> StartTls(ClientMetadata client)
@@ -512,28 +531,28 @@ namespace SimpleTcp
 
                 if (!client.SslStream.IsEncrypted)
                 {
-                    Logger?.Invoke(_Header + "Client " + client.IpPort + " not encrypted, disconnecting");
+                    Logger?.Invoke(_Header + "client " + client.IpPort + " not encrypted, disconnecting");
                     client.Dispose();
                     return false;
                 }
 
                 if (!client.SslStream.IsAuthenticated)
                 {
-                    Logger?.Invoke(_Header + "Client " + client.IpPort + " not SSL/TLS authenticated, disconnecting");
+                    Logger?.Invoke(_Header + "client " + client.IpPort + " not SSL/TLS authenticated, disconnecting");
                     client.Dispose();
                     return false;
                 }
 
                 if (_Settings.MutuallyAuthenticate && !client.SslStream.IsMutuallyAuthenticated)
                 {
-                    Logger?.Invoke(_Header + "Client " + client.IpPort + " failed mutual authentication, disconnecting");
+                    Logger?.Invoke(_Header + "client " + client.IpPort + " failed mutual authentication, disconnecting");
                     client.Dispose();
                     return false;
                 }
             }
             catch (Exception e)
             {
-                Logger?.Invoke(_Header + "Client " + client.IpPort + " SSL/TLS exception: " + Environment.NewLine + e.ToString());
+                Logger?.Invoke(_Header + "client " + client.IpPort + " SSL/TLS exception: " + Environment.NewLine + e.ToString());
                 client.Dispose();
                 return false;
             }
@@ -549,7 +568,7 @@ namespace SimpleTcp
 
         private async Task DataReceiver(ClientMetadata client)
         {
-            Logger?.Invoke(_Header + "Data receiver started for client " + client.IpPort);
+            Logger?.Invoke(_Header + "data receiver started for client " + client.IpPort);
             
             while (true)
             {
@@ -558,13 +577,13 @@ namespace SimpleTcp
                     if (client.Token.IsCancellationRequested 
                         || !IsClientConnected(client.Client))
                     {
-                        Logger?.Invoke(_Header + "Client " + client.IpPort + " disconnected");
+                        Logger?.Invoke(_Header + "client " + client.IpPort + " disconnected");
                         break;
                     }
 
                     if (client.Token.IsCancellationRequested)
                     {
-                        Logger?.Invoke(_Header + "Cancellation requested (data receiver for client " + client.IpPort + ")");
+                        Logger?.Invoke(_Header + "cancellation requested (data receiver for client " + client.IpPort + ")");
                         break;
                     } 
 
@@ -581,11 +600,11 @@ namespace SimpleTcp
                 }
                 catch (SocketException)
                 {
-                    Logger?.Invoke(_Header + "Data receiver socket exception (disconnection) for " + client.IpPort);
+                    Logger?.Invoke(_Header + "data receiver socket exception (disconnection) for " + client.IpPort);
                 }
                 catch (Exception e)
                 {
-                    Logger?.Invoke(_Header + "Data receiver exception for client " + client.IpPort + ":" +
+                    Logger?.Invoke(_Header + "data receiver exception for client " + client.IpPort + ":" +
                         Environment.NewLine +
                         e.ToString() +
                         Environment.NewLine);
@@ -594,7 +613,7 @@ namespace SimpleTcp
                 }
             }
 
-            Logger?.Invoke(_Header + "Data receiver terminated for client " + client.IpPort);
+            Logger?.Invoke(_Header + "data receiver terminated for client " + client.IpPort);
 
             if (_ClientsKicked.ContainsKey(client.IpPort))
             {
@@ -686,14 +705,14 @@ namespace SimpleTcp
                         if (curr.Value < idleTimestamp)
                         {
                             _ClientsTimedout.TryAdd(curr.Key, DateTime.Now);
-                            Logger?.Invoke(_Header + "Disconnecting " + curr.Key + " due to timeout");
+                            Logger?.Invoke(_Header + "disconnecting " + curr.Key + " due to timeout");
                             DisconnectClient(curr.Key);
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger?.Invoke(_Header + "MonitorForIdleClientsTask exception: " + e.ToString());
+                    Logger?.Invoke(_Header + "monitor exception: " + e.ToString());
                 }
             }
         }
@@ -814,7 +833,7 @@ namespace SimpleTcp
             }
             catch (Exception)
             {
-                Logger?.Invoke(_Header + "Keepalives not supported on this platform, disabled");
+                Logger?.Invoke(_Header + "keepalives not supported on this platform, disabled");
             }
         }
 

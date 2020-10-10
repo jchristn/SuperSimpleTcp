@@ -202,7 +202,7 @@ namespace SimpleTcp
         /// </summary>
         public void Connect()
         {
-            Logger?.Invoke(_Header + "Connecting to " + _ServerIp + ":" + _Port);
+            Logger?.Invoke(_Header + "connecting to " + _ServerIp + ":" + _Port);
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
@@ -395,7 +395,7 @@ namespace SimpleTcp
                     _Client = null;
                 }
 
-                Logger?.Invoke(_Header + "Dispose complete");
+                Logger?.Invoke(_Header + "dispose complete");
             }
         }
 
@@ -442,7 +442,7 @@ namespace SimpleTcp
                         || _Client == null 
                         || !_Client.Connected)
                     {
-                        Logger?.Invoke(_Header + "Disconnection detected");
+                        Logger?.Invoke(_Header + "disconnection detected");
                         break;
                     }
                      
@@ -463,11 +463,11 @@ namespace SimpleTcp
             }
             catch (SocketException)
             {
-                Logger?.Invoke(_Header + "Data receiver socket exception (disconnection)");
+                Logger?.Invoke(_Header + "data receiver socket exception (disconnection)");
             }
             catch (Exception e)
             {
-                Logger?.Invoke(_Header + "Data receiver exception:" + 
+                Logger?.Invoke(_Header + "data receiver exception:" + 
                     Environment.NewLine + 
                     e.ToString() + 
                     Environment.NewLine);
@@ -632,7 +632,7 @@ namespace SimpleTcp
             }
             catch (Exception)
             {
-                Logger?.Invoke(_Header + "Keepalives not supported on this platform, disabled");
+                Logger?.Invoke(_Header + "keepalives not supported on this platform, disabled");
             }
         }
 
