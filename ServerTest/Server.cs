@@ -70,9 +70,7 @@ namespace ServerTest
                         SendAsync();
                         break;
                     case "remove":
-                        Console.Write("IP:Port: ");
-                        string ipPort = Console.ReadLine();
-                        _Server.DisconnectClient(ipPort);
+                        RemoveClient();
                         break; 
                     case "dispose":
                         _Server.Dispose();
@@ -134,32 +132,44 @@ namespace ServerTest
             {
                 foreach (string curr in clients) Console.WriteLine(curr);
             }
-            else Console.WriteLine("None");
+            else
+            {
+                Console.WriteLine("None");
+            }
         }
 
         static void Send()
         {
-            string clientIp = InputString("Client IP:port:", _LastClientIpPort, true);
-            if (!String.IsNullOrEmpty(clientIp))
+            string ipPort = InputString("Client IP:port:", _LastClientIpPort, true);
+            if (!String.IsNullOrEmpty(ipPort))
             {
                 string data = InputString("Data:", "Hello!", true);
                 if (!String.IsNullOrEmpty(data))
                 {
-                    _Server.Send(clientIp, Encoding.UTF8.GetBytes(data));
+                    _Server.Send(ipPort, Encoding.UTF8.GetBytes(data));
                 }
             }
         }
 
         static void SendAsync()
         {
-            string clientIp = InputString("Client IP:port:", _LastClientIpPort, true);
-            if (!String.IsNullOrEmpty(clientIp))
+            string ipPort = InputString("Client IP:port:", _LastClientIpPort, true);
+            if (!String.IsNullOrEmpty(ipPort))
             {
                 string data = InputString("Data:", "Hello!", true);
                 if (!String.IsNullOrEmpty(data))
                 {
-                    _Server.SendAsync(clientIp, Encoding.UTF8.GetBytes(data)).Wait();
+                    _Server.SendAsync(ipPort, Encoding.UTF8.GetBytes(data)).Wait();
                 }
+            }
+        }
+
+        static void RemoveClient()
+        {
+            string ipPort = InputString("Client IP:port:", _LastClientIpPort, true);
+            if (!String.IsNullOrEmpty(ipPort))
+            {
+                _Server.DisconnectClient(ipPort);
             }
         }
 

@@ -140,6 +140,11 @@
             Establish the connection to the server.
             </summary>
         </member>
+        <member name="M:SimpleTcp.SimpleTcpClient.Disconnect">
+            <summary>
+            Disconnect from the server.
+            </summary>
+        </member>
         <member name="M:SimpleTcp.SimpleTcpClient.Send(System.String)">
             <summary>
             Send data to the server.

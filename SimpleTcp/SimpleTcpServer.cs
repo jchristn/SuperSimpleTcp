@@ -108,12 +108,12 @@ namespace SimpleTcp
         private SimpleTcpKeepaliveSettings _Keepalive = new SimpleTcpKeepaliveSettings();
         private SimpleTcpStatistics _Statistics = new SimpleTcpStatistics();
 
-        private string _ListenerIp;
-        private IPAddress _IPAddress;
-        private int _Port;
-        private bool _Ssl;
-        private string _PfxCertFilename;
-        private string _PfxPassword;
+        private string _ListenerIp = null;
+        private IPAddress _IPAddress = null;
+        private int _Port = 0;
+        private bool _Ssl = false;
+        private string _PfxCertFilename = null;
+        private string _PfxPassword = null;
 
         private X509Certificate2 _SslCertificate = null;
         private X509Certificate2Collection _SslCertificateCollection = null;
@@ -123,7 +123,7 @@ namespace SimpleTcp
         private ConcurrentDictionary<string, DateTime> _ClientsKicked = new ConcurrentDictionary<string, DateTime>();
         private ConcurrentDictionary<string, DateTime> _ClientsTimedout = new ConcurrentDictionary<string, DateTime>();
 
-        private TcpListener _Listener;
+        private TcpListener _Listener = null;
         private bool _IsListening = false;
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
@@ -217,10 +217,10 @@ namespace SimpleTcp
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
-            _Listener.Start(); 
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
             _Statistics = new SimpleTcpStatistics();
+
             Task.Run(() => AcceptConnections(), _Token); // sets _IsListening
         }
 
@@ -235,8 +235,7 @@ namespace SimpleTcp
             _Listener = new TcpListener(_IPAddress, _Port);
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
-
-            _Listener.Start();
+             
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
             _Statistics = new SimpleTcpStatistics();
@@ -421,8 +420,14 @@ namespace SimpleTcp
                         } 
                     }
 
-                    _TokenSource.Cancel();
-                    _TokenSource.Dispose();
+                    if (_TokenSource != null)
+                    {
+                        if (!_TokenSource.IsCancellationRequested)
+                        {
+                            _TokenSource.Cancel();
+                            _TokenSource.Dispose();
+                        }
+                    }
 
                     if (_Listener != null && _Listener.Server != null)
                     {
@@ -479,6 +484,7 @@ namespace SimpleTcp
         private async Task AcceptConnections()
         {
             _IsListening = true;
+            _Listener.Start();
 
             while (!_Token.IsCancellationRequested)
             {
@@ -617,13 +623,25 @@ namespace SimpleTcp
                     _Statistics.ReceivedBytes += data.Length;
                     UpdateClientLastSeen(client.IpPort);
                 }
+                catch (IOException)
+                {
+                    Logger?.Invoke(_Header + "data receiver canceled, peer disconnected [" + client.IpPort + "]");
+                }
                 catch (SocketException)
                 {
-                    Logger?.Invoke(_Header + "data receiver socket exception (disconnection) for " + client.IpPort);
+                    Logger?.Invoke(_Header + "data receiver canceled, peer disconnected [" + client.IpPort + "]");
+                }
+                catch (TaskCanceledException)
+                {
+                    Logger?.Invoke(_Header + "data receiver task canceled [" + client.IpPort + "]");
+                }
+                catch (ObjectDisposedException)
+                {
+                    Logger?.Invoke(_Header + "data receiver canceled due to disposal [" + client.IpPort + "]");
                 }
                 catch (Exception e)
                 {
-                    Logger?.Invoke(_Header + "data receiver exception for client " + client.IpPort + ":" +
+                    Logger?.Invoke(_Header + "data receiver exception [" + client.IpPort + "]:" +
                         Environment.NewLine +
                         e.ToString() +
                         Environment.NewLine);

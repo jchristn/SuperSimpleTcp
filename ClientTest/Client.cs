@@ -71,6 +71,12 @@ namespace ClientTest
                     case "stats":
                         Console.WriteLine(_Client.Statistics.ToString());
                         break;
+                    case "connect":
+                        _Client.Connect();
+                        break;
+                    case "disconnect":
+                        _Client.Disconnect();
+                        break;
                     case "stats reset":
                         _Client.Statistics.Reset();
                         break;
@@ -107,7 +113,9 @@ namespace ClientTest
             Console.WriteLine(" send          Send a message to the server");
             Console.WriteLine(" sendasync     Send a message to the server asynchronously");
             Console.WriteLine(" connected     Display if the client is connected to the server");
-            Console.WriteLine(" dispose       Dispose of the client"); 
+            Console.WriteLine(" dispose       Dispose of the client");
+            Console.WriteLine(" connect       Connect to the server (connected: " + _Client.IsConnected + ")");
+            Console.WriteLine(" disconnect    Disconnect from the server");
             Console.WriteLine(" stats         Display client statistics");
             Console.WriteLine(" stats reset   Reset client statistics");
             Console.WriteLine("");

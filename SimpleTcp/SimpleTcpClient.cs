@@ -29,11 +29,11 @@ namespace SimpleTcp
         {
             get
             {
-                return _Connected;
+                return _IsConnected;
             }
             private set
             {
-                _Connected = value;
+                _IsConnected = value;
             }
         }
 
@@ -111,21 +111,21 @@ namespace SimpleTcp
         private SimpleTcpKeepaliveSettings _Keepalive = new SimpleTcpKeepaliveSettings();
         private SimpleTcpStatistics _Statistics = new SimpleTcpStatistics();
 
-        private string _ServerIp;
-        private IPAddress _IPAddress;
-        private int _Port;
-        private System.Net.Sockets.TcpClient _Client;
-        private NetworkStream _NetworkStream;
+        private string _ServerIp = null;
+        private IPAddress _IPAddress = null;
+        private int _Port = 0;
+        private System.Net.Sockets.TcpClient _Client = null;
+        private NetworkStream _NetworkStream = null;
 
-        private bool _Ssl;
-        private string _PfxCertFilename;
-        private string _PfxPassword;
-        private SslStream _SslStream;
-        private X509Certificate2 _SslCert;
-        private X509Certificate2Collection _SslCertCollection;
+        private bool _Ssl = false;
+        private string _PfxCertFilename = null;
+        private string _PfxPassword = null;
+        private SslStream _SslStream = null;
+        private X509Certificate2 _SslCert = null;
+        private X509Certificate2Collection _SslCertCollection = null;
 
         private SemaphoreSlim _SendLock = new SemaphoreSlim(1, 1); 
-        private bool _Connected = false;
+        private bool _IsConnected = false;
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
@@ -148,15 +148,11 @@ namespace SimpleTcp
             Common.ParseIpPort(ipPort, out _ServerIp, out _Port);
             if (_Port < 0) throw new ArgumentException("Port must be zero or greater.");
             if (String.IsNullOrEmpty(_ServerIp)) throw new ArgumentNullException("Server IP or hostname must not be null.");
-
-            _Token = _TokenSource.Token; 
-
+             
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
                 _IPAddress = Dns.GetHostEntry(_ServerIp).AddressList[0];
-            }
-
-            InitializeClient(ssl, pfxCertFilename, pfxPassword);
+            } 
         }
 
         /// <summary>
@@ -172,16 +168,13 @@ namespace SimpleTcp
             if (String.IsNullOrEmpty(serverIpOrHostname)) throw new ArgumentNullException(nameof(serverIpOrHostname));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
-            _Token = _TokenSource.Token;
             _ServerIp = serverIpOrHostname;
             _Port = port;
 
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
                 _IPAddress = Dns.GetHostEntry(serverIpOrHostname).AddressList[0];
-            }
-
-            InitializeClient(ssl, pfxCertFilename, pfxPassword); 
+            } 
         }
 
         #endregion
@@ -202,7 +195,22 @@ namespace SimpleTcp
         /// </summary>
         public void Connect()
         {
-            Logger?.Invoke(_Header + "connecting to " + _ServerIp + ":" + _Port);
+            if (IsConnected)
+            {
+                Logger?.Invoke(_Header + "already connected");
+                return;
+            }
+            else
+            {
+                Logger?.Invoke(_Header + "initializing client");
+
+                InitializeClient(_Ssl, _PfxCertFilename, _PfxPassword);
+
+                Logger?.Invoke(_Header + "connecting to " + _ServerIp + ":" + _Port);
+            }
+
+            _TokenSource = new CancellationTokenSource();
+            _Token = _TokenSource.Token;
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
@@ -251,7 +259,7 @@ namespace SimpleTcp
                     }
                 } 
 
-                _Connected = true;
+                _IsConnected = true;
             }
             catch (Exception)
             {
@@ -268,13 +276,33 @@ namespace SimpleTcp
         }
 
         /// <summary>
+        /// Disconnect from the server.
+        /// </summary>
+        public void Disconnect()
+        {
+            if (!IsConnected)
+            {
+                Logger?.Invoke(_Header + "already disconnected");
+                return;
+            }
+            else
+            {
+                Logger?.Invoke(_Header + "disconnecting from " + _ServerIp + ":" + _Port);
+            }
+
+            _TokenSource.Cancel();
+            _Client.Close();
+            _IsConnected = false;
+        }
+
+        /// <summary>
         /// Send data to the server.
         /// </summary>
         /// <param name="data">String containing data to send.</param>
         public void Send(string data)
         {
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
             byte[] bytes = Encoding.UTF8.GetBytes(data);
             MemoryStream ms = new MemoryStream();
             ms.Write(bytes, 0, bytes.Length);
@@ -289,7 +317,7 @@ namespace SimpleTcp
         public void Send(byte[] data)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
             MemoryStream ms = new MemoryStream();
             ms.Write(data, 0, data.Length);
             ms.Seek(0, SeekOrigin.Begin);
@@ -306,7 +334,7 @@ namespace SimpleTcp
             if (contentLength < 1) return;
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
-            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
             SendInternal(contentLength, stream);
         }
 
@@ -317,7 +345,7 @@ namespace SimpleTcp
         public async Task SendAsync(string data)
         {
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
-            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
             byte[] bytes = Encoding.UTF8.GetBytes(data);
             MemoryStream ms = new MemoryStream();
             await ms.WriteAsync(bytes, 0, bytes.Length);
@@ -332,7 +360,7 @@ namespace SimpleTcp
         public async Task SendAsync(byte[] data)
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
-            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
             MemoryStream ms = new MemoryStream();
             await ms.WriteAsync(data, 0, data.Length);
             ms.Seek(0, SeekOrigin.Begin);
@@ -349,7 +377,7 @@ namespace SimpleTcp
             if (contentLength < 1) return;
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
-            if (!_Connected) throw new IOException("Not connected to the server; use Connect() first.");
+            if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
             await SendInternalAsync(contentLength, stream);
         }
 
@@ -365,34 +393,33 @@ namespace SimpleTcp
         {
             if (disposing)
             {
-                _Connected = false;
+                _IsConnected = false;
 
                 if (_TokenSource != null)
                 {
-                    if (!_TokenSource.IsCancellationRequested) _TokenSource.Cancel();
-                    _TokenSource.Dispose();
-                    _TokenSource = null;
+                    if (!_TokenSource.IsCancellationRequested)
+                    {
+                        _TokenSource.Cancel();
+                        _TokenSource.Dispose();
+                    }
                 }
 
                 if (_SslStream != null)
                 {
                     _SslStream.Close();
-                    _SslStream.Dispose();
-                    _SslStream = null;
+                    _SslStream.Dispose(); 
                 }
 
                 if (_NetworkStream != null)
                 {
                     _NetworkStream.Close();
-                    _NetworkStream.Dispose();
-                    _NetworkStream = null;
+                    _NetworkStream.Dispose(); 
                 }
 
                 if (_Client != null)
                 {
                     _Client.Close();
-                    _Client.Dispose();
-                    _Client = null;
+                    _Client.Dispose(); 
                 }
 
                 Logger?.Invoke(_Header + "dispose complete");
@@ -457,13 +484,21 @@ namespace SimpleTcp
                     _Statistics.ReceivedBytes += data.Length;
                 } 
             }
-            catch (ObjectDisposedException)
+            catch (IOException)
             {
-
+                Logger?.Invoke(_Header + "data receiver canceled, peer disconnected");
             }
             catch (SocketException)
             {
-                Logger?.Invoke(_Header + "data receiver socket exception (disconnection)");
+                Logger?.Invoke(_Header + "data receiver canceled, peer disconnected");
+            }
+            catch (TaskCanceledException)
+            {
+                Logger?.Invoke(_Header + "data receiver task canceled");
+            }
+            catch (ObjectDisposedException)
+            {
+                Logger?.Invoke(_Header + "data receiver canceled due to disposal");
             }
             catch (Exception e)
             {
@@ -473,7 +508,7 @@ namespace SimpleTcp
                     Environment.NewLine);
             }
 
-            _Connected = false;
+            _IsConnected = false;
             _Events.HandleDisconnected(this);
         }
 

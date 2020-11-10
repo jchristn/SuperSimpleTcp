@@ -71,9 +71,11 @@ namespace SimpleTcp
         { 
             if (TokenSource != null)
             {
-                if (!TokenSource.IsCancellationRequested) TokenSource.Cancel();
-                TokenSource.Dispose();
-                TokenSource = null;
+                if (!TokenSource.IsCancellationRequested)
+                {
+                    TokenSource.Cancel();
+                    TokenSource.Dispose();
+                }
             }
 
             if (_SslStream != null)
@@ -83,16 +85,13 @@ namespace SimpleTcp
 
             if (_NetworkStream != null)
             {
-                _NetworkStream.Close();
-                // _NetworkStream.Dispose();
-                // _NetworkStream = null;
+                _NetworkStream.Close(); 
             }
 
             if (_TcpClient != null)
             {
                 _TcpClient.Close();
-                _TcpClient.Dispose();
-                _TcpClient = null;
+                _TcpClient.Dispose(); 
             } 
         }
 
