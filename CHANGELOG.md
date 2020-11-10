@@ -8,6 +8,8 @@ v2.1.0
 - Retarget to include .NET Core (includes previous targeting to .NET Standard and .NET Framework)
 - Consolidated settings and event classes
 - Added support for TCP keepalives
+- Client ```.Disconnect()``` API
+- Additional constructors
 
 ## Previous Versions
 

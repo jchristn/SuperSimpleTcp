@@ -129,10 +129,49 @@ namespace SimpleTcp
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
-         
+
         #endregion
 
         #region Constructors-and-Factories
+
+        /// <summary>
+        /// Instantiates the TCP client without SSL.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="ipPort">The IP:port of the server.</param> 
+        public SimpleTcpClient(string ipPort)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+
+            Common.ParseIpPort(ipPort, out _ServerIp, out _Port);
+            if (_Port < 0) throw new ArgumentException("Port must be zero or greater.");
+            if (String.IsNullOrEmpty(_ServerIp)) throw new ArgumentNullException("Server IP or hostname must not be null.");
+
+            if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
+            {
+                _IPAddress = Dns.GetHostEntry(_ServerIp).AddressList[0];
+                _ServerIp = _IPAddress.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client without SSL.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        public SimpleTcpClient(string serverIpOrHostname, int port)
+        {
+            if (String.IsNullOrEmpty(serverIpOrHostname)) throw new ArgumentNullException(nameof(serverIpOrHostname));
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+
+            _ServerIp = serverIpOrHostname;
+            _Port = port;
+
+            if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
+            {
+                _IPAddress = Dns.GetHostEntry(serverIpOrHostname).AddressList[0];
+                _ServerIp = _IPAddress.ToString();
+            } 
+        }
 
         /// <summary>
         /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
@@ -152,7 +191,12 @@ namespace SimpleTcp
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
                 _IPAddress = Dns.GetHostEntry(_ServerIp).AddressList[0];
-            } 
+                _ServerIp = _IPAddress.ToString();
+            }
+
+            _Ssl = ssl;
+            _PfxCertFilename = pfxCertFilename;
+            _PfxPassword = pfxPassword;
         }
 
         /// <summary>
@@ -174,7 +218,12 @@ namespace SimpleTcp
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
                 _IPAddress = Dns.GetHostEntry(serverIpOrHostname).AddressList[0];
-            } 
+                _ServerIp = _IPAddress.ToString();
+            }
+
+            _Ssl = ssl;
+            _PfxCertFilename = pfxCertFilename;
+            _PfxPassword = pfxPassword;
         }
 
         #endregion

@@ -127,52 +127,118 @@ namespace SimpleTcp
         private bool _IsListening = false;
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
-        private CancellationToken _Token; 
+        private CancellationToken _Token;
 
         #endregion
 
         #region Constructors-and-Factories
 
         /// <summary>
-        /// Instantiates the TCP server.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+        /// Instantiates the TCP server without SSL.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
         /// </summary>
-        /// <param name="listenerIp">The listener IP address or hostname.</param>
-        /// <param name="port">The TCP port on which to listen.</param>
-        /// <param name="ssl">Enable or disable SSL.</param>
-        /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
-        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
-        public SimpleTcpServer(string listenerIp, int port, bool ssl, string pfxCertFilename, string pfxPassword)
+        /// <param name="ipPort">The IP:port of the server.</param> 
+        public SimpleTcpServer(string ipPort)
         {
-            if (String.IsNullOrEmpty(listenerIp)) throw new ArgumentNullException(nameof(listenerIp));
-            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
-             
-            if (String.IsNullOrEmpty(listenerIp))
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+
+            Common.ParseIpPort(ipPort, out _ListenerIp, out _Port);
+
+            if (_Port < 0) throw new ArgumentException("Port must be zero or greater.");
+            if (String.IsNullOrEmpty(_ListenerIp))
             {
                 _IPAddress = IPAddress.Loopback;
                 _ListenerIp = _IPAddress.ToString();
             }
-            else if (listenerIp == "*" || listenerIp == "+")
+            else if (_ListenerIp == "*" || _ListenerIp == "+")
+            {
+                _IPAddress = IPAddress.Any;
+            }
+            else
+            {
+                if (!IPAddress.TryParse(_ListenerIp, out _IPAddress))
+                {
+                    _IPAddress = Dns.GetHostEntry(_ListenerIp).AddressList[0];
+                    _ListenerIp = _IPAddress.ToString();
+                } 
+            }
+
+            _IsListening = false;
+            _Token = _TokenSource.Token;
+        }
+
+        /// <summary>
+        /// Instantiates the TCP server without SSL.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+        /// </summary>
+        /// <param name="listenerIp">The listener IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        public SimpleTcpServer(string listenerIp, int port)
+        {
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+
+            _ListenerIp = listenerIp;
+            _Port = port;
+
+            if (String.IsNullOrEmpty(_ListenerIp))
+            {
+                _IPAddress = IPAddress.Loopback;
+                _ListenerIp = _IPAddress.ToString();
+            }
+            else if (_ListenerIp == "*" || _ListenerIp == "+")
             {
                 _IPAddress = IPAddress.Any;
                 _ListenerIp = listenerIp;
             }
             else
-            {
-                if (!IPAddress.TryParse(listenerIp, out _IPAddress))
+            { 
+                if (!IPAddress.TryParse(_ListenerIp, out _IPAddress))
                 {
                     _IPAddress = Dns.GetHostEntry(listenerIp).AddressList[0];
-                }
-
-                _ListenerIp = listenerIp;
+                    _ListenerIp = _IPAddress.ToString();
+                } 
             }
-              
-            _Port = port;
+             
+            _IsListening = false;
+            _Token = _TokenSource.Token; 
+        }
+
+        /// <summary>
+        /// Instantiates the TCP server.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+        /// </summary>
+        /// <param name="ipPort">The IP:port of the server.</param> 
+        /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
+        public SimpleTcpServer(string ipPort, bool ssl, string pfxCertFilename, string pfxPassword)
+        {
+            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+
+            Common.ParseIpPort(ipPort, out _ListenerIp, out _Port);
+            if (_Port < 0) throw new ArgumentException("Port must be zero or greater.");
+
+            if (String.IsNullOrEmpty(_ListenerIp))
+            {
+                _IPAddress = IPAddress.Loopback;
+                _ListenerIp = _IPAddress.ToString();
+            }
+            else if (_ListenerIp == "*" || _ListenerIp == "+")
+            {
+                _IPAddress = IPAddress.Any;
+            }
+            else
+            {
+                if (!IPAddress.TryParse(_ListenerIp, out _IPAddress))
+                {
+                    _IPAddress = Dns.GetHostEntry(_ListenerIp).AddressList[0];
+                    _ListenerIp = _IPAddress.ToString();
+                }
+            }
+
             _Ssl = ssl;
             _PfxCertFilename = pfxCertFilename;
             _PfxPassword = pfxPassword;
-            _IsListening = false;  
+            _IsListening = false;
             _Token = _TokenSource.Token;
-             
+
             if (_Ssl)
             {
                 if (String.IsNullOrEmpty(pfxPassword))
@@ -188,9 +254,64 @@ namespace SimpleTcp
                 {
                     _SslCertificate
                 };
-            }
+            } 
+        }
 
-            Task.Run(() => MonitorForIdleClients(), _Token);
+        /// <summary>
+        /// Instantiates the TCP server.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+        /// </summary>
+        /// <param name="listenerIp">The listener IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
+        public SimpleTcpServer(string listenerIp, int port, bool ssl, string pfxCertFilename, string pfxPassword)
+        { 
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+
+            _ListenerIp = listenerIp;
+            _Port = port;
+
+            if (String.IsNullOrEmpty(_ListenerIp))
+            {
+                _IPAddress = IPAddress.Loopback;
+                _ListenerIp = _IPAddress.ToString();
+            }
+            else if (_ListenerIp == "*" || _ListenerIp == "+")
+            {
+                _IPAddress = IPAddress.Any; 
+            }
+            else
+            {
+                if (!IPAddress.TryParse(_ListenerIp, out _IPAddress))
+                {
+                    _IPAddress = Dns.GetHostEntry(listenerIp).AddressList[0];
+                    _ListenerIp = _IPAddress.ToString();
+                }
+            }
+             
+            _Ssl = ssl;
+            _PfxCertFilename = pfxCertFilename;
+            _PfxPassword = pfxPassword;
+            _IsListening = false;
+            _Token = _TokenSource.Token;
+
+            if (_Ssl)
+            {
+                if (String.IsNullOrEmpty(pfxPassword))
+                {
+                    _SslCertificate = new X509Certificate2(pfxCertFilename);
+                }
+                else
+                {
+                    _SslCertificate = new X509Certificate2(pfxCertFilename, pfxPassword);
+                }
+
+                _SslCertificateCollection = new X509Certificate2Collection
+                {
+                    _SslCertificate
+                };
+            } 
         }
 
         #endregion
@@ -221,6 +342,7 @@ namespace SimpleTcp
             _Token = _TokenSource.Token;
             _Statistics = new SimpleTcpStatistics();
 
+            Task.Run(() => MonitorForIdleClients(), _Token);
             Task.Run(() => AcceptConnections(), _Token); // sets _IsListening
         }
 
