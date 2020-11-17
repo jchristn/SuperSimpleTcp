@@ -177,24 +177,27 @@
             <param name="contentLength">The number of bytes to read from the source stream to send.</param>
             <param name="stream">Stream containing the data to send.</param>
         </member>
-        <member name="M:SimpleTcp.SimpleTcpClient.SendAsync(System.String)">
+        <member name="M:SimpleTcp.SimpleTcpClient.SendAsync(System.String,System.Threading.CancellationToken)">
             <summary>
             Send data to the server asynchronously.
             </summary>
             <param name="data">String containing data to send.</param>
+            <param name="token">Cancellation token for canceling the request.</param>
         </member>
-        <member name="M:SimpleTcp.SimpleTcpClient.SendAsync(System.Byte[])">
+        <member name="M:SimpleTcp.SimpleTcpClient.SendAsync(System.Byte[],System.Threading.CancellationToken)">
             <summary>
             Send data to the server asynchronously.
             </summary> 
             <param name="data">Byte array containing data to send.</param>
+            <param name="token">Cancellation token for canceling the request.</param>
         </member>
-        <member name="M:SimpleTcp.SimpleTcpClient.SendAsync(System.Int64,System.IO.Stream)">
+        <member name="M:SimpleTcp.SimpleTcpClient.SendAsync(System.Int64,System.IO.Stream,System.Threading.CancellationToken)">
             <summary>
             Send data to the server asynchronously.
             </summary>
             <param name="contentLength">The number of bytes to read from the source stream to send.</param>
             <param name="stream">Stream containing the data to send.</param>
+            <param name="token">Cancellation token for canceling the request.</param>
         </member>
         <member name="M:SimpleTcp.SimpleTcpClient.Dispose(System.Boolean)">
             <summary>
@@ -421,27 +424,30 @@
             <param name="contentLength">The number of bytes to read from the source stream to send.</param>
             <param name="stream">Stream containing the data to send.</param>
         </member>
-        <member name="M:SimpleTcp.SimpleTcpServer.SendAsync(System.String,System.String)">
+        <member name="M:SimpleTcp.SimpleTcpServer.SendAsync(System.String,System.String,System.Threading.CancellationToken)">
             <summary>
             Send data to the specified client by IP:port asynchronously.
             </summary>
             <param name="ipPort">The client IP:port string.</param>
             <param name="data">String containing data to send.</param>
+            <param name="token">Cancellation token for canceling the request.</param>
         </member>
-        <member name="M:SimpleTcp.SimpleTcpServer.SendAsync(System.String,System.Byte[])">
+        <member name="M:SimpleTcp.SimpleTcpServer.SendAsync(System.String,System.Byte[],System.Threading.CancellationToken)">
             <summary>
             Send data to the specified client by IP:port asynchronously.
             </summary>
             <param name="ipPort">The client IP:port string.</param>
             <param name="data">Byte array containing data to send.</param>
+            <param name="token">Cancellation token for canceling the request.</param>
         </member>
-        <member name="M:SimpleTcp.SimpleTcpServer.SendAsync(System.String,System.Int64,System.IO.Stream)">
+        <member name="M:SimpleTcp.SimpleTcpServer.SendAsync(System.String,System.Int64,System.IO.Stream,System.Threading.CancellationToken)">
             <summary>
             Send data to the specified client by IP:port asynchronously.
             </summary>
             <param name="ipPort">The client IP:port string.</param>
             <param name="contentLength">The number of bytes to read from the source stream to send.</param>
             <param name="stream">Stream containing the data to send.</param>
+            <param name="token">Cancellation token for canceling the request.</param>
         </member>
         <member name="M:SimpleTcp.SimpleTcpServer.DisconnectClient(System.String)">
             <summary>

@@ -128,6 +128,8 @@ namespace SimpleTcp
 
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
+        private Task _AcceptConnections = null;
+        private Task _IdleClientMonitor = null;
 
         #endregion
 
@@ -341,9 +343,8 @@ namespace SimpleTcp
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
             _Statistics = new SimpleTcpStatistics();
-
-            Task.Run(() => MonitorForIdleClients(), _Token);
-            Task.Run(() => AcceptConnections(), _Token); // sets _IsListening
+            _IdleClientMonitor = Task.Run(() => IdleClientMonitor(), _Token);
+            _AcceptConnections = Task.Run(() => AcceptConnections(), _Token);
         }
 
         /// <summary>
@@ -361,7 +362,9 @@ namespace SimpleTcp
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
             _Statistics = new SimpleTcpStatistics();
-            return AcceptConnections(); // sets _IsListening
+            _IdleClientMonitor = Task.Run(() => IdleClientMonitor(), _Token);
+            _AcceptConnections = Task.Run(() => AcceptConnections(), _Token);
+            return _AcceptConnections;
         }
 
         /// <summary>
@@ -452,15 +455,17 @@ namespace SimpleTcp
         /// </summary>
         /// <param name="ipPort">The client IP:port string.</param>
         /// <param name="data">String containing data to send.</param>
-        public async Task SendAsync(string ipPort, string data)
+        /// <param name="token">Cancellation token for canceling the request.</param>
+        public async Task SendAsync(string ipPort, string data, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (String.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
+            if (token == default(CancellationToken)) token = _Token;
             byte[] bytes = Encoding.UTF8.GetBytes(data);
             MemoryStream ms = new MemoryStream();
-            await ms.WriteAsync(bytes, 0, bytes.Length);
+            await ms.WriteAsync(bytes, 0, bytes.Length, token).ConfigureAwait(false);
             ms.Seek(0, SeekOrigin.Begin);
-            await SendInternalAsync(ipPort, bytes.Length, ms);
+            await SendInternalAsync(ipPort, bytes.Length, ms, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -468,14 +473,16 @@ namespace SimpleTcp
         /// </summary>
         /// <param name="ipPort">The client IP:port string.</param>
         /// <param name="data">Byte array containing data to send.</param>
-        public async Task SendAsync(string ipPort, byte[] data)
+        /// <param name="token">Cancellation token for canceling the request.</param>
+        public async Task SendAsync(string ipPort, byte[] data, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
+            if (token == default(CancellationToken)) token = _Token;
             MemoryStream ms = new MemoryStream();
-            await ms.WriteAsync(data, 0, data.Length);
+            await ms.WriteAsync(data, 0, data.Length, token).ConfigureAwait(false);
             ms.Seek(0, SeekOrigin.Begin);
-            await SendInternalAsync(ipPort, data.Length, ms);
+            await SendInternalAsync(ipPort, data.Length, ms, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -484,13 +491,15 @@ namespace SimpleTcp
         /// <param name="ipPort">The client IP:port string.</param>
         /// <param name="contentLength">The number of bytes to read from the source stream to send.</param>
         /// <param name="stream">Stream containing the data to send.</param>
-        public async Task SendAsync(string ipPort, long contentLength, Stream stream)
+        /// <param name="token">Cancellation token for canceling the request.</param>
+        public async Task SendAsync(string ipPort, long contentLength, Stream stream, CancellationToken token = default)
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             if (contentLength < 1) return;
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
-            await SendInternalAsync(ipPort, contentLength, stream);
+            if (token == default(CancellationToken)) token = _Token;
+            await SendInternalAsync(ipPort, contentLength, stream, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -614,7 +623,7 @@ namespace SimpleTcp
 
                 try
                 {
-                    System.Net.Sockets.TcpClient tcpClient = await _Listener.AcceptTcpClientAsync(); 
+                    System.Net.Sockets.TcpClient tcpClient = await _Listener.AcceptTcpClientAsync().ConfigureAwait(false); 
                     string clientIp = tcpClient.Client.RemoteEndPoint.ToString();
 
                     client = new ClientMetadata(tcpClient);
@@ -630,7 +639,7 @@ namespace SimpleTcp
                             client.SslStream = new SslStream(client.NetworkStream, false);
                         }
 
-                        bool success = await StartTls(client);
+                        bool success = await StartTls(client).ConfigureAwait(false);
                         if (!success)
                         {
                             client.Dispose();
@@ -641,8 +650,16 @@ namespace SimpleTcp
                     _Clients.TryAdd(clientIp, client); 
                     _ClientsLastSeen.TryAdd(clientIp, DateTime.Now); 
                     Logger?.Invoke(_Header + "starting data receiver for: " + clientIp); 
-                    _Events.HandleClientConnected(this, new ClientConnectedEventArgs(clientIp)); 
-                    Task unawaited = Task.Run(() => DataReceiver(client), _Token);
+                    _Events.HandleClientConnected(this, new ClientConnectedEventArgs(clientIp));
+
+                    CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(client.Token, _Token);
+                    Task unawaited = Task.Run(() => DataReceiver(client), linkedCts.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    _IsListening = false;
+                    if (client != null) client.Dispose();
+                    return;
                 }
                 catch (OperationCanceledException)
                 {
@@ -674,7 +691,7 @@ namespace SimpleTcp
                     _SslCertificate,
                     _Settings.MutuallyAuthenticate, 
                     SslProtocols.Tls12, 
-                    !_Settings.AcceptInvalidCertificates);
+                    !_Settings.AcceptInvalidCertificates).ConfigureAwait(false);
 
                 if (!client.SslStream.IsEncrypted)
                 {
@@ -716,13 +733,14 @@ namespace SimpleTcp
         private async Task DataReceiver(ClientMetadata client)
         {
             Logger?.Invoke(_Header + "data receiver started for client " + client.IpPort);
-            
+
+            CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_Token, client.Token);
+
             while (true)
             {
                 try
                 { 
-                    if (client.Token.IsCancellationRequested 
-                        || !IsClientConnected(client.Client))
+                    if (!IsClientConnected(client.Client))
                     {
                         Logger?.Invoke(_Header + "client " + client.IpPort + " disconnected");
                         break;
@@ -734,14 +752,14 @@ namespace SimpleTcp
                         break;
                     } 
 
-                    byte[] data = await DataReadAsync(client);
+                    byte[] data = await DataReadAsync(client, linkedCts.Token).ConfigureAwait(false);
                     if (data == null)
                     { 
-                        await Task.Delay(30);
+                        await Task.Delay(10).ConfigureAwait(false);
                         continue;
                     }
 
-                    _Events.HandleDataReceived(this, new DataReceivedFromClientEventArgs(client.IpPort, data));
+                    Task unawaited = Task.Run(() => _Events.HandleDataReceived(this, new DataReceivedFromClientEventArgs(client.IpPort, data)), linkedCts.Token);
                     _Statistics.ReceivedBytes += data.Length;
                     UpdateClientLastSeen(client.IpPort);
                 }
@@ -795,13 +813,8 @@ namespace SimpleTcp
             client.Dispose();
         }
            
-        private async Task<byte[]> DataReadAsync(ClientMetadata client)
+        private async Task<byte[]> DataReadAsync(ClientMetadata client, CancellationToken token)
         { 
-            if (client.Token.IsCancellationRequested) throw new OperationCanceledException();
-            if (!client.NetworkStream.CanRead) return null;
-            if (!client.NetworkStream.DataAvailable) return null;
-            if (_Ssl && !client.SslStream.CanRead) return null;
-
             byte[] buffer = new byte[_Settings.StreamBufferSize];
             int read = 0;
 
@@ -811,11 +824,11 @@ namespace SimpleTcp
                 {
                     while (true)
                     {
-                        read = await client.NetworkStream.ReadAsync(buffer, 0, buffer.Length);
+                        read = await client.NetworkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
 
                         if (read > 0)
                         {
-                            ms.Write(buffer, 0, read);
+                            await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
                             return ms.ToArray();
                         }
                         else
@@ -831,11 +844,11 @@ namespace SimpleTcp
                 {
                     while (true)
                     {
-                        read = await client.SslStream.ReadAsync(buffer, 0, buffer.Length);
+                        read = await client.SslStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
 
                         if (read > 0)
                         {
-                            ms.Write(buffer, 0, read);
+                            await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
                             return ms.ToArray();
                         }
                         else
@@ -847,11 +860,11 @@ namespace SimpleTcp
             } 
         }
 
-        private async Task MonitorForIdleClients()
+        private async Task IdleClientMonitor()
         {
             while (!_Token.IsCancellationRequested)
             { 
-                await Task.Delay(_Settings.IdleClientEvaluationIntervalSeconds, _Token);
+                await Task.Delay(_Settings.IdleClientEvaluationIntervalSeconds, _Token).ConfigureAwait(false);
 
                 if (_Settings.IdleClientTimeoutSeconds == 0) continue;
 
@@ -923,35 +936,44 @@ namespace SimpleTcp
             }
         }
 
-        private async Task SendInternalAsync(string ipPort, long contentLength, Stream stream)
+        private async Task SendInternalAsync(string ipPort, long contentLength, Stream stream, CancellationToken token)
         {
             ClientMetadata client = null;
-            if (!_Clients.TryGetValue(ipPort, out client)) return;
-            if (client == null) return;
-
-            long bytesRemaining = contentLength;
-            int bytesRead = 0;
-            byte[] buffer = new byte[_Settings.StreamBufferSize];
 
             try
             {
-                await client.SendLock.WaitAsync();
+                if (!_Clients.TryGetValue(ipPort, out client)) return;
+                if (client == null) return;
+
+                long bytesRemaining = contentLength;
+                int bytesRead = 0;
+                byte[] buffer = new byte[_Settings.StreamBufferSize];
+
+                await client.SendLock.WaitAsync(token).ConfigureAwait(false);
 
                 while (bytesRemaining > 0)
                 {
-                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                    bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
                     if (bytesRead > 0)
                     {
-                        if (!_Ssl) await client.NetworkStream.WriteAsync(buffer, 0, bytesRead);
-                        else await client.SslStream.WriteAsync(buffer, 0, bytesRead);
+                        if (!_Ssl) await client.NetworkStream.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
+                        else await client.SslStream.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
 
                         bytesRemaining -= bytesRead;
                         _Statistics.SentBytes += bytesRead;
                     }
                 }
 
-                if (!_Ssl) await client.NetworkStream.FlushAsync();
-                else await client.SslStream.FlushAsync();
+                if (!_Ssl) await client.NetworkStream.FlushAsync(token).ConfigureAwait(false);
+                else await client.SslStream.FlushAsync(token).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException)
+            {
+
+            }
+            catch (OperationCanceledException)
+            {
+
             }
             finally
             {
@@ -963,7 +985,7 @@ namespace SimpleTcp
         {
             try
             {
-#if NETCOREAPP
+#if NETCOREAPP || NET5_0
 
                 _Listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 _Listener.Server.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _Keepalive.TcpKeepAliveTime);
