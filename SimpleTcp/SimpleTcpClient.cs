@@ -575,21 +575,18 @@ namespace SimpleTcp
             if (!_Ssl)
             { 
                 using (MemoryStream ms = new MemoryStream())
-                {
-                    while (true)
-                    {
-                        read = await _NetworkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+                { 
+                    read = await _NetworkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
 
-                        if (read > 0)
-                        {
-                            await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
-                            return ms.ToArray();
-                        }
-                        else
-                        {
-                            throw new SocketException();
-                        }
+                    if (read > 0)
+                    {
+                        await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
+                        return ms.ToArray();
                     }
+                    else
+                    {
+                        throw new SocketException();
+                    } 
                 } 
             }
             else
