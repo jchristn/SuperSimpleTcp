@@ -340,6 +340,9 @@ namespace SimpleTcp
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
+            _Listener.Start();
+            _IsListening = true;
+
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
             _Statistics = new SimpleTcpStatistics();
@@ -358,7 +361,10 @@ namespace SimpleTcp
             _Listener = new TcpListener(_IPAddress, _Port);
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
-             
+
+            _Listener.Start();
+            _IsListening = true;
+
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
             _Statistics = new SimpleTcpStatistics();
@@ -614,9 +620,6 @@ namespace SimpleTcp
 
         private async Task AcceptConnections()
         {
-            _IsListening = true;
-            _Listener.Start();
-
             while (!_Token.IsCancellationRequested)
             {
                 ClientMetadata client = null;
