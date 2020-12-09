@@ -54,7 +54,7 @@ static void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
   Console.WriteLine("[" + e.IpPort + "] client disconnected: " + e.Reason.ToString());
 }
 
-static void DataReceived(object sender, DataReceivedFromClientEventArgs e)
+static void DataReceived(object sender, DataReceivedEventArgs e)
 {
   Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data));
 }
@@ -92,9 +92,9 @@ static void Disconnected(object sender, EventArgs e)
   Console.WriteLine("*** Server disconnected"); 
 }
 
-static void DataReceived(object sender, DataReceivedFromServerEventArgs e)
+static void DataReceived(object sender, DataReceivedEventArgs e)
 {
-  Console.WriteLine("[" + _ServerIp + ":" + _ServerPort + "] " + Encoding.UTF8.GetString(e.Data));
+  Console.WriteLine("[" + e.IpPort + "] " + Encoding.UTF8.GetString(e.Data));
 }
 ```
 
