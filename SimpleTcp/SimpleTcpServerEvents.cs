@@ -24,7 +24,7 @@ namespace SimpleTcp
         /// <summary>
         /// Event to call when byte data has become available from the client.  A string containing the client IP:port and a byte array containing the data will be passed.
         /// </summary>
-        public event EventHandler<DataReceivedFromClientEventArgs> DataReceived;
+        public event EventHandler<DataReceivedEventArgs> DataReceived;
 
         #endregion
 
@@ -56,7 +56,7 @@ namespace SimpleTcp
             ClientDisconnected?.Invoke(sender, args);
         }
 
-        internal void HandleDataReceived(object sender, DataReceivedFromClientEventArgs args)
+        internal void HandleDataReceived(object sender, DataReceivedEventArgs args)
         {
             DataReceived?.Invoke(sender, args);
         }

@@ -24,7 +24,7 @@ namespace SimpleTcp
         /// <summary>
         /// Event to call when byte data has become available from the server.
         /// </summary>
-        public event EventHandler<DataReceivedFromServerEventArgs> DataReceived;
+        public event EventHandler<DataReceivedEventArgs> DataReceived;
 
         #endregion
 
@@ -56,7 +56,7 @@ namespace SimpleTcp
             Disconnected?.Invoke(sender, EventArgs.Empty);
         }
 
-        internal void HandleDataReceived(object sender, DataReceivedFromServerEventArgs args)
+        internal void HandleDataReceived(object sender, DataReceivedEventArgs args)
         {
             DataReceived?.Invoke(sender, args);
         }

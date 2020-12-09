@@ -762,7 +762,7 @@ namespace SimpleTcp
                         continue;
                     }
 
-                    Task unawaited = Task.Run(() => _Events.HandleDataReceived(this, new DataReceivedFromClientEventArgs(client.IpPort, data)), linkedCts.Token);
+                    Task unawaited = Task.Run(() => _Events.HandleDataReceived(this, new DataReceivedEventArgs(client.IpPort, data)), linkedCts.Token);
                     _Statistics.ReceivedBytes += data.Length;
                     UpdateClientLastSeen(client.IpPort);
                 }

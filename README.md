@@ -11,14 +11,10 @@ SimpleTcp provides simple methods for creating your own TCP-based sockets applic
 - If you need integrated framing, please use WatsonTcp (https://github.com/jchristn/WatsonTcp)
 - If you need discrete control over the number of bytes read from or written to a socket, please use CavemanTcp (https://github.com/jchristn/CavemanTcp)
  
-## New in v2.1.0
+## New in v2.2.0
 
 - Breaking changes
-- Retarget to include .NET Core (includes previous targeting to .NET Standard and .NET Framework)
-- Consolidated settings and event classes
-- Added support for TCP keepalives
-- Client ```.Disconnect()``` API
-- Additional constructors
+- Consolidated data received events to allow clients to know which server sent data
 
 ## Help or Feedback
 

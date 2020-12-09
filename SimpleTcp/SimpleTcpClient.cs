@@ -112,8 +112,8 @@ namespace SimpleTcp
         private SimpleTcpStatistics _Statistics = new SimpleTcpStatistics();
 
         private string _ServerIp = null;
+        private int _ServerPort = 0;
         private IPAddress _IPAddress = null;
-        private int _Port = 0;
         private System.Net.Sockets.TcpClient _Client = null;
         private NetworkStream _NetworkStream = null;
 
@@ -142,8 +142,8 @@ namespace SimpleTcp
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
 
-            Common.ParseIpPort(ipPort, out _ServerIp, out _Port);
-            if (_Port < 0) throw new ArgumentException("Port must be zero or greater.");
+            Common.ParseIpPort(ipPort, out _ServerIp, out _ServerPort);
+            if (_ServerPort < 0) throw new ArgumentException("Port must be zero or greater.");
             if (String.IsNullOrEmpty(_ServerIp)) throw new ArgumentNullException("Server IP or hostname must not be null.");
 
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
@@ -164,7 +164,7 @@ namespace SimpleTcp
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             _ServerIp = serverIpOrHostname;
-            _Port = port;
+            _ServerPort = port;
 
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
@@ -184,8 +184,8 @@ namespace SimpleTcp
         {
             if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
 
-            Common.ParseIpPort(ipPort, out _ServerIp, out _Port);
-            if (_Port < 0) throw new ArgumentException("Port must be zero or greater.");
+            Common.ParseIpPort(ipPort, out _ServerIp, out _ServerPort);
+            if (_ServerPort < 0) throw new ArgumentException("Port must be zero or greater.");
             if (String.IsNullOrEmpty(_ServerIp)) throw new ArgumentNullException("Server IP or hostname must not be null.");
              
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
@@ -213,7 +213,7 @@ namespace SimpleTcp
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             _ServerIp = serverIpOrHostname;
-            _Port = port;
+            _ServerPort = port;
 
             if (!IPAddress.TryParse(_ServerIp, out _IPAddress))
             {
@@ -255,7 +255,7 @@ namespace SimpleTcp
 
                 InitializeClient(_Ssl, _PfxCertFilename, _PfxPassword);
 
-                Logger?.Invoke(_Header + "connecting to " + _ServerIp + ":" + _Port);
+                Logger?.Invoke(_Header + "connecting to " + _ServerIp + ":" + _ServerPort);
             }
 
             _TokenSource = new CancellationTokenSource();
@@ -263,7 +263,7 @@ namespace SimpleTcp
 
             if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
 
-            IAsyncResult ar = _Client.BeginConnect(_ServerIp, _Port, null, null);
+            IAsyncResult ar = _Client.BeginConnect(_ServerIp, _ServerPort, null, null);
             WaitHandle wh = ar.AsyncWaitHandle;
 
             try
@@ -271,7 +271,7 @@ namespace SimpleTcp
                 if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(_Settings.ConnectTimeoutSeconds), false))
                 {
                     _Client.Close();
-                    throw new TimeoutException("Timeout connecting to " + _ServerIp + ":" + _Port);
+                    throw new TimeoutException("Timeout connecting to " + _ServerIp + ":" + _ServerPort);
                 }
 
                 _Client.EndConnect(ar); 
@@ -336,7 +336,7 @@ namespace SimpleTcp
             }
             else
             {
-                Logger?.Invoke(_Header + "disconnecting from " + _ServerIp + ":" + _Port);
+                Logger?.Invoke(_Header + "disconnecting from " + _ServerIp + ":" + _ServerPort);
             }
 
             _TokenSource.Cancel();
@@ -535,7 +535,7 @@ namespace SimpleTcp
                         continue;
                     }
 
-                    _Events.HandleDataReceived(this, new DataReceivedFromServerEventArgs(data));
+                    _Events.HandleDataReceived(this, new DataReceivedEventArgs((_ServerIp + _ServerPort), data));
                     _Statistics.ReceivedBytes += data.Length;
                 } 
             }

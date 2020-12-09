@@ -29,29 +29,19 @@
             The reason for the disconnection.
             </summary>
         </member>
-        <member name="T:SimpleTcp.DataReceivedFromClientEventArgs">
+        <member name="T:SimpleTcp.DataReceivedEventArgs">
             <summary>
-            Arguments for data received from client events.
+            Arguments for data received from connected endpoints.
             </summary>
         </member>
-        <member name="P:SimpleTcp.DataReceivedFromClientEventArgs.IpPort">
+        <member name="P:SimpleTcp.DataReceivedEventArgs.IpPort">
             <summary>
-            The IP address and port number of the connected client socket.
+            The IP address and port number of the connected endpoint.
             </summary>
         </member>
-        <member name="P:SimpleTcp.DataReceivedFromClientEventArgs.Data">
+        <member name="P:SimpleTcp.DataReceivedEventArgs.Data">
             <summary>
             The data received from the client.
-            </summary>
-        </member>
-        <member name="T:SimpleTcp.DataReceivedFromServerEventArgs">
-            <summary>
-            Arguments for data received from server events.
-            </summary>
-        </member>
-        <member name="P:SimpleTcp.DataReceivedFromServerEventArgs.Data">
-            <summary>
-            The data received from the server.
             </summary>
         </member>
         <member name="T:SimpleTcp.DisconnectReason">

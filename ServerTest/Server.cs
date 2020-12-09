@@ -108,7 +108,7 @@ namespace ServerTest
             Console.WriteLine("[" + e.IpPort + "] client disconnected: " + e.Reason.ToString());
         }
 
-        static void DataReceived(object sender, DataReceivedFromClientEventArgs e)
+        static void DataReceived(object sender, DataReceivedEventArgs e)
         {
             Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data));
         }

@@ -2,6 +2,13 @@
 
 ## Current Version
 
+v2.2.0
+
+- Breaking changes
+- Consolidated data received events to allow clients to know which server sent data
+
+## Previous Versions
+
 v2.1.0
 
 - Breaking changes
@@ -10,8 +17,6 @@ v2.1.0
 - Added support for TCP keepalives
 - Client ```.Disconnect()``` API
 - Additional constructors
-
-## Previous Versions
 
 v2.0.6
 
