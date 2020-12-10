@@ -3,9 +3,12 @@
 ## Current Version
 
 v2.2.0
-
+ 
 - Breaking changes
-- Consolidated data received events to allow clients to know which server sent data
+- Consolidated event argument objects to provide clients with context on which server is connected/disconnected or sent data
+  - ```DataReceivedFromClientEventArgs``` and ```DataReceivedFromServerEventArgs``` consolidated into ```DataReceivedEventArgs```
+  - ```SimpleTcpClient.Connected``` and ```SimpleTcpClient.Disconnected``` now use ```ClientConnectedEventArgs``` and ```ClientDisconnectEventArgs```
+  - Motivation for the change was to support applications that use multiple instances of SimpleTcpClient with each instance using the same event handlers
 
 ## Previous Versions
 

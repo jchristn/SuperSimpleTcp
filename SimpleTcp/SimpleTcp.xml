@@ -17,6 +17,8 @@
         <member name="T:SimpleTcp.ClientDisconnectedEventArgs">
             <summary>
             Arguments for client disconnection events.
+            Only the server has visibility to disconnect reasons, as this information is not sent to the client.
+            To the client, every disconnect appears to be a normal disconnect.
             </summary>
         </member>
         <member name="P:SimpleTcp.ClientDisconnectedEventArgs.IpPort">
@@ -99,6 +101,11 @@
         <member name="F:SimpleTcp.SimpleTcpClient.Logger">
             <summary>
             Method to invoke to send a log message.
+            </summary>
+        </member>
+        <member name="P:SimpleTcp.SimpleTcpClient.ServerIpPort">
+            <summary>
+            The IP:port of the server to which this client is mapped.
             </summary>
         </member>
         <member name="M:SimpleTcp.SimpleTcpClient.#ctor(System.String)">

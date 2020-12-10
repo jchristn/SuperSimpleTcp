@@ -4,6 +4,8 @@ namespace SimpleTcp
 {
     /// <summary>
     /// Arguments for client disconnection events.
+    /// Only the server has visibility to disconnect reasons, as this information is not sent to the client.
+    /// To the client, every disconnect appears to be a normal disconnect.
     /// </summary>
     public class ClientDisconnectedEventArgs : EventArgs
     {

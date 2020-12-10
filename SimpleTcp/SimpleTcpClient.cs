@@ -101,6 +101,17 @@ namespace SimpleTcp
         /// </summary>
         public Action<string> Logger = null;
 
+        /// <summary>
+        /// The IP:port of the server to which this client is mapped.
+        /// </summary>
+        public string ServerIpPort
+        {
+            get
+            {
+                return _ServerIp + ":" + _ServerPort;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -255,7 +266,7 @@ namespace SimpleTcp
 
                 InitializeClient(_Ssl, _PfxCertFilename, _PfxPassword);
 
-                Logger?.Invoke(_Header + "connecting to " + _ServerIp + ":" + _ServerPort);
+                Logger?.Invoke(_Header + "connecting to " + ServerIpPort);
             }
 
             _TokenSource = new CancellationTokenSource();
@@ -271,7 +282,7 @@ namespace SimpleTcp
                 if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(_Settings.ConnectTimeoutSeconds), false))
                 {
                     _Client.Close();
-                    throw new TimeoutException("Timeout connecting to " + _ServerIp + ":" + _ServerPort);
+                    throw new TimeoutException("Timeout connecting to " + ServerIpPort);
                 }
 
                 _Client.EndConnect(ar); 
@@ -319,7 +330,7 @@ namespace SimpleTcp
                 wh.Close();
             }
 
-            _Events.HandleConnected(this);
+            _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
 
             Task.Run(() => DataReceiver(_Token), _Token);
         }
@@ -336,7 +347,7 @@ namespace SimpleTcp
             }
             else
             {
-                Logger?.Invoke(_Header + "disconnecting from " + _ServerIp + ":" + _ServerPort);
+                Logger?.Invoke(_Header + "disconnecting from " + ServerIpPort);
             }
 
             _TokenSource.Cancel();
@@ -515,7 +526,7 @@ namespace SimpleTcp
         }
 
         private async Task DataReceiver(CancellationToken token)
-        {
+        { 
             try
             { 
                 while (true)
@@ -535,7 +546,7 @@ namespace SimpleTcp
                         continue;
                     }
 
-                    _Events.HandleDataReceived(this, new DataReceivedEventArgs((_ServerIp + _ServerPort), data));
+                    _Events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
                     _Statistics.ReceivedBytes += data.Length;
                 } 
             }
@@ -564,7 +575,7 @@ namespace SimpleTcp
             }
 
             _IsConnected = false;
-            _Events.HandleDisconnected(this);
+            _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ServerIpPort, DisconnectReason.Normal));
         }
 
         private async Task<byte[]> DataReadAsync(CancellationToken token)
