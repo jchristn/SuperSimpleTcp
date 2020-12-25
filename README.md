@@ -11,13 +11,9 @@ SimpleTcp provides simple methods for creating your own TCP-based sockets applic
 - If you need integrated framing, please use WatsonTcp (https://github.com/jchristn/WatsonTcp)
 - If you need discrete control over the number of bytes read from or written to a socket, please use CavemanTcp (https://github.com/jchristn/CavemanTcp)
 
-## New in v2.2.0
+## New in v2.2.1
 
-- Breaking changes
-- Consolidated event argument objects to provide clients with context on which server is connected/disconnected or sent data
-  - ```DataReceivedFromClientEventArgs``` and ```DataReceivedFromServerEventArgs``` consolidated into ```DataReceivedEventArgs```
-  - ```SimpleTcpClient.Connected``` and ```SimpleTcpClient.Disconnected``` now use ```ClientConnectedEventArgs``` and ```ClientDisconnectEventArgs```
-  - Motivation for the change was to support applications that use multiple instances of SimpleTcpClient with each instance using the same event handlers
+- Breaking change; TCP keepalives now disabled by default due to incompatibility and problems on some platforms
 
 ## Help or Feedback
 

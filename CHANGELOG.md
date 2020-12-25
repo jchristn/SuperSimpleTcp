@@ -2,6 +2,12 @@
 
 ## Current Version
 
+v2.2.1
+
+- Breaking change; TCP keepalives now disabled by default due to incompatibility and problems on some platforms
+
+## Previous Versions
+
 v2.2.0
  
 - Breaking changes
@@ -9,8 +15,6 @@ v2.2.0
   - ```DataReceivedFromClientEventArgs``` and ```DataReceivedFromServerEventArgs``` consolidated into ```DataReceivedEventArgs```
   - ```SimpleTcpClient.Connected``` and ```SimpleTcpClient.Disconnected``` now use ```ClientConnectedEventArgs``` and ```ClientDisconnectEventArgs```
   - Motivation for the change was to support applications that use multiple instances of SimpleTcpClient with each instance using the same event handlers
-
-## Previous Versions
 
 v2.1.0
 
