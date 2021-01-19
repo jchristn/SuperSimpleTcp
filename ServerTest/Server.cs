@@ -43,7 +43,7 @@ namespace ServerTest
             _Server.Events.ClientConnected += ClientConnected;
             _Server.Events.ClientDisconnected += ClientDisconnected;
             _Server.Events.DataReceived += DataReceived;
-
+            _Server.Keepalive.EnableTcpKeepAlives = true;
             _Server.Settings.IdleClientTimeoutSeconds = _IdleClientTimeoutSeconds; 
             _Server.Settings.MutuallyAuthenticate = false;
             _Server.Settings.AcceptInvalidCertificates = true;

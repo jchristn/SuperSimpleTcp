@@ -272,8 +272,6 @@ namespace SimpleTcp
             _TokenSource = new CancellationTokenSource();
             _Token = _TokenSource.Token;
 
-            if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
-
             IAsyncResult ar = _Client.BeginConnect(_ServerIp, _ServerPort, null, null);
             WaitHandle wh = ar.AsyncWaitHandle;
 
@@ -320,6 +318,7 @@ namespace SimpleTcp
                 } 
 
                 _IsConnected = true;
+                if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
             }
             catch (Exception)
             {
@@ -728,6 +727,7 @@ namespace SimpleTcp
             catch (Exception)
             {
                 Logger?.Invoke(_Header + "keepalives not supported on this platform, disabled");
+                _Keepalive.EnableTcpKeepAlives = false;
             }
         }
 

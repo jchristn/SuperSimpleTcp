@@ -338,8 +338,6 @@ namespace SimpleTcp
 
             _Listener = new TcpListener(_IPAddress, _Port);
 
-            if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives();
-
             _Listener.Start();
             _IsListening = true;
 
@@ -654,6 +652,8 @@ namespace SimpleTcp
                     _ClientsLastSeen.TryAdd(clientIp, DateTime.Now); 
                     Logger?.Invoke(_Header + "starting data receiver for: " + clientIp); 
                     _Events.HandleClientConnected(this, new ClientConnectedEventArgs(clientIp));
+                     
+                    if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives(tcpClient); 
 
                     CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(client.Token, _Token);
                     Task unawaited = Task.Run(() => DataReceiver(client), linkedCts.Token);
@@ -1018,6 +1018,44 @@ namespace SimpleTcp
             catch (Exception)
             {
                 Logger?.Invoke(_Header + "keepalives not supported on this platform, disabled");
+            }
+        }
+
+        private void EnableKeepalives(TcpClient client)
+        {
+            try
+            {
+#if NETCOREAPP || NET5_0
+
+                client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+                client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _Keepalive.TcpKeepAliveTime);
+                client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, _Keepalive.TcpKeepAliveInterval);
+                client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, _Keepalive.TcpKeepAliveRetryCount);
+
+#elif NETFRAMEWORK
+
+                byte[] keepAlive = new byte[12];
+
+                // Turn keepalive on
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
+
+                // Set TCP keepalive time
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4); 
+
+                // Set TCP keepalive interval
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4); 
+
+                // Set keepalive settings on the underlying Socket
+                client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
+
+#elif NETSTANDARD
+
+#endif
+            }
+            catch (Exception)
+            {
+                Logger?.Invoke(_Header + "keepalives not supported on this platform, disabled");
+                _Keepalive.EnableTcpKeepAlives = false;
             }
         }
 
