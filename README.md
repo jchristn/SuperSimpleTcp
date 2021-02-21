@@ -11,6 +11,8 @@ SimpleTcp provides simple methods for creating your own TCP-based sockets applic
 - If you need integrated framing, please use WatsonTcp (https://github.com/jchristn/WatsonTcp)
 - If you need discrete control over the number of bytes read from or written to a socket, please use CavemanTcp (https://github.com/jchristn/CavemanTcp)
 
+I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html
+
 ## New in v2.2.1
 
 - Breaking change; TCP keepalives now disabled by default due to incompatibility and problems on some platforms
