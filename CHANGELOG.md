@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v2.3.0
+
+- ConnectWithRetries method to continually retry connecting to the server over a specified number of seconds
+
+## Previous Versions
+
 v2.2.1
 
 - Breaking change; TCP keepalives now disabled by default due to incompatibility and problems on some platforms
-
-## Previous Versions
 
 v2.2.0
  

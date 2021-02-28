@@ -13,9 +13,9 @@ SimpleTcp provides simple methods for creating your own TCP-based sockets applic
 
 I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html
 
-## New in v2.2.1
+## New in v2.3.0
 
-- Breaking change; TCP keepalives now disabled by default due to incompatibility and problems on some platforms
+- ConnectWithRetries method to continually retry connecting to the server over a specified number of seconds
 
 ## Help or Feedback
 
@@ -97,6 +97,13 @@ static void DataReceived(object sender, DataReceivedEventArgs e)
 {
   Console.WriteLine("[" + e.IpPort + "] " + Encoding.UTF8.GetString(e.Data));
 }
+```
+
+### Connect With Retries
+
+The ```ConnectWithRetries``` method on SimpleTcpClient can be used instead of ```Connect``` to continually attempt to establish connections with the server for a given period of time.  Like ```Connect```, ```ConnectWithRetries``` will throw a ```TimeoutException``` if it is unable to successfully establish a connection.
+```csharp
+client.ConnectWithRetries(10); // try for up to 10 seconds
 ```
 
 ### Additional Configuration Options
