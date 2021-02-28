@@ -312,6 +312,7 @@ namespace SimpleTcp
                 wh.Close();
             }
 
+            _IsConnected = true;
             _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
         }
@@ -420,6 +421,7 @@ namespace SimpleTcp
                 throw;
             }
 
+            _IsConnected = true;
             _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
         }
