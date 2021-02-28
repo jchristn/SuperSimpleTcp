@@ -363,7 +363,6 @@ namespace SimpleTcp
 
                         if (_Client.Connected)
                         {
-                            _IsConnected = true;
                             Logger?.Invoke(_Header + "connected to " + _ServerIp + ":" + _ServerPort);
                             break;
                         }
