@@ -358,6 +358,7 @@ namespace SimpleTcp
                         if (retryCount > 0) msg += " (" + retryCount + " retries)";
                         Logger?.Invoke(msg);
 
+                        _Client.Dispose();
                         _Client = new TcpClient();
                         _Client.ConnectAsync(_ServerIp, _ServerPort).Wait(1000, connectToken);
 

@@ -46,7 +46,7 @@ namespace ClientTest
             _Client.Logger = Logger;
 
             // _Client.Connect();
-            _Client.ConnectWithRetries(10);
+            _Client.ConnectWithRetries(20);
 
             while (_RunForever)
             {
