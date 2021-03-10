@@ -15,7 +15,7 @@ namespace ServerTest
         static string _PfxFilename = null;
         static string _PfxPassword = null;
         static string _LastClientIpPort = null;
-        static int _IdleClientTimeoutSeconds = 0;
+        static int _IdleClientTimeoutMs = 0;
 
         static SimpleTcpServer _Server;
         static bool _RunForever = true;
@@ -44,7 +44,7 @@ namespace ServerTest
             _Server.Events.ClientDisconnected += ClientDisconnected;
             _Server.Events.DataReceived += DataReceived;
             _Server.Keepalive.EnableTcpKeepAlives = true;
-            _Server.Settings.IdleClientTimeoutMs = _IdleClientTimeoutSeconds; 
+            _Server.Settings.IdleClientTimeoutMs = _IdleClientTimeoutMs; 
             _Server.Settings.MutuallyAuthenticate = false;
             _Server.Settings.AcceptInvalidCertificates = true;
             _Server.Logger = Logger;
