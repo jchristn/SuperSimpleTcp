@@ -29,18 +29,18 @@ namespace SimpleTcp
         }
 
         /// <summary>
-        /// The number of seconds to wait when attempting to connect.
+        /// The number of milliseconds to wait when attempting to connect.
         /// </summary>
-        public int ConnectTimeoutSeconds
+        public int ConnectTimeoutMs
         {
             get
             {
-                return _ConnectTimeoutSeconds;
+                return _ConnectTimeoutMs;
             }
             set
             {
-                if (value < 1) throw new ArgumentException("ConnectTimeoutSeconds must be greater than zero.");
-                _ConnectTimeoutSeconds = value;
+                if (value < 1) throw new ArgumentException("ConnectTimeoutMs must be greater than zero.");
+                _ConnectTimeoutMs = value;
             }
         }
 
@@ -59,7 +59,7 @@ namespace SimpleTcp
         #region Private-Members
 
         private int _StreamBufferSize = 65536;
-        private int _ConnectTimeoutSeconds = 5;
+        private int _ConnectTimeoutMs = 5000;
 
         #endregion
 

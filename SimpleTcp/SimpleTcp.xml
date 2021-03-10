@@ -152,8 +152,9 @@
         </member>
         <member name="M:SimpleTcp.SimpleTcpClient.ConnectWithRetries(System.Nullable{System.Int32})">
             <summary>
-            Establish the connection to the server with retries up to either the timeout specified or the value in Settings.ConnectTimeoutSeconds.
+            Establish the connection to the server with retries up to either the timeout specified or the value in Settings.ConnectTimeoutMs.
             </summary>
+            <param name="timeoutMs">The amount of time in milliseconds to continue attempting connections.</param>
         </member>
         <member name="M:SimpleTcp.SimpleTcpClient.Disconnect">
             <summary>
@@ -242,9 +243,9 @@
             Buffer size to use while interacting with streams. 
             </summary>
         </member>
-        <member name="P:SimpleTcp.SimpleTcpClientSettings.ConnectTimeoutSeconds">
+        <member name="P:SimpleTcp.SimpleTcpClientSettings.ConnectTimeoutMs">
             <summary>
-            The number of seconds to wait when attempting to connect.
+            The number of milliseconds to wait when attempting to connect.
             </summary>
         </member>
         <member name="F:SimpleTcp.SimpleTcpClientSettings.AcceptInvalidCertificates">
@@ -498,17 +499,17 @@
             Buffer size to use while interacting with streams. 
             </summary>
         </member>
-        <member name="P:SimpleTcp.SimpleTcpServerSettings.IdleClientTimeoutSeconds">
+        <member name="P:SimpleTcp.SimpleTcpServerSettings.IdleClientTimeoutMs">
             <summary>
             Maximum amount of time to wait before considering a client idle and disconnecting them. 
             By default, this value is set to 0, which will never disconnect a client due to inactivity.
             The timeout is reset any time a message is received from a client or a message is sent to a client.
-            For instance, if you set this value to 30, the client will be disconnected if the server has not received a message from the client within 30 seconds or if a message has not been sent to the client in 30 seconds.
+            For instance, if you set this value to 30000, the client will be disconnected if the server has not received a message from the client within 30 seconds or if a message has not been sent to the client in 30 seconds.
             </summary>
         </member>
-        <member name="P:SimpleTcp.SimpleTcpServerSettings.IdleClientEvaluationIntervalSeconds">
+        <member name="P:SimpleTcp.SimpleTcpServerSettings.IdleClientEvaluationIntervalMs">
             <summary>
-            Number of seconds to wait between each iteration of evaluating connected clients to see if they have exceeded the configured timeout interval.
+            Number of milliseconds to wait between each iteration of evaluating connected clients to see if they have exceeded the configured timeout interval.
             </summary>
         </member>
         <member name="F:SimpleTcp.SimpleTcpServerSettings.AcceptInvalidCertificates">

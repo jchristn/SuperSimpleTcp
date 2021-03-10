@@ -32,34 +32,34 @@ namespace SimpleTcp
         /// Maximum amount of time to wait before considering a client idle and disconnecting them. 
         /// By default, this value is set to 0, which will never disconnect a client due to inactivity.
         /// The timeout is reset any time a message is received from a client or a message is sent to a client.
-        /// For instance, if you set this value to 30, the client will be disconnected if the server has not received a message from the client within 30 seconds or if a message has not been sent to the client in 30 seconds.
+        /// For instance, if you set this value to 30000, the client will be disconnected if the server has not received a message from the client within 30 seconds or if a message has not been sent to the client in 30 seconds.
         /// </summary>
-        public int IdleClientTimeoutSeconds
+        public int IdleClientTimeoutMs
         {
             get
             {
-                return _IdleClientTimeoutSeconds;
+                return _IdleClientTimeoutMs;
             }
             set
             {
-                if (value < 0) throw new ArgumentException("IdleClientTimeoutSeconds must be zero or greater.");
-                _IdleClientTimeoutSeconds = value;
+                if (value < 0) throw new ArgumentException("IdleClientTimeoutMs must be zero or greater.");
+                _IdleClientTimeoutMs = value;
             }
         }
 
         /// <summary>
-        /// Number of seconds to wait between each iteration of evaluating connected clients to see if they have exceeded the configured timeout interval.
+        /// Number of milliseconds to wait between each iteration of evaluating connected clients to see if they have exceeded the configured timeout interval.
         /// </summary>
-        public int IdleClientEvaluationIntervalSeconds
+        public int IdleClientEvaluationIntervalMs
         {
             get
             {
-                return _IdleClientEvaluationIntervalSeconds;
+                return _IdleClientEvaluationIntervalMs;
             }
             set
             {
-                if (value < 1) throw new ArgumentOutOfRangeException("IdleClientEvaluationTimeIntervalSeconds must be one or greater.");
-                _IdleClientEvaluationIntervalSeconds = value;
+                if (value < 1) throw new ArgumentOutOfRangeException("IdleClientEvaluationIntervalMs must be one or greater.");
+                _IdleClientEvaluationIntervalMs = value;
             }
         }
 
@@ -78,8 +78,8 @@ namespace SimpleTcp
         #region Private-Members
 
         private int _StreamBufferSize = 65536;
-        private int _IdleClientTimeoutSeconds = 0;
-        private int _IdleClientEvaluationIntervalSeconds = 5;
+        private int _IdleClientTimeoutMs = 0;
+        private int _IdleClientEvaluationIntervalMs = 5000;
 
         #endregion
 

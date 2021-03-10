@@ -13,9 +13,9 @@ SimpleTcp provides simple methods for creating your own TCP-based sockets applic
 
 I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html
 
-## New in v2.3.0
+## New in v2.4.0
 
-- ConnectWithRetries method to continually retry connecting to the server over a specified number of seconds
+- Breaking change, timeouts now use milliseconds instead of seconds (does not apply to keepalive settings)
 
 ## Help or Feedback
 

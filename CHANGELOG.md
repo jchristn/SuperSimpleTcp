@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v2.4.0
+
+- Breaking change, timeouts now use milliseconds instead of seconds (does not apply to keepalive settings)
+
+## Previous Versions
+
 v2.3.0
 
 - ConnectWithRetries method to continually retry connecting to the server over a specified number of seconds
-
-## Previous Versions
 
 v2.2.1
 

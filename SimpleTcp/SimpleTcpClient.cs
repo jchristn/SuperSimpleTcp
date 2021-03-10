@@ -278,7 +278,7 @@ namespace SimpleTcp
 
             try
             {
-                if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(_Settings.ConnectTimeoutSeconds), false))
+                if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(_Settings.ConnectTimeoutMs), false))
                 {
                     _Client.Close();
                     throw new TimeoutException("Timeout connecting to " + ServerIpPort);
@@ -318,12 +318,13 @@ namespace SimpleTcp
         }
 
         /// <summary>
-        /// Establish the connection to the server with retries up to either the timeout specified or the value in Settings.ConnectTimeoutSeconds.
+        /// Establish the connection to the server with retries up to either the timeout specified or the value in Settings.ConnectTimeoutMs.
         /// </summary>
-        public void ConnectWithRetries(int? timeoutSeconds = null)
+        /// <param name="timeoutMs">The amount of time in milliseconds to continue attempting connections.</param>
+        public void ConnectWithRetries(int? timeoutMs = null)
         {
-            if (timeoutSeconds != null && timeoutSeconds < 1) throw new ArgumentException("Timeout seconds must be greater than zero.");
-            if (timeoutSeconds != null) _Settings.ConnectTimeoutSeconds = timeoutSeconds.Value;
+            if (timeoutMs != null && timeoutMs < 1) throw new ArgumentException("Timeout milliseconds must be greater than zero.");
+            if (timeoutMs != null) _Settings.ConnectTimeoutMs = timeoutMs.Value;
 
             if (IsConnected)
             {
@@ -344,8 +345,8 @@ namespace SimpleTcp
 
             CancellationTokenSource connectTokenSource = new CancellationTokenSource();
             CancellationToken connectToken = connectTokenSource.Token;
-
-            Task cancelTask = Task.Delay((_Settings.ConnectTimeoutSeconds * 1000), _Token);
+            
+            Task cancelTask = Task.Delay(_Settings.ConnectTimeoutMs, _Token);
             Task connectTask = Task.Run(() =>
             {
                 int retryCount = 0;
@@ -386,7 +387,7 @@ namespace SimpleTcp
                     }
                 }
             }, connectToken);
-
+            
             Task.WhenAny(cancelTask, connectTask).Wait();
 
             if (cancelTask.IsCompleted)

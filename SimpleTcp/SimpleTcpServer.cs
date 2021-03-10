@@ -867,13 +867,13 @@ namespace SimpleTcp
         {
             while (!_Token.IsCancellationRequested)
             { 
-                await Task.Delay(_Settings.IdleClientEvaluationIntervalSeconds, _Token).ConfigureAwait(false);
+                await Task.Delay(_Settings.IdleClientEvaluationIntervalMs, _Token).ConfigureAwait(false);
 
-                if (_Settings.IdleClientTimeoutSeconds == 0) continue;
+                if (_Settings.IdleClientTimeoutMs == 0) continue;
 
                 try
                 { 
-                    DateTime idleTimestamp = DateTime.Now.AddSeconds(-1 * _Settings.IdleClientTimeoutSeconds);
+                    DateTime idleTimestamp = DateTime.Now.AddMilliseconds(-1 * _Settings.IdleClientTimeoutMs);
 
                     foreach (KeyValuePair<string, DateTime> curr in _ClientsLastSeen)
                     { 

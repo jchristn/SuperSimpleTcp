@@ -42,11 +42,11 @@ namespace ClientTest
             _Client.Keepalive.EnableTcpKeepAlives = true; 
             _Client.Settings.MutuallyAuthenticate = false;
             _Client.Settings.AcceptInvalidCertificates = true;
-            _Client.Settings.ConnectTimeoutSeconds = 30;
+            _Client.Settings.ConnectTimeoutMs = 5000;
             _Client.Logger = Logger;
 
             // _Client.Connect();
-            _Client.ConnectWithRetries(20);
+            _Client.ConnectWithRetries(5000);
 
             while (_RunForever)
             {
