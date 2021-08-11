@@ -177,7 +177,7 @@ mono --server myapp.exe
 
 A special thanks to the community of people that have contributed to or otherwise improved this project!
 
-@u1035 @cmeeren @tinohager @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat @exergist @maynardsi
+@u1035 @cmeeren @tinohager @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat @exergist @maynardsi @sector13371 
 
 ## Version History
 

@@ -15,7 +15,7 @@ namespace ServerTest
         static string _PfxFilename = null;
         static string _PfxPassword = null;
         static string _LastClientIpPort = null;
-        static int _IdleClientTimeoutMs = 0;
+        static int _IdleClientTimeoutMs = 5000;
 
         static SimpleTcpServer _Server;
         static bool _RunForever = true;
