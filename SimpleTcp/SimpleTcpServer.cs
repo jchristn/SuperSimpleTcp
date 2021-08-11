@@ -766,7 +766,6 @@ namespace SimpleTcp
                     } 
 
                     byte[] data = await DataReadAsync(client, linkedCts.Token).ConfigureAwait(false);
-                    //Console.WriteLine("Data");//?????
                     if (data == null)
                     {
                         await Task.Delay(10, linkedCts.Token).ConfigureAwait(false);
