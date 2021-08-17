@@ -139,8 +139,11 @@ namespace SimpleTcp
         private bool _IsConnected = false;
 
         private Task _DataReceiver = null;
+        private Task _IdleServerMonitor = null;
         private CancellationTokenSource _TokenSource = new CancellationTokenSource();
         private CancellationToken _Token;
+
+        private DateTime _LastActivity = DateTime.Now;
 
         #endregion
 
@@ -313,8 +316,10 @@ namespace SimpleTcp
             }
 
             _IsConnected = true;
+            _LastActivity = DateTime.Now;
             _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
+            _IdleServerMonitor = Task.Run(() => IdleServerMonitor(), _Token);
         }
 
         /// <summary>
@@ -423,8 +428,10 @@ namespace SimpleTcp
             }
 
             _IsConnected = true;
+            _LastActivity = DateTime.Now;
             _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
+            _IdleServerMonitor = Task.Run(() => IdleServerMonitor(), _Token);
         }
 
         /// <summary>
@@ -640,6 +647,7 @@ namespace SimpleTcp
 
                     _Events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
                     _Statistics.ReceivedBytes += data.Length;
+                    _LastActivity = DateTime.Now;
                 } 
             }
             catch (IOException)
@@ -653,6 +661,10 @@ namespace SimpleTcp
             catch (TaskCanceledException)
             {
                 Logger?.Invoke(_Header + "data receiver task canceled");
+            }
+            catch (OperationCanceledException)
+            {
+                Logger?.Invoke(_Header + "data receiver operation canceled");
             }
             catch (ObjectDisposedException)
             {
@@ -668,6 +680,7 @@ namespace SimpleTcp
 
             _IsConnected = false;
             _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ServerIpPort, DisconnectReason.Normal));
+            Dispose();
         }
 
         private async Task<byte[]> DataReadAsync(CancellationToken token)
@@ -821,6 +834,25 @@ namespace SimpleTcp
             {
                 Logger?.Invoke(_Header + "keepalives not supported on this platform, disabled");
                 _Keepalive.EnableTcpKeepAlives = false;
+            }
+        }
+
+        private async Task IdleServerMonitor()
+        {
+            while (!_Token.IsCancellationRequested)
+            {
+                await Task.Delay(_Settings.IdleServerEvaluationIntervalMs, _Token).ConfigureAwait(false);
+
+                if (_Settings.IdleServerTimeoutMs == 0) continue;
+
+                DateTime timeoutTime = _LastActivity.AddMilliseconds(_Settings.IdleServerTimeoutMs);
+
+                if (DateTime.Now > timeoutTime)
+                {
+                    Logger?.Invoke(_Header + "disconnecting from " + ServerIpPort + " due to timeout");
+                    _IsConnected = false;
+                    _TokenSource.Cancel(); // DataReceiver will fire events including dispose
+                }
             }
         }
 

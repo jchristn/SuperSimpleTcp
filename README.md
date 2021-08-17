@@ -13,9 +13,9 @@ SimpleTcp provides simple methods for creating your own TCP-based sockets applic
 
 I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html
 
-## New in v2.4.0
+## New in v2.4.1
 
-- Breaking change, timeouts now use milliseconds instead of seconds (does not apply to keepalive settings)
+- Automatic client-side timeout and disconnect due to server inactivity; see ```Settings.IdleServerTimeoutMs```
 
 ## Help or Feedback
 

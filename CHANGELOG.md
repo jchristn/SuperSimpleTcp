@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v2.4.1
+
+- Automatic client-side timeout and disconnect due to server inactivity; see ```Settings.IdleServerTimeoutMs```
+
+## Previous Versions
+
 v2.4.0
 
 - Breaking change, timeouts now use milliseconds instead of seconds (does not apply to keepalive settings)
-
-## Previous Versions
 
 v2.3.0
 

@@ -43,6 +43,7 @@ namespace ClientTest
             _Client.Settings.MutuallyAuthenticate = false;
             _Client.Settings.AcceptInvalidCertificates = true;
             _Client.Settings.ConnectTimeoutMs = 5000;
+            // _Client.Settings.IdleServerTimeoutMs = 10000;
             _Client.Logger = Logger;
 
             // _Client.Connect();

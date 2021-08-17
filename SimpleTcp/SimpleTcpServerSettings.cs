@@ -31,8 +31,8 @@ namespace SimpleTcp
         /// <summary>
         /// Maximum amount of time to wait before considering a client idle and disconnecting them. 
         /// By default, this value is set to 0, which will never disconnect a client due to inactivity.
-        /// The timeout is reset any time a message is received from a client or a message is sent to a client.
-        /// For instance, if you set this value to 30000, the client will be disconnected if the server has not received a message from the client within 30 seconds or if a message has not been sent to the client in 30 seconds.
+        /// The timeout is reset any time a message is received from a client.
+        /// For instance, if you set this value to 30000, the client will be disconnected if the server has not received a message from the client within 30 seconds.
         /// </summary>
         public int IdleClientTimeoutMs
         {
