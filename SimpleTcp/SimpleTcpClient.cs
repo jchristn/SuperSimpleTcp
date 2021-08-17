@@ -144,6 +144,7 @@ namespace SimpleTcp
         private CancellationToken _Token;
 
         private DateTime _LastActivity = DateTime.Now;
+        private bool _IsTimeout = false;
 
         #endregion
 
@@ -317,6 +318,7 @@ namespace SimpleTcp
 
             _IsConnected = true;
             _LastActivity = DateTime.Now;
+            _IsTimeout = false;
             _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
             _IdleServerMonitor = Task.Run(() => IdleServerMonitor(), _Token);
@@ -429,6 +431,7 @@ namespace SimpleTcp
 
             _IsConnected = true;
             _LastActivity = DateTime.Now;
+            _IsTimeout = false;
             _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
             _IdleServerMonitor = Task.Run(() => IdleServerMonitor(), _Token);
@@ -645,9 +648,9 @@ namespace SimpleTcp
                         continue;
                     }
 
+                    _LastActivity = DateTime.Now;
                     _Events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
                     _Statistics.ReceivedBytes += data.Length;
-                    _LastActivity = DateTime.Now;
                 } 
             }
             catch (IOException)
@@ -679,7 +682,10 @@ namespace SimpleTcp
             }
 
             _IsConnected = false;
-            _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ServerIpPort, DisconnectReason.Normal));
+
+            if (!_IsTimeout) _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ServerIpPort, DisconnectReason.Normal));
+            else _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ServerIpPort, DisconnectReason.Timeout));
+
             Dispose();
         }
 
@@ -851,6 +857,7 @@ namespace SimpleTcp
                 {
                     Logger?.Invoke(_Header + "disconnecting from " + ServerIpPort + " due to timeout");
                     _IsConnected = false;
+                    _IsTimeout = true;
                     _TokenSource.Cancel(); // DataReceiver will fire events including dispose
                 }
             }
