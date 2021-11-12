@@ -50,6 +50,8 @@ namespace ServerTest
             _Server.Logger = Logger;
             _Server.Start();
 
+            Console.WriteLine("Server started");
+
             while (_RunForever)
             {
                 string userInput = InputString("Command [? for help]:", null, false);
