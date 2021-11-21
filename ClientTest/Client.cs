@@ -20,22 +20,19 @@ namespace ClientTest
         {
             _ServerIp =    InputString("Server IP   :", "127.0.0.1", false);
             _ServerPort = InputInteger("Server Port :", 9000, true, false);
-
-            /*
             _Ssl =        InputBoolean("Use SSL     :", false);
 
             if (_Ssl)
             {
                 _PfxFilename = InputString("PFX Certificate File:", "simpletcp.pfx", false);
                 _PfxPassword = InputString("PFX File Password:", "simpletcp", false);
+                _Client = new SimpleTcpClient(_ServerIp, _ServerPort, _Ssl, _PfxFilename, _PfxPassword);
+            }
+            else
+            {
+                _Client = new SimpleTcpClient(_ServerIp, _ServerPort);
             }
 
-            _Client = new SimpleTcpClient(_ServerIp, _ServerPort, _Ssl, _PfxFilename, _PfxPassword);
-            */
-
-            // _Client = new SimpleTcpClient((_ServerIp + ":" + _ServerPort));
-
-            _Client = new SimpleTcpClient(_ServerIp, _ServerPort);
             _Client.Events.Connected += Connected;
             _Client.Events.Disconnected += Disconnected;
             _Client.Events.DataReceived += DataReceived;
