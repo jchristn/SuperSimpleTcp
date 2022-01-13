@@ -12,17 +12,17 @@ namespace SimpleTcp
         #region Public-Members
 
         /// <summary>
-        /// Event to call when a client connects.  A string containing the client IP:port will be passed.
+        /// Event to call when a client connects.
         /// </summary>
-        public event EventHandler<ClientConnectedEventArgs> ClientConnected;
+        public event EventHandler<ConnectionEventArgs> ClientConnected;
 
         /// <summary>
-        /// Event to call when a client disconnects.  A string containing the client IP:port will be passed.
+        /// Event to call when a client disconnects.
         /// </summary>
-        public event EventHandler<ClientDisconnectedEventArgs> ClientDisconnected;
+        public event EventHandler<ConnectionEventArgs> ClientDisconnected;
 
         /// <summary>
-        /// Event to call when byte data has become available from the client.  A string containing the client IP:port and a byte array containing the data will be passed.
+        /// Event to call when byte data has become available from the client.
         /// </summary>
         public event EventHandler<DataReceivedEventArgs> DataReceived;
 
@@ -46,12 +46,12 @@ namespace SimpleTcp
 
         #region Public-Methods
 
-        internal void HandleClientConnected(object sender, ClientConnectedEventArgs args)
+        internal void HandleClientConnected(object sender, ConnectionEventArgs args)
         {
             ClientConnected?.Invoke(sender, args);
         }
 
-        internal void HandleClientDisconnected(object sender, ClientDisconnectedEventArgs args)
+        internal void HandleClientDisconnected(object sender, ConnectionEventArgs args)
         {
             ClientDisconnected?.Invoke(sender, args);
         }

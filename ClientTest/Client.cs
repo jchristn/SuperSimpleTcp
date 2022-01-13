@@ -96,14 +96,14 @@ namespace ClientTest
             Console.WriteLine("Connected: " + _Client.IsConnected);
         }
 
-        static void Connected(object sender, EventArgs e)
+        static void Connected(object sender, ConnectionEventArgs e)
         {
-            Console.WriteLine("*** Server connected");
+            Console.WriteLine("*** Server " + e.IpPort + " connected");
         }
 
-        static void Disconnected(object sender, EventArgs e)
+        static void Disconnected(object sender, ConnectionEventArgs e)
         {
-            Console.WriteLine("*** Server disconnected"); 
+            Console.WriteLine("*** Server " + e.IpPort + " disconnected"); 
         }
 
         static void DataReceived(object sender, DataReceivedEventArgs e)

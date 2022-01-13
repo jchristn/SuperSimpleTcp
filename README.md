@@ -13,9 +13,10 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
-## New in v2.4.1
+## New in v2.5.0
 
-- Automatic client-side timeout and disconnect due to server inactivity; see ```Settings.IdleServerTimeoutMs```
+- Minor breaking change for clarity
+- ```ClientConnectedEventArgs``` and ```ClientDisconnectedEventArgs``` are now ```ConnectionEventArgs```
 
 ## Help or Feedback
 
@@ -45,12 +46,12 @@ void Main(string[] args)
   Console.ReadKey();
 }
 
-static void ClientConnected(object sender, ClientConnectedEventArgs e)
+static void ClientConnected(object sender, ConnectionEventArgs e)
 {
   Console.WriteLine("[" + e.IpPort + "] client connected");
 }
 
-static void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
+static void ClientDisconnected(object sender, ConnectionEventArgs e)
 {
   Console.WriteLine("[" + e.IpPort + "] client disconnected: " + e.Reason.ToString());
 }
@@ -83,14 +84,14 @@ void Main(string[] args)
   Console.ReadKey();
 }
 
-static void Connected(object sender, EventArgs e)
+static void Connected(object sender, ConnectionEventArgs e)
 {
-  Console.WriteLine("*** Server connected");
+  Console.WriteLine("*** Server " + e.IpPort + " connected");
 }
 
-static void Disconnected(object sender, EventArgs e)
+static void Disconnected(object sender, ConnectionEventArgs e)
 {
-  Console.WriteLine("*** Server disconnected"); 
+  Console.WriteLine("*** Server " + e.IpPort + " disconnected"); 
 }
 
 static void DataReceived(object sender, DataReceivedEventArgs e)
@@ -163,6 +164,7 @@ Some important notes about TCP keepalives:
 - Keepalives only work in .NET Core and .NET Framework
 - Keepalives can be enabled on either client or server, but are implemented and enforced in the underlying operating system, and may not work as expected
 - ```Keepalive.TcpKeepAliveRetryCount``` is only applicable to .NET Core; for .NET Framework, this value is forced to 10
+- *Your mileage may vary*
 
 ## Running under Mono
 

@@ -2,11 +2,16 @@
 
 ## Current Version
 
+v2.5.0
+
+- Minor breaking change for clarity
+- ```ClientConnectedEventArgs``` and ```ClientDisconnectedEventArgs``` are now ```ConnectionEventArgs```
+
+## Previous Versions
+
 v2.4.1
 
 - Automatic client-side timeout and disconnect due to server inactivity; see ```Settings.IdleServerTimeoutMs```
-
-## Previous Versions
 
 v2.4.0
 

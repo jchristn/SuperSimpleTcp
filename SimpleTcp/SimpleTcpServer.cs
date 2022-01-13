@@ -660,7 +660,7 @@ namespace SimpleTcp
                     _Clients.TryAdd(clientIp, client); 
                     _ClientsLastSeen.TryAdd(clientIp, DateTime.Now); 
                     Logger?.Invoke(_Header + "starting data receiver for: " + clientIp); 
-                    _Events.HandleClientConnected(this, new ClientConnectedEventArgs(clientIp));
+                    _Events.HandleClientConnected(this, new ConnectionEventArgs(clientIp));
                      
                     if (_Keepalive.EnableTcpKeepAlives) EnableKeepalives(tcpClient); 
 
@@ -807,15 +807,15 @@ namespace SimpleTcp
 
             if (_ClientsKicked.ContainsKey(ipPort))
             {
-                _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ipPort, DisconnectReason.Kicked));
+                _Events.HandleClientDisconnected(this, new ConnectionEventArgs(ipPort, DisconnectReason.Kicked));
             }
             else if (_ClientsTimedout.ContainsKey(client.IpPort))
             {
-                _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ipPort, DisconnectReason.Timeout));
+                _Events.HandleClientDisconnected(this, new ConnectionEventArgs(ipPort, DisconnectReason.Timeout));
             }
             else
             {
-                _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ipPort, DisconnectReason.Normal));
+                _Events.HandleClientDisconnected(this, new ConnectionEventArgs(ipPort, DisconnectReason.Normal));
             }
 
             _Clients.TryRemove(ipPort, out _);

@@ -8,7 +8,6 @@ namespace ServerTest
 {
     class Program
     {
-        static string _ListenerIpPort;
         static string _ListenerIp;
         static int _ListenerPort;
         static bool _Ssl;
@@ -96,13 +95,13 @@ namespace ServerTest
             }
         }
 
-        static void ClientConnected(object sender, ClientConnectedEventArgs e)
+        static void ClientConnected(object sender, ConnectionEventArgs e)
         {
             _LastClientIpPort = e.IpPort;
             Console.WriteLine("[" + e.IpPort + "] client connected");
         }
 
-        static void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
+        static void ClientDisconnected(object sender, ConnectionEventArgs e)
         {
             Console.WriteLine("[" + e.IpPort + "] client disconnected: " + e.Reason.ToString());
         }

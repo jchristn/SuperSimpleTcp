@@ -319,7 +319,7 @@ namespace SimpleTcp
             _IsConnected = true;
             _LastActivity = DateTime.Now;
             _IsTimeout = false;
-            _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
+            _Events.HandleConnected(this, new ConnectionEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
             _IdleServerMonitor = Task.Run(() => IdleServerMonitor(), _Token);
         }
@@ -432,7 +432,7 @@ namespace SimpleTcp
             _IsConnected = true;
             _LastActivity = DateTime.Now;
             _IsTimeout = false;
-            _Events.HandleConnected(this, new ClientConnectedEventArgs(ServerIpPort));
+            _Events.HandleConnected(this, new ConnectionEventArgs(ServerIpPort));
             _DataReceiver = Task.Run(() => DataReceiver(_Token), _Token);
             _IdleServerMonitor = Task.Run(() => IdleServerMonitor(), _Token);
         }
@@ -683,8 +683,8 @@ namespace SimpleTcp
 
             _IsConnected = false;
 
-            if (!_IsTimeout) _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ServerIpPort, DisconnectReason.Normal));
-            else _Events.HandleClientDisconnected(this, new ClientDisconnectedEventArgs(ServerIpPort, DisconnectReason.Timeout));
+            if (!_IsTimeout) _Events.HandleClientDisconnected(this, new ConnectionEventArgs(ServerIpPort, DisconnectReason.Normal));
+            else _Events.HandleClientDisconnected(this, new ConnectionEventArgs(ServerIpPort, DisconnectReason.Timeout));
 
             Dispose();
         }

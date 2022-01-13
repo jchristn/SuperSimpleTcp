@@ -20,6 +20,10 @@ namespace SimpleTcp
         /// <summary>
         /// Client connection timed out; server did not receive data within the timeout window.
         /// </summary>
-        Timeout = 2
+        Timeout = 2,
+        /// <summary>
+        /// The connection was not disconnected.
+        /// </summary>
+        None = 3
     }
 }

@@ -4,31 +4,19 @@
         <name>SimpleTcp</name>
     </assembly>
     <members>
-        <member name="T:SimpleTcp.ClientConnectedEventArgs">
+        <member name="T:SimpleTcp.ConnectionEventArgs">
             <summary>
-            Arguments for client connection events.
+            Arguments for connection events.
             </summary>
         </member>
-        <member name="P:SimpleTcp.ClientConnectedEventArgs.IpPort">
+        <member name="P:SimpleTcp.ConnectionEventArgs.IpPort">
             <summary>
-            The IP address and port number of the connected client socket.
+            The IP address and port number of the connected peer socket.
             </summary>
         </member>
-        <member name="T:SimpleTcp.ClientDisconnectedEventArgs">
+        <member name="P:SimpleTcp.ConnectionEventArgs.Reason">
             <summary>
-            Arguments for client disconnection events.
-            Only the server has visibility to disconnect reasons, as this information is not sent to the client.
-            To the client, every disconnect appears to be a normal disconnect.
-            </summary>
-        </member>
-        <member name="P:SimpleTcp.ClientDisconnectedEventArgs.IpPort">
-            <summary>
-            The IP address and port number of the disconnected client socket.
-            </summary>
-        </member>
-        <member name="P:SimpleTcp.ClientDisconnectedEventArgs.Reason">
-            <summary>
-            The reason for the disconnection.
+            The reason for the disconnection, if any.
             </summary>
         </member>
         <member name="T:SimpleTcp.DataReceivedEventArgs">
@@ -64,6 +52,11 @@
         <member name="F:SimpleTcp.DisconnectReason.Timeout">
             <summary>
             Client connection timed out; server did not receive data within the timeout window.
+            </summary>
+        </member>
+        <member name="F:SimpleTcp.DisconnectReason.None">
+            <summary>
+            The connection was not disconnected.
             </summary>
         </member>
         <member name="T:SimpleTcp.SimpleTcpClient">
@@ -484,17 +477,17 @@
         </member>
         <member name="E:SimpleTcp.SimpleTcpServerEvents.ClientConnected">
             <summary>
-            Event to call when a client connects.  A string containing the client IP:port will be passed.
+            Event to call when a client connects.
             </summary>
         </member>
         <member name="E:SimpleTcp.SimpleTcpServerEvents.ClientDisconnected">
             <summary>
-            Event to call when a client disconnects.  A string containing the client IP:port will be passed.
+            Event to call when a client disconnects.
             </summary>
         </member>
         <member name="E:SimpleTcp.SimpleTcpServerEvents.DataReceived">
             <summary>
-            Event to call when byte data has become available from the client.  A string containing the client IP:port and a byte array containing the data will be passed.
+            Event to call when byte data has become available from the client.
             </summary>
         </member>
         <member name="M:SimpleTcp.SimpleTcpServerEvents.#ctor">
