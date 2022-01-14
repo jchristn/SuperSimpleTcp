@@ -38,6 +38,22 @@ namespace SimpleTcp
         }
 
         /// <summary>
+        /// Client IPEndPoint if connected.
+        /// </summary>
+        public IPEndPoint LocalEndpoint
+        {
+            get
+            {
+                if (_Client != null && _IsConnected)
+                {
+                    return (IPEndPoint)_Client.Client.LocalEndPoint;
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
         /// SimpleTcp client settings.
         /// </summary>
         public SimpleTcpClientSettings Settings

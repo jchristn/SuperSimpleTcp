@@ -71,6 +71,11 @@
             Indicates whether or not the client is connected to the server.
             </summary>
         </member>
+        <member name="P:SimpleTcp.SimpleTcpClient.LocalEndpoint">
+            <summary>
+            Client IPEndPoint if connected.
+            </summary>
+        </member>
         <member name="P:SimpleTcp.SimpleTcpClient.Settings">
             <summary>
             SimpleTcp client settings.
