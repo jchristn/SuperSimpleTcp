@@ -257,7 +257,7 @@ namespace SimpleTcp
             _PfxCertFilename = pfxCertFilename;
             _PfxPassword = pfxPassword;
         }
-
+         
         #endregion
 
         #region Public-Methods
@@ -284,9 +284,7 @@ namespace SimpleTcp
             else
             {
                 Logger?.Invoke(_Header + "initializing client");
-
                 InitializeClient(_Ssl, _PfxCertFilename, _PfxPassword);
-
                 Logger?.Invoke(_Header + "connecting to " + ServerIpPort);
             }
 
@@ -326,10 +324,6 @@ namespace SimpleTcp
             catch (Exception)
             {
                 throw;
-            }
-            finally
-            {
-                wh.Close();
             }
 
             _IsConnected = true;
