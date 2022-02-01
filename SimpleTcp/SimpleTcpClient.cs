@@ -149,7 +149,7 @@ namespace SimpleTcp
         private X509Certificate2 _SslCert = null;
         private X509Certificate2Collection _SslCertCollection = null;
 
-        private readonly SemaphoreSlim _SendLock = new SemaphoreSlim(1, 1); 
+        private readonly SemaphoreSlim _SendLock = new SemaphoreSlim(1, 1);
         private bool _IsConnected = false;
 
         private Task _DataReceiver = null;
@@ -249,7 +249,7 @@ namespace SimpleTcp
         /// Establish a connection to the server.
         /// </summary>
         public void Connect()
-        { 
+        {
             if (IsConnected)
             {
                 Logger?.Invoke($"{_Header}already connected");
@@ -808,10 +808,10 @@ namespace SimpleTcp
                 Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
 
                 // Set TCP keepalive time
-                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4); 
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4);
 
                 // Set TCP keepalive interval
-                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4); 
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4);
 
                 // Set keepalive settings on the underlying Socket
                 _Client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);

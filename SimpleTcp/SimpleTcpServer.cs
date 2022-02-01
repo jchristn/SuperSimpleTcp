@@ -517,7 +517,7 @@ namespace SimpleTcp
 
             if (!_Clients.TryGetValue(ipPort, out client))
             {
-                Logger?.Invoke($"{_Header}unable to find client: " + ipPort); 
+                Logger?.Invoke($"{_Header}unable to find client: {ipPort});
             }
             else
             {
@@ -1003,10 +1003,10 @@ namespace SimpleTcp
             Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
 
             // Set TCP keepalive time
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4); 
+            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4);
 
             // Set TCP keepalive interval
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4); 
+            Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4);
 
             // Set keepalive settings on the underlying Socket
             _Listener.Server.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
@@ -1040,10 +1040,10 @@ namespace SimpleTcp
                 Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
 
                 // Set TCP keepalive time
-                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4); 
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4);
 
                 // Set TCP keepalive interval
-                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4); 
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4);
 
                 // Set keepalive settings on the underlying Socket
                 client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
