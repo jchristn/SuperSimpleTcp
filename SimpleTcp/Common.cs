@@ -6,7 +6,7 @@ namespace SimpleTcp
     { 
         internal static void ParseIpPort(string ipPort, out string ip, out int port) 
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            if (string.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
 
             ip = null;
             port = -1;
