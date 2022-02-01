@@ -568,8 +568,9 @@ namespace SimpleTcp
                         if (!_TokenSource.IsCancellationRequested)
                         {
                             _TokenSource.Cancel();
-                            _TokenSource.Dispose();
                         }
+
+                        _TokenSource.Dispose();
                     }
 
                     if (_Listener != null && _Listener.Server != null)
@@ -596,29 +597,25 @@ namespace SimpleTcp
          
         private bool IsClientConnected(TcpClient client)
         {
-            if (client.Connected)
+            if (!client.Connected)
             {
-                if ((client.Client.Poll(0, SelectMode.SelectWrite)) && (!client.Client.Poll(0, SelectMode.SelectError)))
-                {
-                    byte[] buffer = new byte[1];
-                    if (client.Client.Receive(buffer, SocketFlags.Peek) == 0)
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-                else
+                return false;
+            }
+
+            if (client.Client.Poll(0, SelectMode.SelectWrite) && (!client.Client.Poll(0, SelectMode.SelectError)))
+            {
+                byte[] buffer = new byte[1];
+                if (client.Client.Receive(buffer, SocketFlags.Peek) == 0)
                 {
                     return false;
                 }
+               
+                return true;
             }
             else
             {
                 return false;
-            } 
+            }
         }
 
         private async Task AcceptConnections()
@@ -629,7 +626,7 @@ namespace SimpleTcp
 
                 try
                 {
-                    System.Net.Sockets.TcpClient tcpClient = await _Listener.AcceptTcpClientAsync().ConfigureAwait(false); 
+                    TcpClient tcpClient = await _Listener.AcceptTcpClientAsync().ConfigureAwait(false); 
                     string clientIp = tcpClient.Client.RemoteEndPoint.ToString();
 
                     client = new ClientMetadata(tcpClient);
@@ -694,11 +691,11 @@ namespace SimpleTcp
         private async Task<bool> StartTls(ClientMetadata client)
         {
             try
-            { 
+            {
                 await client.SslStream.AuthenticateAsServerAsync(
                     _SslCertificate,
-                    _Settings.MutuallyAuthenticate, 
-                    SslProtocols.Tls12, 
+                    _Settings.MutuallyAuthenticate,
+                    SslProtocols.Tls12,
                     !_Settings.AcceptInvalidCertificates).ConfigureAwait(false);
 
                 if (!client.SslStream.IsEncrypted)
