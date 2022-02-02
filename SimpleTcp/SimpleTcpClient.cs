@@ -452,11 +452,9 @@ namespace SimpleTcp
         {
             if (string.IsNullOrEmpty(data)) throw new ArgumentNullException(nameof(data));
             if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
+
             byte[] bytes = Encoding.UTF8.GetBytes(data);
-            MemoryStream ms = new MemoryStream();
-            ms.Write(bytes, 0, bytes.Length);
-            ms.Seek(0, SeekOrigin.Begin);
-            SendInternal(bytes.Length, ms);
+            this.Send(bytes);
         }
 
         /// <summary>
@@ -467,10 +465,13 @@ namespace SimpleTcp
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
             if (!_IsConnected) throw new IOException("Not connected to the server; use Connect() first.");
-            MemoryStream ms = new MemoryStream();
-            ms.Write(data, 0, data.Length);
-            ms.Seek(0, SeekOrigin.Begin);
-            SendInternal(data.Length, ms); 
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                ms.Write(data, 0, data.Length);
+                ms.Seek(0, SeekOrigin.Begin);
+                SendInternal(data.Length, ms);
+            }
         }
 
         /// <summary>
