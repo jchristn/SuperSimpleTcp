@@ -1,0 +1,32 @@
+name: Build, Test & Publish
+
+on:
+  push:
+    paths:
+    - 'SimpleTcp/**'
+    - 'SimpleTcp.UnitTest/**'
+    - '.github/workflows/**'
+    branches: [ master ]
+  pull_request:
+    paths:
+    - 'SimpleTcp/**'
+    - 'SimpleTcp.UnitTest/**'
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET 6.0
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore /p:NoWarn=1591
+    - name: Test
+      run: dotnet test --configuration Release --no-restore --no-build --verbosity normal
