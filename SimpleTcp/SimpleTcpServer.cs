@@ -517,7 +517,7 @@ namespace SimpleTcp
 
             if (!_Clients.TryGetValue(ipPort, out client))
             {
-                Logger?.Invoke($"{_Header}unable to find client: {ipPort});
+                Logger?.Invoke($"{_Header}unable to find client: {ipPort}");
             }
             else
             {
