@@ -1,7 +1,7 @@
-﻿using System;
+﻿using SimpleTcp;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using SimpleTcp;
 
 namespace ClientTest
 {

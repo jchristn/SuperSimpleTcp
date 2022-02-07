@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SimpleTcp
+﻿namespace SimpleTcp
 {
     /// <summary>
     /// Reason why a client disconnected.
