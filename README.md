@@ -18,6 +18,12 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 - Minor breaking change for clarity
 - ```ClientConnectedEventArgs``` and ```ClientDisconnectedEventArgs``` are now ```ConnectionEventArgs```
 
+## Special Thanks
+
+A special thanks to the community of people that have contributed to or otherwise improved this project!
+
+@tinohager @u1035 @cmeeren @tinohager @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat @exergist @maynardsi @sector13371 
+
 ## Help or Feedback
 
 Need help or have feedback?  Please file an issue here!
@@ -174,12 +180,6 @@ Some important notes about TCP keepalives:
 mono --aot=nrgctx-trampolines=8096,nimt-trampolines=8096,ntrampolines=4048 --server myapp.exe
 mono --server myapp.exe
 ```
-
-## Special Thanks
-
-A special thanks to the community of people that have contributed to or otherwise improved this project!
-
-@u1035 @cmeeren @tinohager @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat @exergist @maynardsi @sector13371 
 
 ## Version History
 
