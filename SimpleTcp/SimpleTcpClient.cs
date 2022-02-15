@@ -820,13 +820,13 @@ namespace SimpleTcp
                 Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
 
                 // Set TCP keepalive time
-                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4);
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_keepalive.TcpKeepAliveTime), 0, keepAlive, 4, 4);
 
                 // Set TCP keepalive interval
-                Buffer.BlockCopy(BitConverter.GetBytes((uint)_Keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4);
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_keepalive.TcpKeepAliveInterval), 0, keepAlive, 8, 4);
 
                 // Set keepalive settings on the underlying Socket
-                _Client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
+                _client.Client.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
 
 #elif NETSTANDARD
 
