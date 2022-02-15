@@ -440,6 +440,8 @@ namespace SimpleTcp
             }
 
             _TokenSource.Cancel();
+            _DataReceiver.Wait();
+
             _Client.Close();
             _IsConnected = false;
         }
