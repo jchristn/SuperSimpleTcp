@@ -16,7 +16,7 @@ namespace SimpleTcp
         {
             get
             {
-                return _StartTime;
+                return _startTime;
             }
         }
 
@@ -27,7 +27,7 @@ namespace SimpleTcp
         {
             get
             {
-                return DateTime.Now.ToUniversalTime() - _StartTime;
+                return DateTime.Now.ToUniversalTime() - _startTime;
             }
         }
 
@@ -38,11 +38,11 @@ namespace SimpleTcp
         {
             get
             {
-                return _ReceivedBytes;
+                return _receivedBytes;
             }
             internal set
             {
-                _ReceivedBytes = value;
+                _receivedBytes = value;
             }
         }
          
@@ -53,11 +53,11 @@ namespace SimpleTcp
         {
             get
             {
-                return _SentBytes;
+                return _sentBytes;
             }
             internal set
             {
-                _SentBytes = value;
+                _sentBytes = value;
             }
         }
          
@@ -65,9 +65,9 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private DateTime _StartTime = DateTime.Now.ToUniversalTime();
-        private long _ReceivedBytes = 0; 
-        private long _SentBytes = 0; 
+        private DateTime _startTime = DateTime.Now.ToUniversalTime();
+        private long _receivedBytes = 0; 
+        private long _sentBytes = 0; 
 
         #endregion
 
@@ -93,7 +93,7 @@ namespace SimpleTcp
         {
             string ret =
                 "--- Statistics ---" + Environment.NewLine +
-                "    Started        : " + _StartTime.ToString() + Environment.NewLine +
+                "    Started        : " + _startTime.ToString() + Environment.NewLine +
                 "    Uptime         : " + UpTime.ToString() + Environment.NewLine +
                 "    Received bytes : " + ReceivedBytes + Environment.NewLine +
                 "    Sent bytes     : " + SentBytes + Environment.NewLine;
@@ -105,13 +105,9 @@ namespace SimpleTcp
         /// </summary>
         public void Reset()
         {
-            _ReceivedBytes = 0; 
-            _SentBytes = 0; 
+            _receivedBytes = 0; 
+            _sentBytes = 0; 
         }
-
-        #endregion
-
-        #region Private-Methods
 
         #endregion
     }

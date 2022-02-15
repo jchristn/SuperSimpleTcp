@@ -16,13 +16,13 @@ namespace SimpleTcp
         {
             get
             {
-                return _StreamBufferSize;
+                return _streamBufferSize;
             }
             set
             {
                 if (value < 1) throw new ArgumentException("StreamBufferSize must be one or greater.");
                 if (value > 65536) throw new ArgumentException("StreamBufferSize must be less than 65,536.");
-                _StreamBufferSize = value;
+                _streamBufferSize = value;
             }
         }
 
@@ -33,12 +33,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _ConnectTimeoutMs;
+                return _connectTimeoutMs;
             }
             set
             {
                 if (value < 1) throw new ArgumentException("ConnectTimeoutMs must be greater than zero.");
-                _ConnectTimeoutMs = value;
+                _connectTimeoutMs = value;
             }
         }
 
@@ -52,12 +52,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _IdleServerTimeoutMs;
+                return _idleServerTimeoutMs;
             }
             set
             {
                 if (value < 0) throw new ArgumentException("IdleClientTimeoutMs must be zero or greater.");
-                _IdleServerTimeoutMs = value;
+                _idleServerTimeoutMs = value;
             }
         }
 
@@ -68,12 +68,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _IdleServerEvaluationIntervalMs;
+                return _idleServerEvaluationIntervalMs;
             }
             set
             {
                 if (value < 1) throw new ArgumentOutOfRangeException("IdleServerEvaluationIntervalMs must be one or greater.");
-                _IdleServerEvaluationIntervalMs = value;
+                _idleServerEvaluationIntervalMs = value;
             }
         }
 
@@ -91,10 +91,10 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private int _StreamBufferSize = 65536;
-        private int _ConnectTimeoutMs = 5000;
-        private int _IdleServerTimeoutMs = 0;
-        private int _IdleServerEvaluationIntervalMs = 1000;
+        private int _streamBufferSize = 65536;
+        private int _connectTimeoutMs = 5000;
+        private int _idleServerTimeoutMs = 0;
+        private int _idleServerEvaluationIntervalMs = 1000;
 
         #endregion
 
@@ -107,14 +107,6 @@ namespace SimpleTcp
         {
 
         }
-
-        #endregion
-
-        #region Public-Methods
-
-        #endregion
-
-        #region Private-Methods
 
         #endregion
     }
