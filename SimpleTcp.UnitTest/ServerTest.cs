@@ -42,7 +42,6 @@ namespace SimpleTcp.UnitTest
         {
             using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:65536");
             simpleTcpServer.Start();
-            Assert.IsTrue(simpleTcpServer.IsListening);
         }
 
         [TestMethod]
@@ -51,7 +50,6 @@ namespace SimpleTcp.UnitTest
         {
             using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:123456789");
             simpleTcpServer.Start();
-            Assert.IsTrue(simpleTcpServer.IsListening);
         }
 
         [TestMethod]
@@ -60,7 +58,6 @@ namespace SimpleTcp.UnitTest
         {
             using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:2147483648");
             simpleTcpServer.Start();
-            Assert.IsTrue(simpleTcpServer.IsListening);
         }
 
         [TestMethod]
