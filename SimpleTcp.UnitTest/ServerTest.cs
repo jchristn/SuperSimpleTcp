@@ -29,6 +29,15 @@ namespace SimpleTcp.UnitTest
         }
 
         [TestMethod]
+        [DeploymentItem("simpletcp.crt")]
+        public void Start_ValidListenerIpAndPortSll_Successful()
+        {
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8001, true, "simpletcp.crt", "simpletcp");
+            simpleTcpServer.Start();
+            Assert.IsTrue(simpleTcpServer.IsListening);
+        }
+
+        [TestMethod]
         public void Start_ValidIpAndPort_Successful()
         {
             using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:8002");
