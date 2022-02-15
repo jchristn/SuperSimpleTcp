@@ -90,7 +90,10 @@ namespace SimpleTcp
             {
                 _TcpClient.Close();
                 _TcpClient.Dispose(); 
-            } 
+            }
+
+            SendLock.Dispose();
+            ReceiveLock.Dispose();
         }
 
         #endregion
