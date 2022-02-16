@@ -16,13 +16,13 @@ namespace SimpleTcp
         {
             get
             {
-                return _StreamBufferSize;
+                return _streamBufferSize;
             }
             set
             {
                 if (value < 1) throw new ArgumentException("StreamBufferSize must be one or greater.");
                 if (value > 65536) throw new ArgumentException("StreamBufferSize must be less than or equal to 65,536.");
-                _StreamBufferSize = value;
+                _streamBufferSize = value;
             }
         }
 
@@ -36,12 +36,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _IdleClientTimeoutMs;
+                return _idleClientTimeoutMs;
             }
             set
             {
                 if (value < 0) throw new ArgumentException("IdleClientTimeoutMs must be zero or greater.");
-                _IdleClientTimeoutMs = value;
+                _idleClientTimeoutMs = value;
             }
         }
 
@@ -52,12 +52,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _IdleClientEvaluationIntervalMs;
+                return _idleClientEvaluationIntervalMs;
             }
             set
             {
                 if (value < 1) throw new ArgumentOutOfRangeException("IdleClientEvaluationIntervalMs must be one or greater.");
-                _IdleClientEvaluationIntervalMs = value;
+                _idleClientEvaluationIntervalMs = value;
             }
         }
 
@@ -75,9 +75,9 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private int _StreamBufferSize = 65536;
-        private int _IdleClientTimeoutMs = 0;
-        private int _IdleClientEvaluationIntervalMs = 5000;
+        private int _streamBufferSize = 65536;
+        private int _idleClientTimeoutMs = 0;
+        private int _idleClientEvaluationIntervalMs = 5000;
 
         #endregion
 
@@ -90,14 +90,6 @@ namespace SimpleTcp
         {
 
         }
-
-        #endregion
-
-        #region Public-Methods
-
-        #endregion
-
-        #region Private-Methods
 
         #endregion
     }

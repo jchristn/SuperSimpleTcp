@@ -9,25 +9,25 @@ namespace SimpleTcp
     {
         #region Public-Members
 
-        internal System.Net.Sockets.TcpClient Client
+        internal TcpClient Client
         {
-            get { return _TcpClient; }
+            get { return _tcpClient; }
         }
          
         internal NetworkStream NetworkStream
         {
-            get { return _NetworkStream; }
+            get { return _networkStream; }
         }
 
         internal SslStream SslStream
         {
-            get { return _SslStream; }
-            set { _SslStream = value; }
+            get { return _sslStream; }
+            set { _sslStream = value; }
         }
 
         internal string IpPort
         {
-            get { return _IpPort; }
+            get { return _ipPort; }
         }
 
         internal SemaphoreSlim SendLock = new SemaphoreSlim(1, 1);
@@ -41,10 +41,10 @@ namespace SimpleTcp
 
         #region Private-Members
          
-        private System.Net.Sockets.TcpClient _TcpClient = null;
-        private NetworkStream _NetworkStream = null;
-        private SslStream _SslStream = null;
-        private string _IpPort = null; 
+        private TcpClient _tcpClient = null;
+        private NetworkStream _networkStream = null;
+        private SslStream _sslStream = null;
+        private string _ipPort = null; 
 
         #endregion
 
@@ -54,9 +54,9 @@ namespace SimpleTcp
         {
             if (tcp == null) throw new ArgumentNullException(nameof(tcp));
 
-            _TcpClient = tcp;
-            _NetworkStream = tcp.GetStream();
-            _IpPort = tcp.Client.RemoteEndPoint.ToString();
+            _tcpClient = tcp;
+            _networkStream = tcp.GetStream();
+            _ipPort = tcp.Client.RemoteEndPoint.ToString();
             TokenSource = new CancellationTokenSource();
             Token = TokenSource.Token;
         }
@@ -76,26 +76,25 @@ namespace SimpleTcp
                 }
             }
 
-            if (_SslStream != null)
+            if (_sslStream != null)
             {
-                _SslStream.Close(); 
+                _sslStream.Close(); 
             }
 
-            if (_NetworkStream != null)
+            if (_networkStream != null)
             {
-                _NetworkStream.Close(); 
+                _networkStream.Close(); 
             }
 
-            if (_TcpClient != null)
+            if (_tcpClient != null)
             {
-                _TcpClient.Close();
-                _TcpClient.Dispose(); 
-            } 
+                _tcpClient.Close();
+                _tcpClient.Dispose(); 
+            }
+
+            SendLock.Dispose();
+            ReceiveLock.Dispose();
         }
-
-        #endregion
-
-        #region Private-Methods
 
         #endregion
     }

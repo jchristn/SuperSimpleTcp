@@ -28,12 +28,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _TcpKeepAliveInterval;
+                return _tcpKeepAliveInterval;
             }
             set
             {
                 if (value < 1) throw new ArgumentException("TcpKeepAliveInterval must be greater than zero.");
-                _TcpKeepAliveInterval = value;
+                _tcpKeepAliveInterval = value;
             }
         }
 
@@ -45,12 +45,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _TcpKeepAliveTime;
+                return _tcpKeepAliveTime;
             }
             set
             {
                 if (value < 1) throw new ArgumentException("TcpKeepAliveTime must be greater than zero.");
-                _TcpKeepAliveTime = value;
+                _tcpKeepAliveTime = value;
             }
         }
 
@@ -62,12 +62,12 @@ namespace SimpleTcp
         {
             get
             {
-                return _TcpKeepAliveRetryCount;
+                return _tcpKeepAliveRetryCount;
             }
             set
             {
                 if (value < 1) throw new ArgumentException("TcpKeepAliveRetryCount must be greater than zero.");
-                _TcpKeepAliveRetryCount = value;
+                _tcpKeepAliveRetryCount = value;
             }
         }
 
@@ -75,9 +75,9 @@ namespace SimpleTcp
 
         #region Private-Members
 
-        private int _TcpKeepAliveInterval = 2;
-        private int _TcpKeepAliveTime = 2;
-        private int _TcpKeepAliveRetryCount = 3;
+        private int _tcpKeepAliveInterval = 2;
+        private int _tcpKeepAliveTime = 2;
+        private int _tcpKeepAliveRetryCount = 3;
 
         #endregion
 
@@ -90,14 +90,6 @@ namespace SimpleTcp
         {
 
         }
-
-        #endregion
-
-        #region Public-Methods
-
-        #endregion
-
-        #region Private-Methods
 
         #endregion
     }

@@ -26,10 +26,6 @@ namespace SimpleTcp
 
         #endregion
 
-        #region Private-Members
-
-        #endregion
-
         #region Constructors-and-Factories
 
         /// <summary>
@@ -58,10 +54,6 @@ namespace SimpleTcp
         {
             DataReceived?.Invoke(sender, args);
         }
-
-        #endregion
-
-        #region Private-Methods
 
         #endregion
     }
