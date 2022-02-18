@@ -2,7 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SimpleTcp.UnitTest
+namespace SuperSimpleTcp.UnitTest
 {
     [TestClass]
     public class IntegrationTest

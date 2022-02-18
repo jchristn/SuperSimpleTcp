@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SimpleTcp
+namespace SuperSimpleTcp
 {
     /// <summary>
     /// SimpleTcp server with SSL support.  
@@ -127,6 +127,8 @@ namespace SimpleTcp
 
         private CancellationTokenSource _tokenSource = new CancellationTokenSource();
         private CancellationToken _token;
+        private CancellationTokenSource _listenerTokenSource = new CancellationTokenSource();
+        private CancellationToken _listenerToken;
         private Task _acceptConnections = null;
         private Task _idleClientMonitor = null;
 
@@ -342,9 +344,17 @@ namespace SimpleTcp
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
+            _listenerTokenSource = new CancellationTokenSource();
+            _listenerToken = _listenerTokenSource.Token;
+
             _statistics = new SimpleTcpStatistics();
-            _idleClientMonitor = Task.Run(() => IdleClientMonitor(), _token);
-            _acceptConnections = Task.Run(() => AcceptConnections(), _token);
+            
+            if (_idleClientMonitor == null)
+            {
+                _idleClientMonitor = Task.Run(() => IdleClientMonitor(), _token);
+            }
+
+            _acceptConnections = Task.Run(() => AcceptConnections(), _listenerToken);
         }
 
         /// <summary>
@@ -364,9 +374,17 @@ namespace SimpleTcp
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
+            _listenerTokenSource = new CancellationTokenSource();
+            _listenerToken = _listenerTokenSource.Token;
+
             _statistics = new SimpleTcpStatistics();
-            _idleClientMonitor = Task.Run(() => IdleClientMonitor(), _token);
-            _acceptConnections = Task.Run(() => AcceptConnections(), _token);
+
+            if (_idleClientMonitor == null)
+            {
+                _idleClientMonitor = Task.Run(() => IdleClientMonitor(), _token);
+            }
+
+            _acceptConnections = Task.Run(() => AcceptConnections(), _listenerToken);
             return _acceptConnections;
         }
 
@@ -379,7 +397,9 @@ namespace SimpleTcp
 
             _isListening = false;
             _listener.Stop();
-            _tokenSource.Cancel();
+            _listenerTokenSource.Cancel();
+            _acceptConnections.Wait();
+            _acceptConnections = null;
 
             Logger?.Invoke($"{_header}stopped");
         }
@@ -631,13 +651,13 @@ namespace SimpleTcp
 
         private async Task AcceptConnections()
         {
-            while (!_token.IsCancellationRequested)
+            while (!_listenerToken.IsCancellationRequested)
             {
                 ClientMetadata client = null;
 
                 try
                 {
-                    TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false); 
+                    TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
                     string clientIp = tcpClient.Client.RemoteEndPoint.ToString();
 
                     client = new ClientMetadata(tcpClient);
@@ -645,11 +665,11 @@ namespace SimpleTcp
                     if (_ssl)
                     {
                         if (_settings.AcceptInvalidCertificates)
-                        { 
+                        {
                             client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
                         }
                         else
-                        { 
+                        {
                             client.SslStream = new SslStream(client.NetworkStream, false);
                         }
 
@@ -665,35 +685,31 @@ namespace SimpleTcp
                     _clientsLastSeen.TryAdd(clientIp, DateTime.Now);
                     Logger?.Invoke($"{_header}starting data receiver for: {clientIp}");
                     _events.HandleClientConnected(this, new ConnectionEventArgs(clientIp));
-                     
-                    if (_keepalive.EnableTcpKeepAlives) EnableKeepalives(tcpClient); 
+
+                    if (_keepalive.EnableTcpKeepAlives) EnableKeepalives(tcpClient);
 
                     CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(client.Token, _token);
                     Task unawaited = Task.Run(() => DataReceiver(client), linkedCts.Token);
                 }
-                catch (TaskCanceledException)
+                catch (Exception ex)
                 {
-                    _isListening = false;
-                    if (client != null) client.Dispose();
-                    return;
+                    if (ex is TaskCanceledException
+                        || ex is OperationCanceledException
+                        || ex is ObjectDisposedException
+                        || ex is InvalidOperationException)
+                    {
+                        _isListening = false;
+                        if (client != null) client.Dispose();
+                        Logger?.Invoke($"{_header}stopped listening");
+                        break;
+                    }
+                    else
+                    {
+                        if (client != null) client.Dispose();
+                        Logger?.Invoke($"{_header}exception while awaiting connections: {ex}");
+                        continue;
+                    }
                 }
-                catch (OperationCanceledException)
-                {
-                    _isListening = false;
-                    if (client != null) client.Dispose();
-                    return;
-                }
-                catch (ObjectDisposedException)
-                {
-                    if (client != null) client.Dispose();
-                    continue;
-                }
-                catch (Exception e)
-                {
-                    if (client != null) client.Dispose();
-                    Logger?.Invoke($"{_header}exception while awaiting connections: {e}");
-                    continue;
-                } 
             }
 
             _isListening = false;
@@ -783,23 +799,26 @@ namespace SimpleTcp
                 catch (IOException)
                 {
                     Logger?.Invoke($"{_header}data receiver canceled, peer disconnected [{ipPort}]");
+                    break;
                 }
                 catch (SocketException)
                 {
                     Logger?.Invoke($"{_header}data receiver canceled, peer disconnected [{ipPort}]");
+                    break;
                 }
                 catch (TaskCanceledException)
                 {
                     Logger?.Invoke($"{_header}data receiver task canceled [{ipPort}]");
+                    break;
                 }
                 catch (ObjectDisposedException)
                 {
                     Logger?.Invoke($"{_header}data receiver canceled due to disposal [{ipPort}]");
+                    break;
                 }
                 catch (Exception e)
                 {
                     Logger?.Invoke($"{_header}data receiver exception [{ipPort}]:{ Environment.NewLine}{e}{Environment.NewLine}");
-
                     break;
                 }
             }

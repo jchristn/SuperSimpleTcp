@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace SimpleTcp.UnitTest
+namespace SuperSimpleTcp.UnitTest
 {
     internal static class StringHelper
     {

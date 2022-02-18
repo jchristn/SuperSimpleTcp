@@ -3,7 +3,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace SimpleTcp
+namespace SuperSimpleTcp
 {
     internal class ClientMetadata : IDisposable
     {

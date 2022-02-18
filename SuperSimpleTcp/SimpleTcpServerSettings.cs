@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SimpleTcp
+namespace SuperSimpleTcp
 {
     /// <summary>
     /// SimpleTcp server settings.

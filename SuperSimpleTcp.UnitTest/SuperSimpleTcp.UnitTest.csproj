@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SimpleTcp\SimpleTcp.csproj" />
+    <ProjectReference Include="..\SuperSimpleTcp\SuperSimpleTcp.csproj" />
   </ItemGroup>
 
 </Project>

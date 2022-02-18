@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp3.1;net48;net5.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net461;net48;net5.0;net6.0</TargetFrameworks>
     <AssemblyName>Client</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SimpleTcp\SimpleTcp.csproj" />
+    <ProjectReference Include="..\SuperSimpleTcp\SuperSimpleTcp.csproj" />
   </ItemGroup>
 
 </Project>

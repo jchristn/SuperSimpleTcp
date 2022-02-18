@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SimpleTcp
+namespace SuperSimpleTcp
 {
     /// <summary>
     /// SimpleTcp client with SSL support.  

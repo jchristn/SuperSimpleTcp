@@ -13,10 +13,11 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
-## New in v2.5.0
+## New in v2.6.0
 
-- Minor breaking change for clarity
-- ```ClientConnectedEventArgs``` and ```ClientDisconnectedEventArgs``` are now ```ConnectionEventArgs```
+- Minor breaking namespace change (now ```SuperSimpleTcp``` instead of ```SimpleTcp```)
+- Internal refactor for coding best practices
+- Thank you @tinohager!
 
 ## Special Thanks
 

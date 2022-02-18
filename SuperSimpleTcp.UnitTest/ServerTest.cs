@@ -2,7 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Threading.Tasks;
 
-namespace SimpleTcp.UnitTest
+namespace SuperSimpleTcp.UnitTest
 {
     [TestClass]
     public class ServerTest

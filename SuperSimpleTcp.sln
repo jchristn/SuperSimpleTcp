@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleTcp", "SimpleTcp\SimpleTcp.csproj", "{AEE995D8-F936-4AF0-9DCB-F60EE36DBFE4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SuperSimpleTcp", "SuperSimpleTcp\SuperSimpleTcp.csproj", "{AEE995D8-F936-4AF0-9DCB-F60EE36DBFE4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClientTest", "ClientTest\ClientTest.csproj", "{2BB653DA-54E4-4F15-BEB8-3E3C707301AB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServerTest", "ServerTest\ServerTest.csproj", "{3E5644B1-7D9E-4745-BC43-414572D06004}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleTcp.UnitTest", "SimpleTcp.UnitTest\SimpleTcp.UnitTest.csproj", "{3FAEC5D9-5548-4B0E-B020-C0B563E6CD5D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SuperSimpleTcp.UnitTest", "SuperSimpleTcp.UnitTest\SuperSimpleTcp.UnitTest.csproj", "{3FAEC5D9-5548-4B0E-B020-C0B563E6CD5D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

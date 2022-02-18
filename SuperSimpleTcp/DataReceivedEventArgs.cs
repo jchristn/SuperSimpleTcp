@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SimpleTcp
+namespace SuperSimpleTcp
 {
     /// <summary>
     /// Arguments for data received from connected endpoints.

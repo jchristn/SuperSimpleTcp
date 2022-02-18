@@ -1,4 +1,4 @@
-﻿namespace SimpleTcp
+﻿namespace SuperSimpleTcp
 {
     /// <summary>
     /// Reason why a client disconnected.
