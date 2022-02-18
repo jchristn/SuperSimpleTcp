@@ -246,6 +246,11 @@
             The number of milliseconds to wait when attempting to connect.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.ReadTimeoutMs">
+            <summary>
+            The number of milliseconds to wait when attempting to read before returning null.
+            </summary>
+        </member>
         <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.IdleServerTimeoutMs">
             <summary>
             Maximum amount of time to wait before considering the server to be idle and disconnecting from it. 

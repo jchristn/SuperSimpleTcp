@@ -43,6 +43,22 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
+        /// The number of milliseconds to wait when attempting to read before returning null.
+        /// </summary>
+        public int ReadTimeoutMs
+        {
+            get
+            {
+                return _readTimeoutMs;
+            }
+            set
+            {
+                if (value < 1) throw new ArgumentException("ReadTimeoutMs must be greater than zero.");
+                _readTimeoutMs = value;
+            }
+        }
+
+        /// <summary>
         /// Maximum amount of time to wait before considering the server to be idle and disconnecting from it. 
         /// By default, this value is set to 0, which will never disconnect due to inactivity.
         /// The timeout is reset any time a message is received from the server.
@@ -93,6 +109,7 @@ namespace SuperSimpleTcp
 
         private int _streamBufferSize = 65536;
         private int _connectTimeoutMs = 5000;
+        private int _readTimeoutMs = 1000;
         private int _idleServerTimeoutMs = 0;
         private int _idleServerEvaluationIntervalMs = 1000;
 

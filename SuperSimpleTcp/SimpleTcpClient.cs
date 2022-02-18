@@ -434,14 +434,11 @@ namespace SuperSimpleTcp
                 Logger?.Invoke($"{_header}already disconnected");
                 return;
             }
-            else
-            {
-                Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
-            }
+            
+            Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
 
             _tokenSource.Cancel();
             _dataReceiver.Wait();
-
             _client.Close();
             _isConnected = false;
         }
@@ -628,54 +625,54 @@ namespace SuperSimpleTcp
 
         private async Task DataReceiver(CancellationToken token)
         { 
-            try
-            { 
-                while (true)
+            while (!token.IsCancellationRequested && _client != null && _client.Connected)
+            {
+                try
                 {
-                    if (token.IsCancellationRequested
-                        || _client == null 
-                        || !_client.Connected)
-                    {
-                        Logger?.Invoke($"{_header}disconnection detected");
-                        break;
-                    }
-                     
                     byte[] data = await DataReadAsync(token).ConfigureAwait(false);
                     if (data == null)
-                    { 
-                        await Task.Delay(10).ConfigureAwait(false);
+                    {
+                        await Task.Delay(100).ConfigureAwait(false);
                         continue;
                     }
 
                     _lastActivity = DateTime.Now;
                     _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
                     _statistics.ReceivedBytes += data.Length;
-                } 
+                }
+                catch (IOException)
+                {
+                    Logger?.Invoke($"{_header}data receiver canceled, disconnected");
+                    break;
+                }
+                catch (SocketException)
+                {
+                    Logger?.Invoke($"{_header}data receiver canceled, disconnected");
+                    break;
+                }
+                catch (TaskCanceledException)
+                {
+                    Logger?.Invoke($"{_header}data receiver task canceled, disconnected");
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger?.Invoke($"{_header}data receiver operation canceled, disconnected");
+                    break;
+                }
+                catch (ObjectDisposedException)
+                {
+                    Logger?.Invoke($"{_header}data receiver canceled due to disposal, disconnected");
+                    break;
+                }
+                catch (Exception e)
+                {
+                    Logger?.Invoke($"{_header}data receiver exception:{Environment.NewLine}{e}{Environment.NewLine}");
+                    break;
+                }
             }
-            catch (IOException)
-            {
-                Logger?.Invoke($"{_header}data receiver canceled, peer disconnected");
-            }
-            catch (SocketException)
-            {
-                Logger?.Invoke($"{_header}data receiver canceled, peer disconnected");
-            }
-            catch (TaskCanceledException)
-            {
-                Logger?.Invoke($"{_header}data receiver task canceled");
-            }
-            catch (OperationCanceledException)
-            {
-                Logger?.Invoke($"{_header}data receiver operation canceled");
-            }
-            catch (ObjectDisposedException)
-            {
-                Logger?.Invoke($"{_header}data receiver canceled due to disposal");
-            }
-            catch (Exception e)
-            {
-                Logger?.Invoke($"{_header}data receiver exception:{Environment.NewLine}{e}{Environment.NewLine}");
-            }
+
+            Logger?.Invoke($"{_header}disconnection detected");            
 
             _isConnected = false;
 
@@ -690,43 +687,45 @@ namespace SuperSimpleTcp
             byte[] buffer = new byte[_settings.StreamBufferSize];
             int read = 0;
 
-            if (!_ssl)
-            { 
-                using (MemoryStream ms = new MemoryStream())
-                { 
-                    read = await _networkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+            Task<int> readTask = null;
 
+            if (!_ssl)
+            {
+                readTask = _networkStream.ReadAsync(buffer, 0, buffer.Length, token);
+            }
+            else
+            {
+                readTask = _sslStream.ReadAsync(buffer, 0, buffer.Length, token);
+            }
+
+            // see https://stackoverflow.com/a/20910003
+            Task timeoutTask = Task.Delay(_settings.ReadTimeoutMs);
+
+            byte[] result = await Task.Factory.ContinueWhenAny<byte[]>(new Task[] { readTask, timeoutTask }, (completedTask) =>
+            {
+                if (completedTask == timeoutTask) // timeout
+                {
+                    return null;
+                }
+                else // the readTask completed
+                {
+                    read = readTask.Result;
                     if (read > 0)
                     {
-                        await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
-                        return ms.ToArray();
+                        using (MemoryStream ms = new MemoryStream())
+                        {
+                            ms.Write(buffer, 0, read);
+                            return ms.ToArray();
+                        }
                     }
                     else
                     {
                         throw new SocketException();
-                    } 
-                } 
-            }
-            else
-            { 
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    while (true)
-                    {
-                        read = await _sslStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-
-                        if (read > 0)
-                        {
-                            await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
-                            return ms.ToArray();
-                        }
-                        else
-                        {
-                            throw new SocketException();
-                        }
                     }
-                } 
-            } 
+                }
+            });
+
+            return result;
         }
 
         private void SendInternal(long contentLength, Stream stream)
