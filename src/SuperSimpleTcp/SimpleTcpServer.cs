@@ -295,13 +295,21 @@ namespace SuperSimpleTcp
 
             if (_ssl)
             {
+                byte[] certificateData;
+
+                using (var fileStream = new FileStream(pfxCertFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    certificateData = new byte[fileStream.Length];
+                    fileStream.Read(certificateData, 0, certificateData.Length);
+                }
+
                 if (string.IsNullOrEmpty(pfxPassword))
                 {
-                    _sslCertificate = new X509Certificate2(pfxCertFilename);
+                    _sslCertificate = new X509Certificate2(certificateData);
                 }
                 else
                 {
-                    _sslCertificate = new X509Certificate2(pfxCertFilename, pfxPassword);
+                    _sslCertificate = new X509Certificate2(certificateData, pfxPassword);
                 }
 
                 _sslCertificateCollection = new X509Certificate2Collection
