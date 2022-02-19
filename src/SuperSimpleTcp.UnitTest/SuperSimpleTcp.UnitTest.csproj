@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\simpletcp.crt" Link="simpletcp.crt">
+    <None Include="..\..\simpletcp.crt" Link="simpletcp.crt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
