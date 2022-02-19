@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace SuperSimpleTcp.UnitTest
@@ -32,7 +33,15 @@ namespace SuperSimpleTcp.UnitTest
         [DeploymentItem("simpletcp.crt")]
         public void Start_ValidListenerIpAndPortSll_Successful()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8001, true, "simpletcp.crt", "simpletcp");
+            var certificateFilePath = "simpletcp.crt";
+
+            if (!File.Exists(certificateFilePath))
+            {
+                Assert.Fail($"Cannot found cert file {certificateFilePath}");
+                return;
+            }
+
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8001, true, certificateFilePath, "simpletcp");
             simpleTcpServer.Start();
             Assert.IsTrue(simpleTcpServer.IsListening);
         }

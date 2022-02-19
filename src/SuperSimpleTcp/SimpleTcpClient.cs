@@ -134,10 +134,10 @@ namespace SuperSimpleTcp
         private SimpleTcpClientSettings _settings = new SimpleTcpClientSettings();
         private SimpleTcpClientEvents _events = new SimpleTcpClientEvents();
         private SimpleTcpKeepaliveSettings _keepalive = new SimpleTcpKeepaliveSettings();
-        private SimpleTcpStatistics _statistics = new SimpleTcpStatistics();
+        private readonly SimpleTcpStatistics _statistics = new SimpleTcpStatistics();
 
-        private string _serverIp = null;
-        private int _serverPort = 0;
+        private readonly string _serverIp = null;
+        private readonly int _serverPort = 0;
         private readonly IPAddress _ipAddress = null;
         private TcpClient _client = null;
         private NetworkStream _networkStream = null;
