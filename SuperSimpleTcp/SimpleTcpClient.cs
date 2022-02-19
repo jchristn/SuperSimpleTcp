@@ -640,6 +640,11 @@ namespace SuperSimpleTcp
                     _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
                     _statistics.ReceivedBytes += data.Length;
                 }
+                catch (AggregateException)
+                {
+                    Logger?.Invoke($"{_header}data receiver canceled, disconnected");
+                    break;
+                }
                 catch (IOException)
                 {
                     Logger?.Invoke($"{_header}data receiver canceled, disconnected");
