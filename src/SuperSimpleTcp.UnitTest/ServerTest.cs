@@ -30,16 +30,10 @@ namespace SuperSimpleTcp.UnitTest
         }
 
         [TestMethod]
-        [DeploymentItem("simpletcp.crt")]
         public void Start_ValidListenerIpAndPortSll_Successful()
         {
             var certificateFilePath = "simpletcp.crt";
-
-            if (!File.Exists(certificateFilePath))
-            {
-                Assert.Fail($"Cannot found cert file {certificateFilePath}");
-                return;
-            }
+            TestCertificateHelper.CreateCertificate(certificateFilePath);
 
             using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8001, true, certificateFilePath, "simpletcp");
             simpleTcpServer.Start();
