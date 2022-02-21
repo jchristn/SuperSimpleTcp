@@ -278,6 +278,7 @@ namespace SuperSimpleTcp
 
                 _client.EndConnect(ar);
                 _networkStream = _client.GetStream();
+                _networkStream.ReadTimeout = _settings.ReadTimeoutMs;
 
                 if (_ssl)
                 {
@@ -286,6 +287,7 @@ namespace SuperSimpleTcp
                     else
                         _sslStream = new SslStream(_networkStream, false);
 
+                    _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
                     _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, !_settings.AcceptInvalidCertificates);
 
                     if (!_sslStream.IsEncrypted) throw new AuthenticationException("Stream is not encrypted");
@@ -392,6 +394,7 @@ namespace SuperSimpleTcp
                 try
                 {
                     _networkStream = _client.GetStream();
+                    _networkStream.ReadTimeout = _settings.ReadTimeoutMs;
 
                     if (_ssl)
                     {
@@ -400,6 +403,7 @@ namespace SuperSimpleTcp
                         else
                             _sslStream = new SslStream(_networkStream, false);
 
+                        _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
                         _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, !_settings.AcceptInvalidCertificates);
 
                         if (!_sslStream.IsEncrypted) throw new AuthenticationException("Stream is not encrypted");
@@ -624,21 +628,43 @@ namespace SuperSimpleTcp
         }
 
         private async Task DataReceiver(CancellationToken token)
-        { 
+        {
+            Stream outerStream = null;
+            if (!_ssl) outerStream = _networkStream;
+            else outerStream = _sslStream;
+
             while (!token.IsCancellationRequested && _client != null && _client.Connected)
             {
                 try
                 {
-                    byte[] data = await DataReadAsync(token).ConfigureAwait(false);
-                    if (data == null)
+                    using (token.Register(() => outerStream.Close()))
                     {
-                        await Task.Delay(100).ConfigureAwait(false);
-                        continue;
-                    }
+                        await DataReadAsync(token).ContinueWith(async task =>
+                        {
+                            if (task.IsCanceled)
+                            {
+                                return null;
+                            }
 
-                    _lastActivity = DateTime.Now;
-                    _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
-                    _statistics.ReceivedBytes += data.Length;
+                            byte[] data = task.Result;
+
+                            if (data != null)
+                            {
+                                _lastActivity = DateTime.Now;
+                                _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
+                                _statistics.ReceivedBytes += data.Length;
+
+                                return data;
+                            }
+                            else
+                            {
+                                await Task.Delay(100).ConfigureAwait(false);
+                                return null;
+                            }
+
+                        }, token).ContinueWith(task => { }).ConfigureAwait(false);
+                    }
+                        
                 }
                 catch (AggregateException)
                 {
@@ -692,45 +718,37 @@ namespace SuperSimpleTcp
             byte[] buffer = new byte[_settings.StreamBufferSize];
             int read = 0;
 
-            Task<int> readTask = null;
-
-            if (!_ssl)
+            try
             {
-                readTask = _networkStream.ReadAsync(buffer, 0, buffer.Length, token);
-            }
-            else
-            {
-                readTask = _sslStream.ReadAsync(buffer, 0, buffer.Length, token);
-            }
-
-            // see https://stackoverflow.com/a/20910003
-            Task timeoutTask = Task.Delay(_settings.ReadTimeoutMs);
-
-            byte[] result = await Task.Factory.ContinueWhenAny<byte[]>(new Task[] { readTask, timeoutTask }, (completedTask) =>
-            {
-                if (completedTask == timeoutTask) // timeout
+                if (!_ssl)
                 {
-                    return null;
+                    read = await _networkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
                 }
-                else // the readTask completed
+                else
                 {
-                    read = readTask.Result;
-                    if (read > 0)
+                    read = await _sslStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+                }
+
+                if (read > 0)
+                {
+                    using (MemoryStream ms = new MemoryStream())
                     {
-                        using (MemoryStream ms = new MemoryStream())
-                        {
-                            ms.Write(buffer, 0, read);
-                            return ms.ToArray();
-                        }
-                    }
-                    else
-                    {
-                        throw new SocketException();
+                        ms.Write(buffer, 0, read);
+                        return ms.ToArray();
                     }
                 }
-            });
-
-            return result;
+                else
+                {
+                    throw new SocketException();
+                }
+            }
+            catch (IOException)
+            {
+                // thrown if ReadTimeout (ms) is exceeded
+                // see https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.networkstream.readtimeout?view=net-6.0
+                // and https://github.com/dotnet/runtime/issues/24093
+                return null;
+            }
         }
 
         private void SendInternal(long contentLength, Stream stream)
