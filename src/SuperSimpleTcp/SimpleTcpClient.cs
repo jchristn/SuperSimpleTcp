@@ -442,7 +442,7 @@ namespace SuperSimpleTcp
             Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
 
             _tokenSource.Cancel();
-            _dataReceiver.Wait();
+            //_dataReceiver.Wait();
             _client.Close();
             _isConnected = false;
         }
