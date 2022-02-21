@@ -262,6 +262,7 @@ namespace SuperSimpleTcp
                 Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
             }
 
+            _tokenSource?.Dispose();
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
 
@@ -333,6 +334,7 @@ namespace SuperSimpleTcp
                 Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
             }
 
+            _tokenSource?.Dispose();
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
 
