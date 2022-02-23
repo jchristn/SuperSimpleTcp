@@ -1,4 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -47,47 +49,81 @@ namespace SuperSimpleTcp.UnitTest
             var ipAddress = "127.0.0.1";
             var port = 8000;
             var testData = StringHelper.RandomString(1000);
-            var receiveError = false;
+            var acknowledgeData = Encoding.UTF8.GetBytes("acknowledge");
+
+            var serverReceiveError = false;
+            var serverReceiveData = false;
+
+            var clientReceiveError = false;
+            var clientReceiveData = false;
 
             var expectedClientConnectedCount = 1;
             var clientConnectedCount = 0;
 
-            void ClientConnected(object? sender, ConnectionEventArgs e)
+            void ServerClientConnected(object? sender, ConnectionEventArgs e)
             {
                 clientConnectedCount++;
             }
 
-            void DataReceived(object? sender, DataReceivedEventArgs e)
+            void ServerDataReceived(object? sender, DataReceivedEventArgs e)
             {
-                var receivedTestData = Encoding.UTF8.GetString(e.Data);
-                if (testData != receivedTestData)
+                serverReceiveData = true;
+
+                var receivedData = Encoding.UTF8.GetString(e.Data);
+                Trace.WriteLine($"{nameof(ServerDataReceived)} - {receivedData}");
+
+                if (testData != receivedData)
                 {
-                    receiveError = true;
+                    serverReceiveError = true;
+                }
+
+                if (sender is SimpleTcpServer simpleTcpServer)
+                {
+                    simpleTcpServer.Send(e.IpPort, acknowledgeData);
+                }
+            }
+
+            void ClientDataReceived(object? sender, DataReceivedEventArgs e)
+            {
+                clientReceiveData = true;
+
+                var receivedData = Encoding.UTF8.GetString(e.Data);
+                Trace.WriteLine($"{nameof(ClientDataReceived)} - {receivedData}");
+
+                if (!Enumerable.SequenceEqual(e.Data, acknowledgeData))
+                {
+                    clientReceiveError = true;
                 }
             }
 
             using var simpleTcpServer = new SimpleTcpServer($"{ipAddress}:{port}");
             simpleTcpServer.Start();
-            simpleTcpServer.Events.ClientConnected += ClientConnected;
-            simpleTcpServer.Events.DataReceived += DataReceived;
+            simpleTcpServer.Events.ClientConnected += ServerClientConnected;
+            simpleTcpServer.Events.DataReceived += ServerDataReceived;
 
             using var simpleTcpClient = new SimpleTcpClient($"{ipAddress}:{port}");
             simpleTcpClient.Connect();
-            for (var i = 0; i < 20; i++)
+            simpleTcpClient.Events.DataReceived += ClientDataReceived;
+            for (var i = 0; i < 10; i++)
             {
                 simpleTcpClient.Send(testData);
                 await Task.Delay(100);
             }
+            simpleTcpClient.Events.DataReceived -= ClientDataReceived;
             simpleTcpClient.Disconnect();
 
             await Task.Delay(10);
 
-            simpleTcpServer.Events.ClientConnected -= ClientConnected;
-            simpleTcpServer.Events.DataReceived -= DataReceived;
+            simpleTcpServer.Events.ClientConnected -= ServerClientConnected;
+            simpleTcpServer.Events.DataReceived -= ServerDataReceived;
             simpleTcpServer.Stop();
 
             Assert.AreEqual(expectedClientConnectedCount, clientConnectedCount);
-            Assert.IsFalse(receiveError, "Receive errors detected");
+            Assert.IsTrue(serverReceiveData, "Server receive no data");
+            Assert.IsFalse(serverReceiveError, "Server receive error detected");
+
+            Assert.IsTrue(clientReceiveData, "Client receive no data");
+            Assert.IsFalse(clientReceiveError, "Client receive error detected");
         }
     }
 }

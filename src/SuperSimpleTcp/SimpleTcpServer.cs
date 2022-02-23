@@ -101,26 +101,24 @@ namespace SuperSimpleTcp
 
         #region Private-Members
 
-        private string _header = "[SimpleTcp.Server] ";
+        private readonly string _header = "[SimpleTcp.Server] ";
         private SimpleTcpServerSettings _settings = new SimpleTcpServerSettings();
         private SimpleTcpServerEvents _events = new SimpleTcpServerEvents();
         private SimpleTcpKeepaliveSettings _keepalive = new SimpleTcpKeepaliveSettings();
         private SimpleTcpStatistics _statistics = new SimpleTcpStatistics();
 
-        private string _listenerIp = null;
-        private IPAddress _ipAddress = null;
-        private int _port = 0;
-        private bool _ssl = false;
-        private string _pfxCertFilename = null;
-        private string _pfxPassword = null;
+        private readonly string _listenerIp = null;
+        private readonly IPAddress _ipAddress = null;
+        private readonly int _port = 0;
+        private readonly bool _ssl = false;
 
-        private X509Certificate2 _sslCertificate = null;
-        private X509Certificate2Collection _sslCertificateCollection = null;
+        private readonly X509Certificate2 _sslCertificate = null;
+        private readonly X509Certificate2Collection _sslCertificateCollection = null;
 
-        private ConcurrentDictionary<string, ClientMetadata> _clients = new ConcurrentDictionary<string, ClientMetadata>();
-        private ConcurrentDictionary<string, DateTime> _clientsLastSeen = new ConcurrentDictionary<string, DateTime>();
-        private ConcurrentDictionary<string, DateTime> _clientsKicked = new ConcurrentDictionary<string, DateTime>();
-        private ConcurrentDictionary<string, DateTime> _clientsTimedout = new ConcurrentDictionary<string, DateTime>();
+        private readonly ConcurrentDictionary<string, ClientMetadata> _clients = new ConcurrentDictionary<string, ClientMetadata>();
+        private readonly ConcurrentDictionary<string, DateTime> _clientsLastSeen = new ConcurrentDictionary<string, DateTime>();
+        private readonly ConcurrentDictionary<string, DateTime> _clientsKicked = new ConcurrentDictionary<string, DateTime>();
+        private readonly ConcurrentDictionary<string, DateTime> _clientsTimedout = new ConcurrentDictionary<string, DateTime>();
 
         private TcpListener _listener = null;
         private bool _isListening = false;
@@ -237,8 +235,6 @@ namespace SuperSimpleTcp
             }
 
             _ssl = ssl;
-            _pfxCertFilename = pfxCertFilename;
-            _pfxPassword = pfxPassword;
             _isListening = false;
             _token = _tokenSource.Token;
 
@@ -294,8 +290,6 @@ namespace SuperSimpleTcp
             }
              
             _ssl = ssl;
-            _pfxCertFilename = pfxCertFilename;
-            _pfxPassword = pfxPassword;
             _isListening = false;
             _token = _tokenSource.Token;
 
@@ -926,8 +920,7 @@ namespace SuperSimpleTcp
         {
             if (_clientsLastSeen.ContainsKey(ipPort))
             {
-                DateTime ts;
-                _clientsLastSeen.TryRemove(ipPort, out ts);
+                _clientsLastSeen.TryRemove(ipPort, out _);
             }
              
             _clientsLastSeen.TryAdd(ipPort, DateTime.Now);

@@ -52,23 +52,23 @@
     <DocumentationFile>SimpleTcp.xml</DocumentationFile>
   </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
-		<DocumentationFile>SimpleTcp.xml</DocumentationFile>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
+        <DocumentationFile>SimpleTcp.xml</DocumentationFile>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net5.0|AnyCPU'">
-		<DocumentationFile>SimpleTcp.xml</DocumentationFile>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net5.0|AnyCPU'">
+        <DocumentationFile>SimpleTcp.xml</DocumentationFile>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
-		<DocumentationFile>SimpleTcp.xml</DocumentationFile>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net6.0|AnyCPU'">
+        <DocumentationFile>SimpleTcp.xml</DocumentationFile>
+    </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
-		<DocumentationFile>SimpleTcp.xml</DocumentationFile>
-	</PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net6.0|AnyCPU'">
+        <DocumentationFile>SimpleTcp.xml</DocumentationFile>
+    </PropertyGroup>
 
-	<ItemGroup>
+    <ItemGroup>
     <None Include="assets\icon.png">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
