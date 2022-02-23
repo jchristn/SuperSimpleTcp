@@ -264,6 +264,19 @@ namespace SuperSimpleTcp
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
+            _token.Register(() =>
+             {
+                 if (!_ssl)
+                 {
+                     if (_sslStream == null) return;
+                     _sslStream.Close();
+                 }
+                 else
+                 {
+                     if (_networkStream == null) return;
+                     _networkStream.Close();
+                 }
+             });
 
             IAsyncResult ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
             WaitHandle wh = ar.AsyncWaitHandle;
@@ -335,6 +348,20 @@ namespace SuperSimpleTcp
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
+            _token.Register(() =>
+            {
+                if (!_ssl)
+                {
+                    if (_sslStream == null) return;
+                    _sslStream.Close();
+                }
+                else
+                {
+                    if (_networkStream == null) return;
+                    _networkStream.Close();
+                }
+            });
+
 
             using (CancellationTokenSource connectTokenSource = new CancellationTokenSource())
             {
@@ -637,15 +664,9 @@ namespace SuperSimpleTcp
             {
                 try
                 {
-                    using (token.Register(() => outerStream.Close()))
-                    {
-                        await DataReadAsync(token).ContinueWith(async task =>
+                    await DataReadAsync(token).ContinueWith(async task =>
                         {
-                            if (task.IsCanceled)
-                            {
-                                return null;
-                            }
-
+                            if (task.IsCanceled) return null;
                             byte[] data = task.Result;
 
                             if (data != null)
@@ -663,8 +684,6 @@ namespace SuperSimpleTcp
                             }
 
                         }, token).ContinueWith(task => { }).ConfigureAwait(false);
-                    }
-                        
                 }
                 catch (AggregateException)
                 {
