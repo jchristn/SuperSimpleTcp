@@ -94,6 +94,22 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
+        /// Number of milliseconds to wait between each iteration of evaluating the server connection to see if the connection is lost.
+        /// </summary>
+        public int ConnectionLostEvaluationIntervalMs
+        {
+            get
+            {
+                return _connectionLostEvaluationIntervalMs;
+            }
+            set
+            {
+                if (value < 1) throw new ArgumentOutOfRangeException("ConnectionLostEvaluationIntervalMs must be one or greater.");
+                _connectionLostEvaluationIntervalMs = value;
+            }
+        }
+
+        /// <summary>
         /// Enable or disable acceptance of invalid SSL certificates.
         /// </summary>
         public bool AcceptInvalidCertificates = true;
@@ -112,6 +128,7 @@ namespace SuperSimpleTcp
         private int _readTimeoutMs = 1000;
         private int _idleServerTimeoutMs = 0;
         private int _idleServerEvaluationIntervalMs = 1000;
+        private int _connectionLostEvaluationIntervalMs = 200;
 
         #endregion
 

@@ -264,6 +264,11 @@
             Number of milliseconds to wait between each iteration of evaluating the server connection to see if the configured timeout interval has been exceeded.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.ConnectionLostEvaluationIntervalMs">
+            <summary>
+            Number of milliseconds to wait between each iteration of evaluating the server connection to see if the connection is lost.
+            </summary>
+        </member>
         <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.AcceptInvalidCertificates">
             <summary>
             Enable or disable acceptance of invalid SSL certificates.
