@@ -669,6 +669,11 @@ namespace SuperSimpleTcp
                             client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
                         }
                         else
+                        if (_settings.ClientCertificateValidationCallback != null)
+                        {
+                            client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(_settings.ClientCertificateValidationCallback));
+                        }
+                        else
                         {
                             client.SslStream = new SslStream(client.NetworkStream, false);
                         }
