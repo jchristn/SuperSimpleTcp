@@ -10,7 +10,8 @@ namespace SuperSimpleTcp
         #region Public-Members
 
         /// <summary>
-        /// Buffer size to use while interacting with streams. 
+        /// <value>Buffer size in bytes to use while interacting with streams.</value>
+        /// <remarks>The maximum value allowed is 65535 (<seealso cref="UInt16.MaxValue"/>).</remarks>
         /// </summary>
         public int StreamBufferSize
         {
@@ -21,7 +22,7 @@ namespace SuperSimpleTcp
             set
             {
                 if (value < 1) throw new ArgumentException("StreamBufferSize must be one or greater.");
-                if (value > 65536) throw new ArgumentException("StreamBufferSize must be less than 65,536.");
+                if (value > 65535) throw new ArgumentException("StreamBufferSize must be less than 65,536.");
                 _streamBufferSize = value;
             }
         }
@@ -123,7 +124,7 @@ namespace SuperSimpleTcp
 
         #region Private-Members
 
-        private int _streamBufferSize = 65536;
+        private int _streamBufferSize = 65535;
         private int _connectTimeoutMs = 5000;
         private int _readTimeoutMs = 1000;
         private int _idleServerTimeoutMs = 0;
