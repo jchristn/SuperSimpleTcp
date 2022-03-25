@@ -138,6 +138,38 @@
             <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
             <param name="pfxPassword">The password to the PFX certificate file.</param>
         </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32)">
+            <summary>
+            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32,System.Boolean,System.String,System.String)">
+            <summary>
+            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="ssl">Enable or disable SSL.</param>
+            <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+            <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint)">
+            <summary>
+            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint,System.Boolean,System.String,System.String)">
+            <summary>
+            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+            <param name="ssl">Enable or disable SSL.</param>
+            <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+            <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.Dispose">
             <summary>
             Dispose of the TCP client.
@@ -224,6 +256,11 @@
         <member name="E:SuperSimpleTcp.SimpleTcpClientEvents.DataReceived">
             <summary>
             Event to call when byte data has become available from the server.
+            </summary>
+        </member>
+        <member name="E:SuperSimpleTcp.SimpleTcpClientEvents.DataSent">
+            <summary>
+            Event to call when byte data has been sent to the server.
             </summary>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClientEvents.#ctor">

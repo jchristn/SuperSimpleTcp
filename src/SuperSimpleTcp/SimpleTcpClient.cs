@@ -232,6 +232,66 @@ namespace SuperSimpleTcp
             _pfxCertFilename = pfxCertFilename;
             _pfxPassword = pfxPassword;
         }
+
+        /// <summary>
+        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpAddress">The server IP address.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        public SimpleTcpClient(IPAddress serverIpAddress, int port) : this(new IPEndPoint(serverIpAddress, port))
+        {
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpAddress">The server IP address.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
+        public SimpleTcpClient(IPAddress serverIpAddress, int port, bool ssl, string pfxCertFilename, string pfxPassword) : this(serverIpAddress, port)
+        {
+            _ssl = ssl;
+            _pfxCertFilename = pfxCertFilename;
+            _pfxPassword = pfxPassword;
+        }
+        
+        /// <summary>
+        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpEndPoint">The server IP endpoint.</param>
+        public SimpleTcpClient(IPEndPoint serverIpEndPoint)
+        {
+            if(serverIpEndPoint == null)
+            {
+                throw new ArgumentNullException(paramName: nameof(serverIpEndPoint));
+            }
+            else if(serverIpEndPoint.Port < 1)
+            {
+                throw new ArgumentException(message: "Port must be zero or greater.");
+            }
+            else
+            {
+                _ipAddress = serverIpEndPoint.Address;
+                _serverIp = serverIpEndPoint.Address.ToString();
+                _serverPort = serverIpEndPoint.Port;
+            }
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpEndPoint">The server IP endpoint.</param>
+        /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
+        public SimpleTcpClient(IPEndPoint serverIpEndPoint, bool ssl, string pfxCertFilename, string pfxPassword) : this(serverIpEndPoint)
+        {
+            _ssl = ssl;
+            _pfxCertFilename = pfxCertFilename;
+            _pfxPassword = pfxPassword;
+        }
          
         #endregion
 
@@ -798,6 +858,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) _networkStream.Flush();
                 else _sslStream.Flush();
+                _events.HandleDataSent(this, new DataReceivedEventArgs(ServerIpPort, buffer));
             }
             finally
             {
@@ -830,6 +891,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) await _networkStream.FlushAsync(token).ConfigureAwait(false);
                 else await _sslStream.FlushAsync(token).ConfigureAwait(false);
+                _events.HandleDataSent(this, new DataReceivedEventArgs(ServerIpPort, buffer));
             }
             catch (TaskCanceledException)
             {
