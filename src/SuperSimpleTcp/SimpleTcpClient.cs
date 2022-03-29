@@ -263,14 +263,8 @@ namespace SuperSimpleTcp
         /// <param name="serverIpEndPoint">The server IP endpoint.</param>
         public SimpleTcpClient(IPEndPoint serverIpEndPoint)
         {
-            if(serverIpEndPoint == null)
-            {
-                throw new ArgumentNullException(paramName: nameof(serverIpEndPoint));
-            }
-            else if(serverIpEndPoint.Port < 1)
-            {
-                throw new ArgumentException(message: "Port must be zero or greater.");
-            }
+            if (serverIpEndPoint == null) throw new ArgumentNullException(nameof(serverIpEndPoint));
+            else if (serverIpEndPoint.Port < 0) throw new ArgumentException("Port must be zero or greater.");
             else
             {
                 _ipAddress = serverIpEndPoint.Address;
@@ -858,7 +852,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) _networkStream.Flush();
                 else _sslStream.Flush();
-                _events.HandleDataSent(this, new DataReceivedEventArgs(ServerIpPort, buffer));
+                _events.HandleDataSent(this, new DataSentEventArgs(ServerIpPort, contentLength));
             }
             finally
             {
@@ -891,7 +885,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) await _networkStream.FlushAsync(token).ConfigureAwait(false);
                 else await _sslStream.FlushAsync(token).ConfigureAwait(false);
-                _events.HandleDataSent(this, new DataReceivedEventArgs(ServerIpPort, buffer));
+                _events.HandleDataSent(this, new DataSentEventArgs(ServerIpPort, contentLength));
             }
             catch (TaskCanceledException)
             {

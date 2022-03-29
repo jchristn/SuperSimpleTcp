@@ -954,6 +954,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) client.NetworkStream.Flush();
                 else client.SslStream.Flush();
+                _events.HandleDataSent(this, new DataSentEventArgs(ipPort, contentLength));
             }
             finally
             {
@@ -991,6 +992,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) await client.NetworkStream.FlushAsync(token).ConfigureAwait(false);
                 else await client.SslStream.FlushAsync(token).ConfigureAwait(false);
+                _events.HandleDataSent(this, new DataSentEventArgs(ipPort, contentLength));
             }
             catch (TaskCanceledException)
             {

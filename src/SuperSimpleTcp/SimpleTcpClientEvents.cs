@@ -27,7 +27,7 @@ namespace SuperSimpleTcp
         /// <summary>
         /// Event to call when byte data has been sent to the server.
         /// </summary>
-        public event EventHandler<DataReceivedEventArgs> DataSent;
+        public event EventHandler<DataSentEventArgs> DataSent;
 
         #endregion
 
@@ -60,7 +60,7 @@ namespace SuperSimpleTcp
             DataReceived?.Invoke(sender, args);
         }
 
-        internal void HandleDataSent(object sender, DataReceivedEventArgs args)
+        internal void HandleDataSent(object sender, DataSentEventArgs args)
         {
             DataSent?.Invoke(sender, args);
         }

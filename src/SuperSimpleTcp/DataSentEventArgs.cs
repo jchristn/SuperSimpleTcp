@@ -3,14 +3,14 @@
 namespace SuperSimpleTcp
 {
     /// <summary>
-    /// Arguments for data received from connected endpoints.
+    /// Arguments for data sent to a connected endpoint.
     /// </summary>
-    public class DataReceivedEventArgs : EventArgs
+    public class DataSentEventArgs : EventArgs
     {
-        internal DataReceivedEventArgs(string ipPort, byte[] data)
+        internal DataSentEventArgs(string ipPort, long bytesSent)
         {
             IpPort = ipPort;
-            Data = data;
+            BytesSent = bytesSent;
         }
 
         /// <summary>
@@ -19,8 +19,8 @@ namespace SuperSimpleTcp
         public string IpPort { get; }
 
         /// <summary>
-        /// The data received from the endpoint.
+        /// The number of bytes sent.
         /// </summary>
-        public byte[] Data { get; }
+        public long BytesSent { get; }
     }
 }

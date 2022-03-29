@@ -31,7 +31,22 @@
         </member>
         <member name="P:SuperSimpleTcp.DataReceivedEventArgs.Data">
             <summary>
-            The data received from the client.
+            The data received from the endpoint.
+            </summary>
+        </member>
+        <member name="T:SuperSimpleTcp.DataSentEventArgs">
+            <summary>
+            Arguments for data sent to a connected endpoint.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.DataSentEventArgs.IpPort">
+            <summary>
+            The IP address and port number of the connected endpoint.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.DataSentEventArgs.BytesSent">
+            <summary>
+            The number of bytes sent.
             </summary>
         </member>
         <member name="T:SuperSimpleTcp.DisconnectReason">
@@ -540,6 +555,11 @@
         <member name="E:SuperSimpleTcp.SimpleTcpServerEvents.DataReceived">
             <summary>
             Event to call when byte data has become available from the client.
+            </summary>
+        </member>
+        <member name="E:SuperSimpleTcp.SimpleTcpServerEvents.DataSent">
+            <summary>
+            Event to call when byte data has been sent to a client.
             </summary>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpServerEvents.#ctor">

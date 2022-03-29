@@ -38,6 +38,7 @@ namespace ServerTest
             _Server.Events.ClientConnected += ClientConnected;
             _Server.Events.ClientDisconnected += ClientDisconnected;
             _Server.Events.DataReceived += DataReceived;
+            _Server.Events.DataSent += DataSent;
             _Server.Keepalive.EnableTcpKeepAlives = true;
             _Server.Settings.IdleClientTimeoutMs = _IdleClientTimeoutMs; 
             _Server.Settings.MutuallyAuthenticate = false;
@@ -109,6 +110,11 @@ namespace ServerTest
         static void DataReceived(object sender, DataReceivedEventArgs e)
         {
             Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data));
+        }
+
+        private static void DataSent(object sender, DataSentEventArgs e)
+        {
+            Console.WriteLine("[" + e.IpPort + "] sent " + e.BytesSent + " bytes");
         }
 
         static void Menu()

@@ -36,6 +36,7 @@ namespace ClientTest
             _Client.Events.Connected += Connected;
             _Client.Events.Disconnected += Disconnected;
             _Client.Events.DataReceived += DataReceived;
+            _Client.Events.DataSent += DataSent;
             _Client.Keepalive.EnableTcpKeepAlives = true; 
             _Client.Settings.MutuallyAuthenticate = false;
             _Client.Settings.AcceptInvalidCertificates = true;
@@ -109,6 +110,11 @@ namespace ClientTest
         static void DataReceived(object sender, DataReceivedEventArgs e)
         {
             Console.WriteLine("[" + e.IpPort + "] " + Encoding.UTF8.GetString(e.Data));
+        }
+
+        private static void DataSent(object sender, DataSentEventArgs e)
+        {
+            Console.WriteLine("[" + e.IpPort + "] sent " + e.BytesSent + " bytes");
         }
 
         static void Menu()
