@@ -112,7 +112,7 @@ static void DataReceived(object sender, DataReceivedEventArgs e)
 
 The ```ConnectWithRetries``` method on SimpleTcpClient can be used instead of ```Connect``` to continually attempt to establish connections with the server for a given period of time. Like ```Connect```, ```ConnectWithRetries``` will throw a ```TimeoutException``` if it is unable to successfully establish a connection.
 ```csharp
-client.ConnectWithRetries(10); // try for up to 10 seconds
+client.ConnectWithRetries(10000); // try for up to 10000 milliseconds
 ```
 
 ### Additional Configuration Options
