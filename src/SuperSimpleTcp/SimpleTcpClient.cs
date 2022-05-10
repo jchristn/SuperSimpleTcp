@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
@@ -815,6 +817,26 @@ namespace SuperSimpleTcp
                 }
                 else
                 {
+                    IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+                    TcpConnectionInformation[] tcpConnections = ipProperties.GetActiveTcpConnections()
+                        .Where(x => x.LocalEndPoint.Equals(this._client.Client.LocalEndPoint) && x.RemoteEndPoint.Equals(this._client.Client.RemoteEndPoint)).ToArray();
+
+                    var isOk = false;
+
+                    if (tcpConnections != null && tcpConnections.Length > 0)
+                    {
+                        TcpState stateOfConnection = tcpConnections.First().State;
+                        if (stateOfConnection == TcpState.Established)
+                        {
+                            isOk = true;
+                        }
+                    }
+
+                    if (!isOk)
+                    {
+                        this.Disconnect();
+                    }
+
                     throw new SocketException();
                 }
             }
