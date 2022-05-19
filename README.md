@@ -24,7 +24,7 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 A special thanks to the community of people that have contributed to or otherwise improved this project!
 
 @tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat @exergist 
-@maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson
+@maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson @EGirardi
 
 ## Help or Feedback
 
@@ -122,7 +122,7 @@ Both SimpleTcpClient and SimpleTcpServer have settable values for:
 - ```Logger``` - method to invoke to send log messages from either SimpleTcpClient or SimpleTcpServer
 - ```Settings.MutuallyAuthenticate``` - only used if SSL is enabled, demands that both client and server mutually authenticate
 - ```Settings.AcceptInvalidCertificates``` - accept and allow certificates that are invalid or cannot be validated
-- ```Keepalive``` - to enable/disable keepalives and set specific parameters
+- ```Keepalive``` - to enable/disable keepalives and set specific parameters (disabled by default)
 
 SimpleTcpServer also has:
 
@@ -159,7 +159,7 @@ The project TcpTest (https://github.com/jchristn/TcpTest) was built specifically
 
 Additionally, as of v2.1.0, support for TCP keepalives has been added to SimpleTcp, primarily to address the issue of a network interface being shut down, the cable unplugged, or the media otherwise becoming unavailable.  It is important to note that keepalives are supported in .NET Core and .NET Framework, but NOT .NET Standard. As of this release, .NET Standard provides no facilities for TCP keepalives.
 
-TCP keepalives are enabled by default.
+TCP keepalives are disabled by default.  To enable them:
 ```csharp
 server.Keepalive.EnableTcpKeepAlives = true;
 server.Keepalive.TcpKeepAliveInterval = 5;      // seconds to wait before sending subsequent keepalive
@@ -172,7 +172,7 @@ Some important notes about TCP keepalives:
 - Keepalives only work in .NET Core and .NET Framework
 - Keepalives can be enabled on either client or server, but are implemented and enforced in the underlying operating system, and may not work as expected
 - ```Keepalive.TcpKeepAliveRetryCount``` is only applicable to .NET Core; for .NET Framework, this value is forced to 10
-- *Your mileage may vary*
+- *Your mileage may vary*; please remember that these are managed by the underlying operating system and not by this library
 
 ## Running under Mono
 
