@@ -86,6 +86,12 @@ namespace ServerTest
                     case "stats reset":
                         _Server.Statistics.Reset();
                         break;
+                    case "conn":
+                      Console.WriteLine("Connections: " + _Server.Connections);
+                      break;
+                    case "max":
+                      _Server.Settings.MaxConnections = InputInteger("Max connections:", 4096, true, false);
+                      break;
                     case "start":
                         _Server.Start();
                         break;
@@ -132,6 +138,8 @@ namespace ServerTest
             Console.WriteLine(" dispose       Dispose of the server");
             Console.WriteLine(" stats         Display server statistics");
             Console.WriteLine(" stats reset   Reset server statistics");
+            Console.WriteLine(" conn           show connection count");
+            Console.WriteLine(" max            set max connections (currently " + _Server.Settings.MaxConnections + ")");
             Console.WriteLine("");
         }
 

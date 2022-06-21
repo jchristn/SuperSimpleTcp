@@ -93,6 +93,17 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
+        /// Retrieve the number of current connected clients.
+        /// </summary>
+        public int Connections
+        {
+          get
+          {
+            return _clients.Count;
+          }
+        }
+
+        /// <summary>
         /// Method to invoke to send a log message.
         /// </summary>
         public Action<string> Logger = null;
@@ -651,6 +662,21 @@ namespace SuperSimpleTcp
 
                 try
                 {
+                    #region Check-for-Maximum-Connections
+
+                    if (!_isListening && (_clients.Count >= _settings.MaxConnections))
+                    {
+                      Task.Delay(100).Wait();
+                      continue;
+                    }
+                    else if (!_isListening)
+                    {
+                      _listener.Start();
+                      _isListening = true;
+                    }
+
+                    #endregion
+
                     TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
                     string clientIp = tcpClient.Client.RemoteEndPoint.ToString();
 
@@ -684,6 +710,17 @@ namespace SuperSimpleTcp
 
                     CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(client.Token, _token);
                     Task unawaited = Task.Run(() => DataReceiver(client), linkedCts.Token);
+
+                    #region Check-for-Maximum-Connections
+
+                    if (_clients.Count >= _settings.MaxConnections)
+                    {
+                      Logger?.Invoke(_header + "maximum connections " + _settings.MaxConnections + " met (currently " + _clients.Count + " connections), pausing");
+                      _isListening = false;
+                      _listener.Stop();
+                    }
+
+                    #endregion
                 }
                 catch (Exception ex)
                 {
