@@ -97,10 +97,10 @@ namespace SuperSimpleTcp
         /// </summary>
         public int Connections
         {
-          get
-          {
-            return _clients.Count;
-          }
+            get
+            {
+                return _clients.Count;
+            }
         }
 
         /// <summary>
@@ -666,13 +666,13 @@ namespace SuperSimpleTcp
 
                     if (!_isListening && (_clients.Count >= _settings.MaxConnections))
                     {
-                      Task.Delay(100).Wait();
-                      continue;
+                        Task.Delay(100).Wait();
+                        continue;
                     }
                     else if (!_isListening)
                     {
-                      _listener.Start();
-                      _isListening = true;
+                        _listener.Start();
+                        _isListening = true;
                     }
 
                     #endregion
@@ -715,9 +715,9 @@ namespace SuperSimpleTcp
 
                     if (_clients.Count >= _settings.MaxConnections)
                     {
-                      Logger?.Invoke(_header + "maximum connections " + _settings.MaxConnections + " met (currently " + _clients.Count + " connections), pausing");
-                      _isListening = false;
-                      _listener.Stop();
+                        Logger?.Invoke(_header + "maximum connections " + _settings.MaxConnections + " met (currently " + _clients.Count + " connections), pausing");
+                        _isListening = false;
+                        _listener.Stop();
                     }
 
                     #endregion
