@@ -322,6 +322,49 @@ namespace SuperSimpleTcp
             } 
         }
 
+        /// <summary>
+        /// Instantiates the TCP server with SSL.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+        /// </summary>
+        /// <param name="listenerIp">The listener IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        /// <param name="certificate">Byte array containing the certificate.</param>
+        public SimpleTcpServer(string listenerIp, int port, byte[] certificate)
+        {
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+
+            _listenerIp = listenerIp;
+            _port = port;
+
+            if (string.IsNullOrEmpty(_listenerIp))
+            {
+                _ipAddress = IPAddress.Loopback;
+                _listenerIp = _ipAddress.ToString();
+            }
+            else if (_listenerIp == "*" || _listenerIp == "+")
+            {
+                _ipAddress = IPAddress.Any;
+            }
+            else
+            {
+                if (!IPAddress.TryParse(_listenerIp, out _ipAddress))
+                {
+                    _ipAddress = Dns.GetHostEntry(listenerIp).AddressList[0];
+                    _listenerIp = _ipAddress.ToString();
+                }
+            }
+
+            _ssl = true;
+            _sslCertificate = new X509Certificate2(certificate);
+            _sslCertificateCollection = new X509Certificate2Collection
+            {
+                _sslCertificate
+            };
+
+            _isListening = false;
+            _token = _tokenSource.Token;
+        }
+
         #endregion
 
         #region Public-Methods

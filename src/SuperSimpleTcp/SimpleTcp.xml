@@ -123,13 +123,15 @@
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String)">
             <summary>
-            Instantiates the TCP client without SSL. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+            Instantiates the TCP client without SSL. 
+            Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
             </summary>
             <param name="ipPort">The IP:port of the server.</param> 
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Boolean,System.String,System.String)">
             <summary>
-            Instantiates the TCP client. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+            Instantiates the TCP client. 
+            Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
             </summary>
             <param name="ipPort">The IP:port of the server.</param> 
             <param name="ssl">Enable or disable SSL.</param>
@@ -138,14 +140,16 @@
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32)">
             <summary>
-            Instantiates the TCP client without SSL. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+            Instantiates the TCP client without SSL. 
+            Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpOrHostname">The server IP address or hostname.</param>
             <param name="port">The TCP port on which to connect.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32,System.Boolean,System.String,System.String)">
             <summary>
-            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            Instantiates the TCP client.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpOrHostname">The server IP address or hostname.</param>
             <param name="port">The TCP port on which to connect.</param>
@@ -153,16 +157,36 @@
             <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
             <param name="pfxPassword">The password to the PFX certificate file.</param>
         </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32,System.Security.Cryptography.X509Certificates.X509Certificate2)">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpOrHostname">The server IP address or hostname.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32,System.Byte[])">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpOrHostname">The server IP address or hostname.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32)">
             <summary>
-            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            Instantiates the TCP client without SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpAddress">The server IP address.</param>
             <param name="port">The TCP port on which to connect.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32,System.Boolean,System.String,System.String)">
             <summary>
-            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            Instantiates the TCP client.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpAddress">The server IP address.</param>
             <param name="port">The TCP port on which to connect.</param>
@@ -170,20 +194,56 @@
             <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
             <param name="pfxPassword">The password to the PFX certificate file.</param>
         </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32,System.Security.Cryptography.X509Certificates.X509Certificate2)">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32,System.Byte[])">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint)">
             <summary>
-            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            Instantiates the TCP client without SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpEndPoint">The server IP endpoint.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint,System.Boolean,System.String,System.String)">
             <summary>
-            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            Instantiates the TCP client.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpEndPoint">The server IP endpoint.</param>
             <param name="ssl">Enable or disable SSL.</param>
             <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
             <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint,System.Security.Cryptography.X509Certificates.X509Certificate2)">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+            <param name="certificate">Certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint,System.Byte[])">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.Dispose">
             <summary>
@@ -448,6 +508,14 @@
             <param name="ssl">Enable or disable SSL.</param>
             <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
             <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpServer.#ctor(System.String,System.Int32,System.Byte[])">
+            <summary>
+            Instantiates the TCP server with SSL.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+            </summary>
+            <param name="listenerIp">The listener IP address or hostname.</param>
+            <param name="port">The TCP port on which to listen.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpServer.Dispose">
             <summary>

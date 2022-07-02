@@ -21,7 +21,7 @@ namespace SuperSimpleTcp
     public class SimpleTcpClient : IDisposable
     {
         #region Public-Members
-         
+
         /// <summary>
         /// Indicates whether or not the client is connected to the server.
         /// </summary>
@@ -168,7 +168,8 @@ namespace SuperSimpleTcp
         #region Constructors-and-Factories
 
         /// <summary>
-        /// Instantiates the TCP client without SSL. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client without SSL. 
+        /// Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="ipPort">The IP:port of the server.</param> 
         public SimpleTcpClient(string ipPort)
@@ -187,13 +188,18 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
-        /// Instantiates the TCP client. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client. 
+        /// Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="ipPort">The IP:port of the server.</param> 
         /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
         /// <param name="pfxPassword">The password to the PFX certificate file.</param>
-        public SimpleTcpClient(string ipPort, bool ssl, string pfxCertFilename, string pfxPassword) : this(ipPort)
+        public SimpleTcpClient(
+            string ipPort,
+            bool ssl,
+            string pfxCertFilename,
+            string pfxPassword) : this(ipPort)
         {
             _ssl = ssl;
             _pfxCertFilename = pfxCertFilename;
@@ -201,7 +207,8 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
-        /// Instantiates the TCP client without SSL. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client without SSL. 
+        /// Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
         /// <param name="port">The TCP port on which to connect.</param>
@@ -217,18 +224,24 @@ namespace SuperSimpleTcp
             {
                 _ipAddress = Dns.GetHostEntry(serverIpOrHostname).AddressList[0];
                 _serverIp = _ipAddress.ToString();
-            } 
+            }
         }
 
         /// <summary>
-        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
         /// <param name="port">The TCP port on which to connect.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
         /// <param name="pfxPassword">The password to the PFX certificate file.</param>
-        public SimpleTcpClient(string serverIpOrHostname, int port, bool ssl, string pfxCertFilename, string pfxPassword) : this(serverIpOrHostname, port)
+        public SimpleTcpClient(
+            string serverIpOrHostname,
+            int port,
+            bool ssl,
+            string pfxCertFilename,
+            string pfxPassword) : this(serverIpOrHostname, port)
         {
             _ssl = ssl;
             _pfxCertFilename = pfxCertFilename;
@@ -236,7 +249,42 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
-        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client with SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        /// <param name="certificate">Certificate.</param>
+        public SimpleTcpClient(
+            string serverIpOrHostname,
+            int port,
+            X509Certificate2 certificate) : this(serverIpOrHostname, port)
+        {
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+            _ssl = true;
+            _sslCert = certificate;
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client with SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        /// <param name="certificate">Byte array containing the certificate.</param>
+        public SimpleTcpClient(
+            string serverIpOrHostname,
+            int port,
+            byte[] certificate) : this(serverIpOrHostname, port)
+        {
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+            _ssl = true;
+            _sslCert = new X509Certificate2(certificate);
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client without SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="serverIpAddress">The server IP address.</param>
         /// <param name="port">The TCP port on which to connect.</param>
@@ -245,22 +293,64 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
-        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="serverIpAddress">The server IP address.</param>
         /// <param name="port">The TCP port on which to connect.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
         /// <param name="pfxPassword">The password to the PFX certificate file.</param>
-        public SimpleTcpClient(IPAddress serverIpAddress, int port, bool ssl, string pfxCertFilename, string pfxPassword) : this(serverIpAddress, port)
+        public SimpleTcpClient(
+            IPAddress serverIpAddress,
+            int port,
+            bool ssl,
+            string pfxCertFilename,
+            string pfxPassword) : this(serverIpAddress, port)
         {
             _ssl = ssl;
             _pfxCertFilename = pfxCertFilename;
             _pfxPassword = pfxPassword;
         }
-        
+
         /// <summary>
-        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client with SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpAddress">The server IP address.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        /// <param name="certificate">Certificate.</param>
+        public SimpleTcpClient(
+            IPAddress serverIpAddress,
+            int port,
+            X509Certificate2 certificate) : this(serverIpAddress, port)
+        {
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+            _ssl = true;
+            _sslCert = certificate;
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client with SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpAddress">The server IP address.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        /// <param name="certificate">Byte array containing the certificate.</param>
+        public SimpleTcpClient(
+            IPAddress serverIpAddress,
+            int port,
+            byte[] certificate) : this(serverIpAddress, port)
+        {
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+            _ssl = true;
+            _sslCert = new X509Certificate2(certificate);
+            _sslCertCollection = new X509Certificate2Collection { _sslCert };
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client without SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="serverIpEndPoint">The server IP endpoint.</param>
         public SimpleTcpClient(IPEndPoint serverIpEndPoint)
@@ -276,7 +366,8 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
-        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// Instantiates the TCP client.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
         /// </summary>
         /// <param name="serverIpEndPoint">The server IP endpoint.</param>
         /// <param name="ssl">Enable or disable SSL.</param>
@@ -288,7 +379,33 @@ namespace SuperSimpleTcp
             _pfxCertFilename = pfxCertFilename;
             _pfxPassword = pfxPassword;
         }
-         
+
+        /// <summary>
+        /// Instantiates the TCP client with SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpEndPoint">The server IP endpoint.</param>
+        /// <param name="certificate">Certificate.</param>
+        public SimpleTcpClient(IPEndPoint serverIpEndPoint, X509Certificate2 certificate) : this(serverIpEndPoint)
+        {
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+            _ssl = true;
+            _sslCert = certificate;
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client with SSL.  
+        /// Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpEndPoint">The server IP endpoint.</param>
+        /// <param name="certificate">Byte array containing the certificate.</param>
+        public SimpleTcpClient(IPEndPoint serverIpEndPoint, byte[] certificate) : this(serverIpEndPoint)
+        {
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+            _ssl = true;
+            _sslCert = new X509Certificate2(certificate);
+        }
+
         #endregion
 
         #region Public-Methods
@@ -322,18 +439,25 @@ namespace SuperSimpleTcp
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
             _token.Register(() =>
-             {
-                 if (!_ssl)
-                 {
-                     if (_sslStream == null) return;
-                     _sslStream.Close();
-                 }
-                 else
-                 {
-                     if (_networkStream == null) return;
-                     _networkStream.Close();
-                 }
-             });
+            {
+                if (!_ssl)
+                {
+                    if (_sslStream == null) return;
+                    _sslStream.Close();
+                }
+                else
+                {
+                    if (_networkStream == null) return;
+                    _networkStream.Close();
+                }
+            });
+
+            if (!String.IsNullOrEmpty(_pfxCertFilename))
+            {
+                if (String.IsNullOrEmpty(_pfxPassword)) _sslCert = new X509Certificate2(_pfxCertFilename);
+                _sslCert = new X509Certificate2(_pfxCertFilename, _pfxPassword);
+                _sslCertCollection = new X509Certificate2Collection { _sslCert };
+            }
 
             IAsyncResult ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
             WaitHandle wh = ar.AsyncWaitHandle;
@@ -524,7 +648,7 @@ namespace SuperSimpleTcp
                 Logger?.Invoke($"{_header}already disconnected");
                 return;
             }
-            
+
             Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
 
             _tokenSource.Cancel();
@@ -625,7 +749,7 @@ namespace SuperSimpleTcp
         /// <param name="stream">Stream containing the data to send.</param>
         /// <param name="token">Cancellation token for canceling the request.</param>
         public async Task SendAsync(long contentLength, Stream stream, CancellationToken token = default)
-        { 
+        {
             if (contentLength < 1) return;
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new InvalidOperationException("Cannot read from supplied stream.");
@@ -661,19 +785,19 @@ namespace SuperSimpleTcp
                 if (_sslStream != null)
                 {
                     _sslStream.Close();
-                    _sslStream.Dispose(); 
+                    _sslStream.Dispose();
                 }
 
                 if (_networkStream != null)
                 {
                     _networkStream.Close();
-                    _networkStream.Dispose(); 
+                    _networkStream.Dispose();
                 }
 
                 if (_client != null)
                 {
                     _client.Close();
-                    _client.Dispose(); 
+                    _client.Dispose();
                 }
 
                 Logger?.Invoke($"{_header}dispose complete");
@@ -709,7 +833,7 @@ namespace SuperSimpleTcp
         }
 
         private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
-        { 
+        {
             return _settings.AcceptInvalidCertificates;
         }
 
@@ -781,7 +905,7 @@ namespace SuperSimpleTcp
                 }
             }
 
-            Logger?.Invoke($"{_header}disconnection detected");            
+            Logger?.Invoke($"{_header}disconnection detected");
 
             _isConnected = false;
 
@@ -792,7 +916,7 @@ namespace SuperSimpleTcp
         }
 
         private async Task<byte[]> DataReadAsync(CancellationToken token)
-        {  
+        {
             byte[] buffer = new byte[_settings.StreamBufferSize];
             int read = 0;
 
@@ -850,7 +974,7 @@ namespace SuperSimpleTcp
         }
 
         private void SendInternal(long contentLength, Stream stream)
-        { 
+        {
             long bytesRemaining = contentLength;
             int bytesRead = 0;
             byte[] buffer = new byte[_settings.StreamBufferSize];
