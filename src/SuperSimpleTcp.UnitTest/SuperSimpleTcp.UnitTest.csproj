@@ -18,4 +18,16 @@
     <ProjectReference Include="..\SuperSimpleTcp\SuperSimpleTcp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="simpletcp.crt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="simpletcp.key">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="simpletcp.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
