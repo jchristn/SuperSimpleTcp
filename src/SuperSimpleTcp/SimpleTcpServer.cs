@@ -798,11 +798,18 @@ namespace SuperSimpleTcp
         {
             try
             {
-                await client.SslStream.AuthenticateAsServerAsync(
+                var authTask = client.SslStream.AuthenticateAsServerAsync(
                     _sslCertificate,
                     _settings.MutuallyAuthenticate,
                     SslProtocols.Tls12,
-                    _settings.CheckCertificateRevocation).ConfigureAwait(false);
+                    _settings.CheckCertificateRevocation);
+
+                if (!authTask.Wait(3000))
+                {
+                    Logger?.Invoke($"{_header}client {client.IpPort} not sending SSL/TLS handshake, disconnecting");
+                    client.Dispose();
+                    return false;
+                }
 
                 if (!client.SslStream.IsEncrypted)
                 {
