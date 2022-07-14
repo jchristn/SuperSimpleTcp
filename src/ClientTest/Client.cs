@@ -1,51 +1,51 @@
 ﻿using SuperSimpleTcp;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
-namespace ServerTest
+namespace ClientTest
 {
     class Program
     {
-        static string _ListenerIp;
-        static int _ListenerPort;
+        static string _ServerIp;
+        static int _ServerPort;
         static bool _Ssl;
         static string _PfxFilename = null;
         static string _PfxPassword = null;
-        static string _LastClientIpPort = null;
-        static int _IdleClientTimeoutMs = 0;
 
-        static SimpleTcpServer _Server;
+        static SimpleTcpClient _Client;
         static bool _RunForever = true;
 
         static void Main(string[] args)
-        { 
-            _ListenerIp =    InputString("Listener IP   :", "127.0.0.1", false);
-            _ListenerPort = InputInteger("Listener Port :", 9000, true, false); 
-            _Ssl =          InputBoolean("Use SSL       :", false);
+        {
+            _ServerIp =    InputString("Server IP   :", "127.0.0.1", false);
+            _ServerPort = InputInteger("Server Port :", 9000, true, false);
+            _Ssl =        InputBoolean("Use SSL     :", false);
+
             if (_Ssl)
             {
                 _PfxFilename = InputString("PFX Certificate File:", "simpletcp.pfx", false);
                 _PfxPassword = InputString("PFX File Password:", "simpletcp", false);
-                _Server = new SimpleTcpServer(_ListenerIp, _ListenerPort, _Ssl, _PfxFilename, _PfxPassword);
+                _Client = new SimpleTcpClient(_ServerIp, _ServerPort, _Ssl, _PfxFilename, _PfxPassword);
             }
             else
             {
-                _Server = new SimpleTcpServer(_ListenerIp, _ListenerPort);
+                _Client = new SimpleTcpClient(_ServerIp, _ServerPort);
             }
 
-            _Server.Events.ClientConnected += ClientConnected;
-            _Server.Events.ClientDisconnected += ClientDisconnected;
-            _Server.Events.DataReceived += DataReceived;
-            _Server.Keepalive.EnableTcpKeepAlives = true;
-            _Server.Settings.IdleClientTimeoutMs = _IdleClientTimeoutMs; 
-            _Server.Settings.MutuallyAuthenticate = false;
-            _Server.Settings.AcceptInvalidCertificates = true;
-            _Server.Logger = Logger;
-            _Server.Start();
+            _Client.Events.Connected += Connected;
+            _Client.Events.Disconnected += Disconnected;
+            _Client.Events.DataReceived += DataReceived;
+            _Client.Events.DataSent += DataSent;
+            _Client.Keepalive.EnableTcpKeepAlives = true; 
+            _Client.Settings.MutuallyAuthenticate = false;
+            _Client.Settings.AcceptInvalidCertificates = true;
+            _Client.Settings.ConnectTimeoutMs = 5000;
+            // _Client.Settings.IdleServerTimeoutMs = 10000;
+            _Client.Logger = Logger;
 
-            Console.WriteLine("Server started");
+            // _Client.Connect();
+            _Client.ConnectWithRetries(5000);
 
             while (_RunForever)
             {
@@ -64,51 +64,57 @@ namespace ServerTest
                     case "cls":
                         Console.Clear();
                         break;
-                    case "list":
-                        ListClients();
-                        break;
                     case "send":
                         Send();
                         break;
                     case "sendasync":
                         SendAsync();
                         break;
-                    case "remove":
-                        RemoveClient();
-                        break; 
+                    case "connected":
+                        IsConnected();
+                        break;
                     case "dispose":
-                        _Server.Dispose();
+                        _Client.Dispose();
                         break;
                     case "stats":
-                        Console.WriteLine(_Server.Statistics.ToString());
+                        Console.WriteLine(_Client.Statistics.ToString());
+                        break;
+                    case "connect":
+                        _Client.Connect();
+                        break;
+                    case "disconnect":
+                        _Client.Disconnect();
                         break;
                     case "stats reset":
-                        _Server.Statistics.Reset();
-                        break;
-                    case "start":
-                        _Server.Start();
-                        break;
-                    case "stop":
-                        _Server.Stop();
+                        _Client.Statistics.Reset();
                         break;
                 }
             }
         }
 
-        static void ClientConnected(object sender, ConnectionEventArgs e)
+        static void IsConnected()
         {
-            _LastClientIpPort = e.IpPort;
-            Console.WriteLine("[" + e.IpPort + "] client connected");
+            Console.WriteLine("Connected: " + _Client.IsConnected);
         }
 
-        static void ClientDisconnected(object sender, ConnectionEventArgs e)
+        static void Connected(object sender, ConnectionEventArgs e)
         {
-            Console.WriteLine("[" + e.IpPort + "] client disconnected: " + e.Reason.ToString());
+            Console.WriteLine("*** Server " + e.IpPort + " connected");
+        }
+
+        static void Disconnected(object sender, ConnectionEventArgs e)
+        {
+            Console.WriteLine("*** Server " + e.IpPort + " disconnected"); 
         }
 
         static void DataReceived(object sender, DataReceivedEventArgs e)
         {
-            Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data));
+            Console.WriteLine("[" + e.IpPort + "] " + Encoding.UTF8.GetString(e.Data));
+        }
+
+        private static void DataSent(object sender, DataSentEventArgs e)
+        {
+            Console.WriteLine("[" + e.IpPort + "] sent " + e.BytesSent + " bytes");
         }
 
         static void Menu()
@@ -117,64 +123,27 @@ namespace ServerTest
             Console.WriteLine(" ?             Help, this menu");
             Console.WriteLine(" q             Quit");
             Console.WriteLine(" cls           Clear the screen");
-            Console.WriteLine(" start         Start listening for connections (listening: " + (_Server != null ? _Server.IsListening.ToString() : "false") + ")");
-            Console.WriteLine(" stop          Stop listening for connections  (listening: " + (_Server != null ? _Server.IsListening.ToString() : "false") + ")");
-            Console.WriteLine(" list          List connected clients");
-            Console.WriteLine(" send          Send a message to a client");
-            Console.WriteLine(" sendasync     Send a message to a client asynchronously");
-            Console.WriteLine(" remove        Disconnect client");
-            Console.WriteLine(" dispose       Dispose of the server");
-            Console.WriteLine(" stats         Display server statistics");
-            Console.WriteLine(" stats reset   Reset server statistics");
+            Console.WriteLine(" send          Send a message to the server");
+            Console.WriteLine(" sendasync     Send a message to the server asynchronously");
+            Console.WriteLine(" connected     Display if the client is connected to the server");
+            Console.WriteLine(" dispose       Dispose of the client");
+            Console.WriteLine(" connect       Connect to the server (connected: " + _Client.IsConnected + ")");
+            Console.WriteLine(" disconnect    Disconnect from the server");
+            Console.WriteLine(" stats         Display client statistics");
+            Console.WriteLine(" stats reset   Reset client statistics");
             Console.WriteLine("");
-        }
-
-        static void ListClients()
-        {
-            List<string> clients = _Server.GetClients().ToList();
-            if (clients != null && clients.Count > 0)
-            {
-                foreach (string curr in clients) Console.WriteLine(curr);
-            }
-            else
-            {
-                Console.WriteLine("None");
-            }
         }
 
         static void Send()
         {
-            string ipPort = InputString("Client IP:port:", _LastClientIpPort, true);
-            if (!String.IsNullOrEmpty(ipPort))
-            {
-                string data = InputString("Data:", "Hello!", true);
-                if (!String.IsNullOrEmpty(data))
-                {
-                    _Server.Send(ipPort, Encoding.UTF8.GetBytes(data));
-                }
-            }
+            string data = InputString("Data:", "Hello!", true);
+            if (!String.IsNullOrEmpty(data)) _Client.Send(data);
         }
 
         static void SendAsync()
         {
-            string ipPort = InputString("Client IP:port:", _LastClientIpPort, true);
-            if (!String.IsNullOrEmpty(ipPort))
-            {
-                string data = InputString("Data:", "Hello!", true);
-                if (!String.IsNullOrEmpty(data))
-                {
-                    _Server.SendAsync(ipPort, Encoding.UTF8.GetBytes(data)).Wait();
-                }
-            }
-        }
-
-        static void RemoveClient()
-        {
-            string ipPort = InputString("Client IP:port:", _LastClientIpPort, true);
-            if (!String.IsNullOrEmpty(ipPort))
-            {
-                _Server.DisconnectClient(ipPort);
-            }
+            string data = InputString("Data:", "Hello!", true);
+            if (!String.IsNullOrEmpty(data)) _Client.SendAsync(data).Wait();
         }
 
         static void Logger(string msg)

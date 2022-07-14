@@ -3,14 +3,12 @@ name: Build & Test
 on:
   push:
     paths:
-    - 'SimpleTcp/**'
-    - 'SimpleTcp.UnitTest/**'
+    - 'src/**'
     - '.github/workflows/**'
     branches: [ master ]
   pull_request:
     paths:
-    - 'SimpleTcp/**'
-    - 'SimpleTcp.UnitTest/**'
+    - 'src/**'
     branches: [ master ]
 
 jobs:
@@ -25,8 +23,11 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Restore dependencies
+      working-directory: ./src
       run: dotnet restore
     - name: Build
+      working-directory: ./src
       run: dotnet build --configuration Release --no-restore /p:NoWarn=1591
     - name: Test
+      working-directory: ./src
       run: dotnet test --configuration Release --no-restore --no-build --verbosity normal

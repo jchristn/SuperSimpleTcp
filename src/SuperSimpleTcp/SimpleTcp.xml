@@ -31,7 +31,22 @@
         </member>
         <member name="P:SuperSimpleTcp.DataReceivedEventArgs.Data">
             <summary>
-            The data received from the client.
+            The data received from the endpoint.
+            </summary>
+        </member>
+        <member name="T:SuperSimpleTcp.DataSentEventArgs">
+            <summary>
+            Arguments for data sent to a connected endpoint.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.DataSentEventArgs.IpPort">
+            <summary>
+            The IP address and port number of the connected endpoint.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.DataSentEventArgs.BytesSent">
+            <summary>
+            The number of bytes sent.
             </summary>
         </member>
         <member name="T:SuperSimpleTcp.DisconnectReason">
@@ -108,13 +123,15 @@
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String)">
             <summary>
-            Instantiates the TCP client without SSL. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+            Instantiates the TCP client without SSL. 
+            Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
             </summary>
             <param name="ipPort">The IP:port of the server.</param> 
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Boolean,System.String,System.String)">
             <summary>
-            Instantiates the TCP client. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+            Instantiates the TCP client. 
+            Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
             </summary>
             <param name="ipPort">The IP:port of the server.</param> 
             <param name="ssl">Enable or disable SSL.</param>
@@ -123,20 +140,110 @@
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32)">
             <summary>
-            Instantiates the TCP client without SSL. Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
+            Instantiates the TCP client without SSL. 
+            Set the Connected, Disconnected, and DataReceived callbacks. Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpOrHostname">The server IP address or hostname.</param>
             <param name="port">The TCP port on which to connect.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32,System.Boolean,System.String,System.String)">
             <summary>
-            Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            Instantiates the TCP client.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
             </summary>
             <param name="serverIpOrHostname">The server IP address or hostname.</param>
             <param name="port">The TCP port on which to connect.</param>
             <param name="ssl">Enable or disable SSL.</param>
             <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
             <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32,System.Security.Cryptography.X509Certificates.X509Certificate2)">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpOrHostname">The server IP address or hostname.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.String,System.Int32,System.Byte[])">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpOrHostname">The server IP address or hostname.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32)">
+            <summary>
+            Instantiates the TCP client without SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32,System.Boolean,System.String,System.String)">
+            <summary>
+            Instantiates the TCP client.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="ssl">Enable or disable SSL.</param>
+            <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+            <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32,System.Security.Cryptography.X509Certificates.X509Certificate2)">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPAddress,System.Int32,System.Byte[])">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpAddress">The server IP address.</param>
+            <param name="port">The TCP port on which to connect.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint)">
+            <summary>
+            Instantiates the TCP client without SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint,System.Boolean,System.String,System.String)">
+            <summary>
+            Instantiates the TCP client.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+            <param name="ssl">Enable or disable SSL.</param>
+            <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+            <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint,System.Security.Cryptography.X509Certificates.X509Certificate2)">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+            <param name="certificate">Certificate.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.#ctor(System.Net.IPEndPoint,System.Byte[])">
+            <summary>
+            Instantiates the TCP client with SSL.  
+            Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+            </summary>
+            <param name="serverIpEndPoint">The server IP endpoint.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.Dispose">
             <summary>
@@ -226,6 +333,11 @@
             Event to call when byte data has become available from the server.
             </summary>
         </member>
+        <member name="E:SuperSimpleTcp.SimpleTcpClientEvents.DataSent">
+            <summary>
+            Event to call when byte data has been sent to the server.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClientEvents.#ctor">
             <summary>
             Instantiate the object.
@@ -262,6 +374,11 @@
         <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.IdleServerEvaluationIntervalMs">
             <summary>
             Number of milliseconds to wait between each iteration of evaluating the server connection to see if the configured timeout interval has been exceeded.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.ConnectionLostEvaluationIntervalMs">
+            <summary>
+            Number of milliseconds to wait between each iteration of evaluating the server connection to see if the connection is lost.
             </summary>
         </member>
         <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.AcceptInvalidCertificates">
@@ -350,6 +467,11 @@
             SimpleTcp keepalive settings.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServer.Connections">
+            <summary>
+            Retrieve the number of current connected clients.
+            </summary>
+        </member>
         <member name="F:SuperSimpleTcp.SimpleTcpServer.Logger">
             <summary>
             Method to invoke to send a log message.
@@ -386,6 +508,14 @@
             <param name="ssl">Enable or disable SSL.</param>
             <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
             <param name="pfxPassword">The password to the PFX certificate file.</param>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpServer.#ctor(System.String,System.Int32,System.Byte[])">
+            <summary>
+            Instantiates the TCP server with SSL.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+            </summary>
+            <param name="listenerIp">The listener IP address or hostname.</param>
+            <param name="port">The TCP port on which to listen.</param>
+            <param name="certificate">Byte array containing the certificate.</param>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpServer.Dispose">
             <summary>
@@ -500,6 +630,11 @@
             Event to call when byte data has become available from the client.
             </summary>
         </member>
+        <member name="E:SuperSimpleTcp.SimpleTcpServerEvents.DataSent">
+            <summary>
+            Event to call when byte data has been sent to a client.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpServerEvents.#ctor">
             <summary>
             Instantiate the object.
@@ -521,6 +656,12 @@
             By default, this value is set to 0, which will never disconnect a client due to inactivity.
             The timeout is reset any time a message is received from a client.
             For instance, if you set this value to 30000, the client will be disconnected if the server has not received a message from the client within 30 seconds.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.MaxConnections">
+            <summary>
+            Maximum number of connections the server will accept.
+            Default is 4096.  Value must be greater than zero.
             </summary>
         </member>
         <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.IdleClientEvaluationIntervalMs">

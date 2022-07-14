@@ -46,6 +46,23 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
+        /// Maximum number of connections the server will accept.
+        /// Default is 4096.  Value must be greater than zero.
+        /// </summary>
+        public int MaxConnections
+        {
+            get
+            {
+                return _maxConnections;
+            }
+            set
+            {
+                if (value < 1) throw new ArgumentException("Max connections must be greater than zero.");
+                _maxConnections = value;
+            }
+        }
+
+        /// <summary>
         /// Number of milliseconds to wait between each iteration of evaluating connected clients to see if they have exceeded the configured timeout interval.
         /// </summary>
         public int IdleClientEvaluationIntervalMs
@@ -76,6 +93,7 @@ namespace SuperSimpleTcp
         #region Private-Members
 
         private int _streamBufferSize = 65536;
+        private int _maxConnections = 4096;
         private int _idleClientTimeoutMs = 0;
         private int _idleClientEvaluationIntervalMs = 5000;
 
@@ -90,6 +108,14 @@ namespace SuperSimpleTcp
         {
 
         }
+
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
 
         #endregion
     }

@@ -93,6 +93,17 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
+        /// Retrieve the number of current connected clients.
+        /// </summary>
+        public int Connections
+        {
+            get
+            {
+                return _clients.Count;
+            }
+        }
+
+        /// <summary>
         /// Method to invoke to send a log message.
         /// </summary>
         public Action<string> Logger = null;
@@ -101,26 +112,24 @@ namespace SuperSimpleTcp
 
         #region Private-Members
 
-        private string _header = "[SimpleTcp.Server] ";
+        private readonly string _header = "[SimpleTcp.Server] ";
         private SimpleTcpServerSettings _settings = new SimpleTcpServerSettings();
         private SimpleTcpServerEvents _events = new SimpleTcpServerEvents();
         private SimpleTcpKeepaliveSettings _keepalive = new SimpleTcpKeepaliveSettings();
         private SimpleTcpStatistics _statistics = new SimpleTcpStatistics();
 
-        private string _listenerIp = null;
-        private IPAddress _ipAddress = null;
-        private int _port = 0;
-        private bool _ssl = false;
-        private string _pfxCertFilename = null;
-        private string _pfxPassword = null;
+        private readonly string _listenerIp = null;
+        private readonly IPAddress _ipAddress = null;
+        private readonly int _port = 0;
+        private readonly bool _ssl = false;
 
-        private X509Certificate2 _sslCertificate = null;
-        private X509Certificate2Collection _sslCertificateCollection = null;
+        private readonly X509Certificate2 _sslCertificate = null;
+        private readonly X509Certificate2Collection _sslCertificateCollection = null;
 
-        private ConcurrentDictionary<string, ClientMetadata> _clients = new ConcurrentDictionary<string, ClientMetadata>();
-        private ConcurrentDictionary<string, DateTime> _clientsLastSeen = new ConcurrentDictionary<string, DateTime>();
-        private ConcurrentDictionary<string, DateTime> _clientsKicked = new ConcurrentDictionary<string, DateTime>();
-        private ConcurrentDictionary<string, DateTime> _clientsTimedout = new ConcurrentDictionary<string, DateTime>();
+        private readonly ConcurrentDictionary<string, ClientMetadata> _clients = new ConcurrentDictionary<string, ClientMetadata>();
+        private readonly ConcurrentDictionary<string, DateTime> _clientsLastSeen = new ConcurrentDictionary<string, DateTime>();
+        private readonly ConcurrentDictionary<string, DateTime> _clientsKicked = new ConcurrentDictionary<string, DateTime>();
+        private readonly ConcurrentDictionary<string, DateTime> _clientsTimedout = new ConcurrentDictionary<string, DateTime>();
 
         private TcpListener _listener = null;
         private bool _isListening = false;
@@ -237,8 +246,6 @@ namespace SuperSimpleTcp
             }
 
             _ssl = ssl;
-            _pfxCertFilename = pfxCertFilename;
-            _pfxPassword = pfxPassword;
             _isListening = false;
             _token = _tokenSource.Token;
 
@@ -294,8 +301,6 @@ namespace SuperSimpleTcp
             }
              
             _ssl = ssl;
-            _pfxCertFilename = pfxCertFilename;
-            _pfxPassword = pfxPassword;
             _isListening = false;
             _token = _tokenSource.Token;
 
@@ -315,6 +320,49 @@ namespace SuperSimpleTcp
                     _sslCertificate
                 };
             } 
+        }
+
+        /// <summary>
+        /// Instantiates the TCP server with SSL.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+        /// </summary>
+        /// <param name="listenerIp">The listener IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        /// <param name="certificate">Byte array containing the certificate.</param>
+        public SimpleTcpServer(string listenerIp, int port, byte[] certificate)
+        {
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+
+            _listenerIp = listenerIp;
+            _port = port;
+
+            if (string.IsNullOrEmpty(_listenerIp))
+            {
+                _ipAddress = IPAddress.Loopback;
+                _listenerIp = _ipAddress.ToString();
+            }
+            else if (_listenerIp == "*" || _listenerIp == "+")
+            {
+                _ipAddress = IPAddress.Any;
+            }
+            else
+            {
+                if (!IPAddress.TryParse(_listenerIp, out _ipAddress))
+                {
+                    _ipAddress = Dns.GetHostEntry(listenerIp).AddressList[0];
+                    _listenerIp = _ipAddress.ToString();
+                }
+            }
+
+            _ssl = true;
+            _sslCertificate = new X509Certificate2(certificate);
+            _sslCertificateCollection = new X509Certificate2Collection
+            {
+                _sslCertificate
+            };
+
+            _isListening = false;
+            _token = _tokenSource.Token;
         }
 
         #endregion
@@ -657,6 +705,21 @@ namespace SuperSimpleTcp
 
                 try
                 {
+                    #region Check-for-Maximum-Connections
+
+                    if (!_isListening && (_clients.Count >= _settings.MaxConnections))
+                    {
+                        Task.Delay(100).Wait();
+                        continue;
+                    }
+                    else if (!_isListening)
+                    {
+                        _listener.Start();
+                        _isListening = true;
+                    }
+
+                    #endregion
+
                     TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
                     string clientIp = tcpClient.Client.RemoteEndPoint.ToString();
 
@@ -690,6 +753,17 @@ namespace SuperSimpleTcp
 
                     CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(client.Token, _token);
                     Task unawaited = Task.Run(() => DataReceiver(client), linkedCts.Token);
+
+                    #region Check-for-Maximum-Connections
+
+                    if (_clients.Count >= _settings.MaxConnections)
+                    {
+                        Logger?.Invoke(_header + "maximum connections " + _settings.MaxConnections + " met (currently " + _clients.Count + " connections), pausing");
+                        _isListening = false;
+                        _listener.Stop();
+                    }
+
+                    #endregion
                 }
                 catch (Exception ex)
                 {
@@ -926,8 +1000,7 @@ namespace SuperSimpleTcp
         {
             if (_clientsLastSeen.ContainsKey(ipPort))
             {
-                DateTime ts;
-                _clientsLastSeen.TryRemove(ipPort, out ts);
+                _clientsLastSeen.TryRemove(ipPort, out _);
             }
              
             _clientsLastSeen.TryAdd(ipPort, DateTime.Now);
@@ -961,6 +1034,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) client.NetworkStream.Flush();
                 else client.SslStream.Flush();
+                _events.HandleDataSent(this, new DataSentEventArgs(ipPort, contentLength));
             }
             finally
             {
@@ -998,6 +1072,7 @@ namespace SuperSimpleTcp
 
                 if (!_ssl) await client.NetworkStream.FlushAsync(token).ConfigureAwait(false);
                 else await client.SslStream.FlushAsync(token).ConfigureAwait(false);
+                _events.HandleDataSent(this, new DataSentEventArgs(ipPort, contentLength));
             }
             catch (TaskCanceledException)
             {
