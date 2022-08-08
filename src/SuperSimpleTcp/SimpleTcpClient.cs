@@ -658,6 +658,25 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
+        /// Disconnect from the server.
+        /// </summary>
+        public async Task DisconnectAsync()
+        {
+            if (!IsConnected)
+            {
+                Logger?.Invoke($"{_header}already disconnected");
+                return;
+            }
+
+            Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
+
+            _tokenSource.Cancel();
+            await _dataReceiver;
+            _client.Close();
+            _isConnected = false;
+        }
+
+        /// <summary>
         /// Send data to the server.
         /// </summary>
         /// <param name="data">String containing data to send.</param>
@@ -958,7 +977,7 @@ namespace SuperSimpleTcp
 
                     if (!isOk)
                     {
-                        this.Disconnect();
+                        await this.DisconnectAsync();
                     }
 
                     throw new SocketException();
