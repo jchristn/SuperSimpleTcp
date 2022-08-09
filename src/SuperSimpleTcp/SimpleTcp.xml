@@ -266,6 +266,11 @@
             Disconnect from the server.
             </summary>
         </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.DisconnectAsync">
+            <summary>
+            Disconnect from the server.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.Send(System.String)">
             <summary>
             Send data to the server.
