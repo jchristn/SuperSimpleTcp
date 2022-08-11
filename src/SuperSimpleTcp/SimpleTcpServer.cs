@@ -722,6 +722,19 @@ namespace SuperSimpleTcp
 
                     TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
                     string clientIp = tcpClient.Client.RemoteEndPoint.ToString();
+                    if (_settings.PermittedIPs.Count > 0 && !_settings.PermittedIPs.Contains(clientIp))
+                    {
+                        Logger?.Invoke(_header + "rejecting connection from " + clientIp + " (not permitted)");
+                        tcpClient.Close();
+                        continue;
+                    }
+
+                    if (_settings.BlockedIPs.Count > 0 && _settings.BlockedIPs.Contains(clientIp))
+                    {
+                        Logger?.Invoke(_header + "rejecting connection from " + clientIp + " (blocked)");
+                        tcpClient.Close();
+                        continue;
+                    }
 
                     client = new ClientMetadata(tcpClient);
 
