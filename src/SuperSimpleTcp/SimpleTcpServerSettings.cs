@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace SuperSimpleTcp
 {
@@ -88,6 +89,38 @@ namespace SuperSimpleTcp
         /// </summary>
         public bool MutuallyAuthenticate = true;
 
+        /// <summary>
+        /// For Simple TCP server, the list of permitted IP addresses from which connections can be received.
+        /// </summary>
+        public List<string> PermittedIPs
+        {
+            get
+            {
+                return _permittedIPs;
+            }
+            set
+            {
+                if (value == null) _permittedIPs = new List<string>();
+                else _permittedIPs = value;
+            }
+        }
+
+        /// <summary>
+        /// For Simple TCP server, the list of blocked IP addresses from which connections will be declined.
+        /// </summary>
+        public List<string> BlockedIPs
+        {
+            get
+            {
+                return _blockedIPs;
+            }
+            set
+            {
+                if (value == null) _blockedIPs = new List<string>();
+                else _blockedIPs = value;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -96,6 +129,8 @@ namespace SuperSimpleTcp
         private int _maxConnections = 4096;
         private int _idleClientTimeoutMs = 0;
         private int _idleClientEvaluationIntervalMs = 5000;
+        private List<string> _permittedIPs = new List<string>();
+        private List<string> _blockedIPs = new List<string>();
 
         #endregion
 
