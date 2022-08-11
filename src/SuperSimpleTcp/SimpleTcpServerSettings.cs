@@ -90,7 +90,7 @@ namespace SuperSimpleTcp
         public bool MutuallyAuthenticate = true;
 
         /// <summary>
-        /// For Simple TCP server, the list of permitted IP addresses from which connections can be received.
+        /// The list of permitted IP addresses from which connections can be received.
         /// </summary>
         public List<string> PermittedIPs
         {
@@ -106,7 +106,7 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
-        /// For Simple TCP server, the list of blocked IP addresses from which connections will be declined.
+        /// The list of blocked IP addresses from which connections will be declined.
         /// </summary>
         public List<string> BlockedIPs
         {

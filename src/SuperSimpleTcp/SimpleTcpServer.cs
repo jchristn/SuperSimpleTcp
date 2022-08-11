@@ -721,17 +721,22 @@ namespace SuperSimpleTcp
                     #endregion
 
                     TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
-                    string clientIp = tcpClient.Client.RemoteEndPoint.ToString();
+                    string clientIpPort = tcpClient.Client.RemoteEndPoint.ToString();
+
+                    string clientIp = null;
+                    int clientPort = 0;
+                    Common.ParseIpPort(clientIpPort, out clientIp, out clientPort);
+
                     if (_settings.PermittedIPs.Count > 0 && !_settings.PermittedIPs.Contains(clientIp))
                     {
-                        Logger?.Invoke(_header + "rejecting connection from " + clientIp + " (not permitted)");
+                        Logger?.Invoke($"{_header}rejecting connection from {clientIp} (not permitted)");
                         tcpClient.Close();
                         continue;
                     }
 
                     if (_settings.BlockedIPs.Count > 0 && _settings.BlockedIPs.Contains(clientIp))
                     {
-                        Logger?.Invoke(_header + "rejecting connection from " + clientIp + " (blocked)");
+                        Logger?.Invoke($"{_header}rejecting connection from {clientIp} (blocked)");
                         tcpClient.Close();
                         continue;
                     }
@@ -757,10 +762,10 @@ namespace SuperSimpleTcp
                         }
                     }
 
-                    _clients.TryAdd(clientIp, client);
-                    _clientsLastSeen.TryAdd(clientIp, DateTime.Now);
-                    Logger?.Invoke($"{_header}starting data receiver for: {clientIp}");
-                    _events.HandleClientConnected(this, new ConnectionEventArgs(clientIp));
+                    _clients.TryAdd(clientIpPort, client);
+                    _clientsLastSeen.TryAdd(clientIpPort, DateTime.Now);
+                    Logger?.Invoke($"{_header}starting data receiver for: {clientIpPort}");
+                    _events.HandleClientConnected(this, new ConnectionEventArgs(clientIpPort));
 
                     if (_keepalive.EnableTcpKeepAlives) EnableKeepalives(tcpClient);
 
@@ -771,7 +776,7 @@ namespace SuperSimpleTcp
 
                     if (_clients.Count >= _settings.MaxConnections)
                     {
-                        Logger?.Invoke(_header + "maximum connections " + _settings.MaxConnections + " met (currently " + _clients.Count + " connections), pausing");
+                        Logger?.Invoke($"{_header}maximum connections {_settings.MaxConnections} met (currently {_clients.Count} connections), pausing");
                         _isListening = false;
                         _listener.Stop();
                     }
