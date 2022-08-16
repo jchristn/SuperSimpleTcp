@@ -1110,7 +1110,7 @@ namespace SuperSimpleTcp
         {
             try
             {
-#if NETCOREAPP || NET5_0
+#if NETCOREAPP || NET5_0_OR_GREATER
 
                 _listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 _listener.Server.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _keepalive.TcpKeepAliveTime);
@@ -1147,7 +1147,7 @@ namespace SuperSimpleTcp
         {
             try
             {
-#if NETCOREAPP || NET5_0
+#if NETCOREAPP || NET5_0_OR_GREATER
 
                 client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _keepalive.TcpKeepAliveTime);
