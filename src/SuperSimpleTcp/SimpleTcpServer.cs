@@ -1108,9 +1108,13 @@ namespace SuperSimpleTcp
 
         private void EnableKeepalives()
         {
+            // issues with definitions: https://github.com/dotnet/sdk/issues/14540
+
             try
             {
-#if NETCOREAPP || NET5_0_OR_GREATER
+#if NETCOREAPP3_1_OR_GREATER || NET6_0_OR_GREATER
+
+                // NETCOREAPP3_1_OR_GREATER catches .NET 5.0
 
                 _listener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 _listener.Server.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _keepalive.TcpKeepAliveTime);
