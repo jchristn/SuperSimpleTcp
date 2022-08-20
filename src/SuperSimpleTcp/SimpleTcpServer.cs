@@ -859,7 +859,7 @@ namespace SuperSimpleTcp
                         break;
                     } 
 
-                    byte[] data = await DataReadAsync(client, linkedCts.Token).ConfigureAwait(false);
+                    var data = await DataReadAsync(client, linkedCts.Token).ConfigureAwait(false);
                     if (data == null)
                     {
                         await Task.Delay(10, linkedCts.Token).ConfigureAwait(false);
@@ -867,7 +867,7 @@ namespace SuperSimpleTcp
                     }
 
                     _ = Task.Run(() => _events.HandleDataReceived(this, new DataReceivedEventArgs(ipPort, data)), linkedCts.Token);
-                    _statistics.ReceivedBytes += data.Length;
+                    _statistics.ReceivedBytes += data.Count;
                     UpdateClientLastSeen(client.IpPort);
                 }
                 catch (IOException)
@@ -920,7 +920,7 @@ namespace SuperSimpleTcp
             if (client != null) client.Dispose();
         }
            
-        private async Task<byte[]> DataReadAsync(ClientMetadata client, CancellationToken token)
+        private async Task<ArraySegment<byte>> DataReadAsync(ClientMetadata client, CancellationToken token)
         { 
             byte[] buffer = new byte[_settings.StreamBufferSize];
             int read = 0;
@@ -936,7 +936,7 @@ namespace SuperSimpleTcp
                         if (read > 0)
                         {
                             await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
-                            return ms.ToArray();
+                            return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
                         }
                         else
                         {
@@ -956,7 +956,7 @@ namespace SuperSimpleTcp
                         if (read > 0)
                         {
                             await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
-                            return ms.ToArray();
+                            return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
                         }
                         else
                         {

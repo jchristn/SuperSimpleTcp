@@ -849,21 +849,21 @@ namespace SuperSimpleTcp
                 {
                     await DataReadAsync(token).ContinueWith(async task =>
                         {
-                            if (task.IsCanceled) return null;
-                            byte[] data = task.Result;
+                            if (task.IsCanceled) return default;
+                            var data = task.Result;
 
                             if (data != null)
                             {
                                 _lastActivity = DateTime.Now;
                                 _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
-                                _statistics.ReceivedBytes += data.Length;
+                                _statistics.ReceivedBytes += data.Count;
 
                                 return data;
                             }
                             else
                             {
                                 await Task.Delay(100).ConfigureAwait(false);
-                                return null;
+                                return default;
                             }
 
                         }, token).ContinueWith(task => { }).ConfigureAwait(false);
@@ -915,7 +915,7 @@ namespace SuperSimpleTcp
             Dispose();
         }
 
-        private async Task<byte[]> DataReadAsync(CancellationToken token)
+        private async Task<ArraySegment<byte>> DataReadAsync(CancellationToken token)
         {
             byte[] buffer = new byte[_settings.StreamBufferSize];
             int read = 0;
@@ -936,7 +936,7 @@ namespace SuperSimpleTcp
                     using (MemoryStream ms = new MemoryStream())
                     {
                         ms.Write(buffer, 0, read);
-                        return ms.ToArray();
+                        return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
                     }
                 }
                 else
@@ -969,7 +969,7 @@ namespace SuperSimpleTcp
                 // thrown if ReadTimeout (ms) is exceeded
                 // see https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.networkstream.readtimeout?view=net-6.0
                 // and https://github.com/dotnet/runtime/issues/24093
-                return null;
+                return default;
             }
         }
 
