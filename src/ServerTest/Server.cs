@@ -115,7 +115,7 @@ namespace ServerTest
 
         static void DataReceived(object sender, DataReceivedEventArgs e)
         {
-            Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data));
+            Console.WriteLine("[" + e.IpPort + "]: " + Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count));
         }
 
         private static void DataSent(object sender, DataSentEventArgs e)
