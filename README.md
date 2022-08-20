@@ -13,18 +13,17 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
-## New in v2.6.0
+## New in v3.0.0
 
-- Minor breaking namespace change (now ```SuperSimpleTcp``` instead of ```SimpleTcp```)
-- Internal refactor for coding best practices
-- Thank you @tinohager!
+- Breaking change, allocation-free receive (thank you @joreg)
 
 ## Special Thanks
 
 A special thanks to the community of people that have contributed to or otherwise improved this project!
 
-@tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat @exergist 
-@maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson @EGirardi @redrabbit007 @eatyouroats
+@tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk 
+@lukeacat @exergist @maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson 
+@EGirardi @redrabbit007 @eatyouroats @joreg
 
 ## Help or Feedback
 
@@ -66,7 +65,7 @@ static void ClientDisconnected(object sender, ConnectionEventArgs e)
 
 static void DataReceived(object sender, DataReceivedEventArgs e)
 {
-  Console.WriteLine($"[{e.IpPort}]: {Encoding.UTF8.GetString(e.Data)}");
+  Console.WriteLine($"[{e.IpPort}]: {Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count)}");
 }
 ```
 
@@ -104,7 +103,7 @@ static void Disconnected(object sender, ConnectionEventArgs e)
 
 static void DataReceived(object sender, DataReceivedEventArgs e)
 {
-  Console.WriteLine($"[{e.IpPort}] {Encoding.UTF8.GetString(e.Data)}");
+  Console.WriteLine($"[{e.IpPort}] {Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count)}");
 }
 ```
 
