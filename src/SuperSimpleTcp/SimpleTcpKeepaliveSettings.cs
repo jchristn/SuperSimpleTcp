@@ -73,6 +73,26 @@ namespace SuperSimpleTcp
 
         #endregion
 
+        #region Internal-Members
+
+        internal int TcpKeepAliveIntervalMilliseconds
+        {
+            get
+            {
+                return TcpKeepAliveInterval * 1000;
+            }
+        }
+
+        internal int TcpKeepAliveTimeMilliseconds
+        {
+            get
+            {
+                return TcpKeepAliveTime * 1000;
+            }
+        }
+
+        #endregion
+
         #region Private-Members
 
         private int _tcpKeepAliveInterval = 2;
@@ -90,6 +110,14 @@ namespace SuperSimpleTcp
         {
 
         }
+
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
 
         #endregion
     }
