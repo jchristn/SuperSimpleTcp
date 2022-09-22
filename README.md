@@ -23,7 +23,7 @@ A special thanks to the community of people that have contributed to or otherwis
 
 @tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk 
 @lukeacat @exergist @maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson 
-@EGirardi @redrabbit007 @eatyouroats @joreg @CetinOzdil
+@EGirardi @redrabbit007 @eatyouroats @joreg @CetinOzdil @tautvilis
 
 ## Help or Feedback
 
