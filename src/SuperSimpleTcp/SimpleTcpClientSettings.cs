@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Security;
 
 namespace SuperSimpleTcp
 {
@@ -118,6 +119,16 @@ namespace SuperSimpleTcp
         /// Enable or disable mutual authentication of SSL client and server.
         /// </summary>
         public bool MutuallyAuthenticate = true;
+
+        /// <summary>
+        /// Enable or disable checking the certificate revocation list during the certificate validation process.
+        /// </summary>
+        public bool CheckCertificateRevocation = true;
+
+        /// <summary>
+        /// Gets or sets a RemoteCertificateValidationCallback delegate that's responsible for validating the certificate supplied by the remote party.
+        /// </summary>
+        public RemoteCertificateValidationCallback ServerCertificateValidationCallback = null;
 
         #endregion
 
