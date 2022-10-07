@@ -759,7 +759,10 @@ namespace SuperSimpleTcp
                             client.SslStream = new SslStream(client.NetworkStream, false);
                         }
 
-                        bool success = await StartTls(client).ConfigureAwait(false);
+                        CancellationTokenSource tlsCts = CancellationTokenSource.CreateLinkedTokenSource(_listenerToken, _token);
+                        tlsCts.CancelAfter(_settings.IdleClientEvaluationIntervalMs);
+
+                        bool success = await StartTls(client, tlsCts.Token).ConfigureAwait(false);
                         if (!success)
                         {
                             client.Dispose();
@@ -812,15 +815,37 @@ namespace SuperSimpleTcp
             _isListening = false;
         }
 
-        private async Task<bool> StartTls(ClientMetadata client)
+        private async Task<bool> StartTls(ClientMetadata client, CancellationToken token)
         {
             try
             {
-                await client.SslStream.AuthenticateAsServerAsync(
+#if NET461 || NET48 || NETSTANDARD2_0
+
+                var authTask = client.SslStream.AuthenticateAsServerAsync(
                     _sslCertificate,
                     _settings.MutuallyAuthenticate,
                     SslProtocols.Tls12,
-                    _settings.CheckCertificateRevocation).ConfigureAwait(false);
+                    _settings.CheckCertificateRevocation);
+
+                if (!authTask.Wait(_settings.IdleClientEvaluationIntervalMs))
+                {
+                    Logger?.Invoke($"{_header}client {client.IpPort} not sending SSL/TLS handshake, disconnecting");
+                    client.Dispose();
+                    return false;
+                }
+
+#elif NETSTANDARD2_1 || NETCOREAPP3_1 || NET5_0_OR_GREATER
+
+                var sslServerAuthOptions = new SslServerAuthenticationOptions
+                {
+                    ServerCertificate = _sslCertificate,
+                    ClientCertificateRequired = _settings.MutuallyAuthenticate,
+                    EnabledSslProtocols = SslProtocols.Tls12,
+                    CertificateRevocationCheckMode = _settings.CheckCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck
+                };
+                await client.SslStream.AuthenticateAsServerAsync(sslServerAuthOptions, token);
+
+#endif
 
                 if (!client.SslStream.IsEncrypted)
                 {
@@ -1190,6 +1215,6 @@ namespace SuperSimpleTcp
             }
         }
 
-        #endregion
+#endregion
     }
 }
