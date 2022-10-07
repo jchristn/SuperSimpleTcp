@@ -432,7 +432,7 @@ namespace SuperSimpleTcp
             else
             {
                 Logger?.Invoke($"{_header}initializing client");
-                InitializeClient(_ssl, _pfxCertFilename, _pfxPassword);
+                InitializeClient(_ssl, _pfxCertFilename, _pfxPassword, _sslCert);
                 Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
             }
 
@@ -526,7 +526,7 @@ namespace SuperSimpleTcp
             {
                 Logger?.Invoke($"{_header}initializing client");
 
-                InitializeClient(_ssl, _pfxCertFilename, _pfxPassword);
+                InitializeClient(_ssl, _pfxCertFilename, _pfxPassword, _sslCert);
 
                 Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
             }
@@ -829,7 +829,7 @@ namespace SuperSimpleTcp
             }
         }
 
-        private void InitializeClient(bool ssl, string pfxCertFilename, string pfxPassword)
+        private void InitializeClient(bool ssl, string pfxCertFilename, string pfxPassword, X509Certificate2 sslCert)
         {
             _ssl = ssl;
             _pfxCertFilename = pfxCertFilename;
@@ -841,7 +841,11 @@ namespace SuperSimpleTcp
 
             if (_ssl)
             {
-                if (string.IsNullOrEmpty(pfxPassword))
+                if (sslCert != null)
+                {
+                    _sslCert = sslCert;
+                }
+                else if (string.IsNullOrEmpty(pfxPassword))
                 {
                     _sslCert = new X509Certificate2(pfxCertFilename);
                 }
