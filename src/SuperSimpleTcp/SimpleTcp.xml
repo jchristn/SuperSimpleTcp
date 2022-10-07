@@ -704,6 +704,16 @@
             Gets or sets a RemoteCertificateValidationCallback delegate that's responsible for validating the certificate supplied by the remote party.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.PermittedIPs">
+            <summary>
+            The list of permitted IP addresses from which connections can be received.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.BlockedIPs">
+            <summary>
+            The list of blocked IP addresses from which connections will be declined.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpServerSettings.#ctor">
             <summary>
             Instantiate the object.
