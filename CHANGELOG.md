@@ -2,12 +2,22 @@
 
 ## Current Version
 
+v3.0.0
+
+- Breaking change, allocation-free receive (thank you @joreg)
+
+## Previous Versions
+
+v2.6.0
+
+- Minor breaking namespace change (now ```SuperSimpleTcp``` instead of ```SimpleTcp```)
+- Internal refactor for coding best practices
+- Thank you @tinohager!
+
 v2.5.0
 
 - Minor breaking change for clarity
 - ```ClientConnectedEventArgs``` and ```ClientDisconnectedEventArgs``` are now ```ConnectionEventArgs```
-
-## Previous Versions
 
 v2.4.1
 

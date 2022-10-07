@@ -7,7 +7,7 @@ namespace SuperSimpleTcp
     /// </summary>
     public class DataReceivedEventArgs : EventArgs
     {
-        internal DataReceivedEventArgs(string ipPort, byte[] data)
+        internal DataReceivedEventArgs(string ipPort, ArraySegment<byte> data)
         {
             IpPort = ipPort;
             Data = data;
@@ -21,6 +21,6 @@ namespace SuperSimpleTcp
         /// <summary>
         /// The data received from the endpoint.
         /// </summary>
-        public byte[] Data { get; }
+        public ArraySegment<byte> Data { get; }
     }
 }
