@@ -741,7 +741,10 @@ namespace SuperSimpleTcp
                             client.SslStream = new SslStream(client.NetworkStream, false);
                         }
 
-                        bool success = await StartTls(client).ConfigureAwait(false);
+                        CancellationTokenSource tlsCts = CancellationTokenSource.CreateLinkedTokenSource(_listenerToken, _token);
+                        tlsCts.CancelAfter(3000);
+
+                        bool success = await StartTls(client, tlsCts.Token).ConfigureAwait(false);
                         if (!success)
                         {
                             client.Dispose();
@@ -794,15 +797,19 @@ namespace SuperSimpleTcp
             _isListening = false;
         }
 
-        private async Task<bool> StartTls(ClientMetadata client)
+        private async Task<bool> StartTls(ClientMetadata client, CancellationToken token)
         {
             try
             {
-                await client.SslStream.AuthenticateAsServerAsync(
-                    _sslCertificate,
-                    _settings.MutuallyAuthenticate,
-                    SslProtocols.Tls12,
-                    _settings.CheckCertificateRevocation).ConfigureAwait(false);
+                var sslServerAuthOptions = new SslServerAuthenticationOptions
+                {
+                    ServerCertificate = _sslCertificate,
+                    ClientCertificateRequired = _settings.MutuallyAuthenticate,
+                    EnabledSslProtocols = SslProtocols.Tls12,
+                    CertificateRevocationCheckMode = _settings.CheckCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck
+                };
+
+                await client.SslStream.AuthenticateAsServerAsync(sslServerAuthOptions, token);
 
                 if (!client.SslStream.IsEncrypted)
                 {
