@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Security;
 
 namespace SuperSimpleTcp
 {
@@ -94,6 +95,16 @@ namespace SuperSimpleTcp
         /// The default is enabled.
         /// </summary>
         public bool UseAsyncDataReceivedEvents = true;
+
+        /// <summary>
+        /// Enable or disable checking certificate revocation list during the validation process.
+        /// </summary>
+        public bool CheckCertificateRevocation = true;
+
+        /// <summary>
+        /// Delegate responsible for validating a certificate supplied by a remote party.
+        /// </summary>
+        public RemoteCertificateValidationCallback CertificateValidationCallback = null;
 
         /// <summary>
         /// The list of permitted IP addresses from which connections can be received.

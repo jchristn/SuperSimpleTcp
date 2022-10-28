@@ -477,12 +477,20 @@ namespace SuperSimpleTcp
                 if (_ssl)
                 {
                     if (_settings.AcceptInvalidCertificates)
+                    {
                         _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
+                    }
+                    else if (_settings.CertificateValidationCallback != null)
+                    {
+                        _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
+                    }
                     else
+                    {
                         _sslStream = new SslStream(_networkStream, false);
+                    }
 
                     _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
-                    _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, !_settings.AcceptInvalidCertificates);
+                    _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation);
 
                     if (!_sslStream.IsEncrypted) throw new AuthenticationException("Stream is not encrypted");
                     if (!_sslStream.IsAuthenticated) throw new AuthenticationException("Stream is not authenticated");
@@ -608,12 +616,20 @@ namespace SuperSimpleTcp
                     if (_ssl)
                     {
                         if (_settings.AcceptInvalidCertificates)
+                        {
                             _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
+                        }
+                        else if (_settings.CertificateValidationCallback != null)
+                        {
+                            _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
+                        }
                         else
+                        {
                             _sslStream = new SslStream(_networkStream, false);
+                        }
 
                         _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
-                        _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, !_settings.AcceptInvalidCertificates);
+                        _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation);
 
                         if (!_sslStream.IsEncrypted) throw new AuthenticationException("Stream is not encrypted");
                         if (!_sslStream.IsAuthenticated) throw new AuthenticationException("Stream is not authenticated");
