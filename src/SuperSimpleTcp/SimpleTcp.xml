@@ -396,6 +396,12 @@
             Enable or disable mutual authentication of SSL client and server.
             </summary>
         </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.UseAsyncDataReceivedEvents">
+            <summary>
+            Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
+            The default is enabled.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClientSettings.#ctor">
             <summary>
             Instantiate the object.
@@ -684,7 +690,7 @@
             Enable or disable mutual authentication of SSL client and server.
             </summary>
         </member>
-        <member name="F:SuperSimpleTcp.SimpleTcpServerSettings.UseHandleDataReceivedWorkerTask">
+        <member name="F:SuperSimpleTcp.SimpleTcpServerSettings.UseAsyncDataReceivedEvents">
             <summary>
             Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
             The default is enabled.

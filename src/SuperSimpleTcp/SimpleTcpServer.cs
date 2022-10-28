@@ -884,10 +884,8 @@ namespace SuperSimpleTcp
                         continue;
                     }
 
-                    // Fire the data received event either in a background task, or in this thread
-                    // Depending on the value of the UseHandleDataReceivedWorkerTask setting.
                     Action action = () => _events.HandleDataReceived(this, new DataReceivedEventArgs(ipPort, data));
-                    if (_settings.UseHandleDataReceivedWorkerTask)
+                    if (_settings.UseAsyncDataReceivedEvents)
                     {
                         _ = Task.Run(action, linkedCts.Token);
                     }

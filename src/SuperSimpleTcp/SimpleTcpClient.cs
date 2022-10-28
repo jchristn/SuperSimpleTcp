@@ -878,7 +878,17 @@ namespace SuperSimpleTcp
                             if (data != null)
                             {
                                 _lastActivity = DateTime.Now;
-                                _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
+
+                                Action action = () => _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
+                                if (_settings.UseAsyncDataReceivedEvents)
+                                {
+                                    _ = Task.Run(action, token);
+                                }
+                                else
+                                {
+                                    action.Invoke();
+                                }
+
                                 _statistics.ReceivedBytes += data.Count;
 
                                 return data;

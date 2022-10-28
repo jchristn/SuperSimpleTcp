@@ -15,7 +15,7 @@ namespace SuperSimpleTcp.UnitTest
             TestDataReceiver dataReceiver = new ();
 
             using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 50000);
-            simpleTcpServer.Settings.UseHandleDataReceivedWorkerTask = true;
+            simpleTcpServer.Settings.UseAsyncDataReceivedEvents = true;
             simpleTcpServer.Events.DataReceived += dataReceiver.DataReceived;
             simpleTcpServer.Start();
 
@@ -45,7 +45,7 @@ namespace SuperSimpleTcp.UnitTest
             TestDataReceiver dataReceiver = new();
 
             using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 50000);
-            simpleTcpServer.Settings.UseHandleDataReceivedWorkerTask = false;
+            simpleTcpServer.Settings.UseAsyncDataReceivedEvents = false;
             simpleTcpServer.Events.DataReceived += dataReceiver.DataReceived;
             simpleTcpServer.Start();
 

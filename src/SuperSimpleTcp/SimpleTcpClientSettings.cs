@@ -119,6 +119,12 @@ namespace SuperSimpleTcp
         /// </summary>
         public bool MutuallyAuthenticate = true;
 
+        /// <summary>
+        /// Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
+        /// The default is enabled.
+        /// </summary>
+        public bool UseAsyncDataReceivedEvents = true;
+
         #endregion
 
         #region Private-Members
@@ -141,6 +147,14 @@ namespace SuperSimpleTcp
         {
 
         }
+
+        #endregion
+
+        #region Public-Methods
+
+        #endregion
+
+        #region Private-Methods
 
         #endregion
     }
