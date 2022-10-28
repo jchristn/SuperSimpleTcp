@@ -90,6 +90,12 @@ namespace SuperSimpleTcp
         public bool MutuallyAuthenticate = true;
 
         /// <summary>
+        /// Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
+        /// The default is enabled.
+        /// </summary>
+        public bool UseHandleDataReceivedWorkerTask = true;
+
+        /// <summary>
         /// The list of permitted IP addresses from which connections can be received.
         /// </summary>
         public List<string> PermittedIPs
