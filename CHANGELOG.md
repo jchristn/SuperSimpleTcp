@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v3.0.4
+
+- Better catch client timeouts during TLS establishment (thank you @ATS-CE)
+
+## Previous Versions
+
 v3.0.3
 
 - More configurability around certificate validation checks (thank you @ATS-CE)
-
-## Previous Versions
 
 v3.0.1
 
