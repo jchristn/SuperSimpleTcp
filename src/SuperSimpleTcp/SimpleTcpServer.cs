@@ -758,7 +758,10 @@ namespace SuperSimpleTcp
                             client.SslStream = new SslStream(client.NetworkStream, false);
                         }
 
-                        bool success = await StartTls(client).ConfigureAwait(false);
+                        CancellationTokenSource tlsCts = CancellationTokenSource.CreateLinkedTokenSource(_listenerToken, _token);
+                        tlsCts.CancelAfter(3000);
+
+                        bool success = await StartTls(client, tlsCts.Token).ConfigureAwait(false);
                         if (!success)
                         {
                             client.Dispose();
@@ -811,7 +814,7 @@ namespace SuperSimpleTcp
             _isListening = false;
         }
 
-        private async Task<bool> StartTls(ClientMetadata client)
+        private async Task<bool> StartTls(ClientMetadata client, CancellationToken token)
         {
             try
             {
@@ -844,7 +847,15 @@ namespace SuperSimpleTcp
             }
             catch (Exception e)
             {
-                Logger?.Invoke($"{_header}client {client.IpPort} SSL/TLS exception: {Environment.NewLine}{e}");
+                if (e is TaskCanceledException || e is OperationCanceledException)
+                {
+                    Logger?.Invoke($"{_header}client {client.IpPort} timeout during SSL/TLS establishment");
+                }
+                else
+                {
+                    Logger?.Invoke($"{_header}client {client.IpPort} SSL/TLS exception: {Environment.NewLine}{e}");
+                }
+
                 client.Dispose();
                 return false;
             }
