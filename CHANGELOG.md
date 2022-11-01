@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v3.0.5
+
+- Merge fix from @ATS-CE
+
+## Previous Versions
+
 v3.0.4
 
 - Better catch client timeouts during TLS establishment (thank you @ATS-CE)
-
-## Previous Versions
 
 v3.0.3
 
