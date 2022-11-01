@@ -83,7 +83,7 @@ namespace SuperSimpleTcp
         /// <summary>
         /// Enable or disable acceptance of invalid SSL certificates.
         /// </summary>
-        public bool AcceptInvalidCertificates = false;
+        public bool AcceptInvalidCertificates = true;
 
         /// <summary>
         /// Enable or disable mutual authentication of SSL client and server.
@@ -91,14 +91,20 @@ namespace SuperSimpleTcp
         public bool MutuallyAuthenticate = true;
 
         /// <summary>
-        /// Enable or disable checking the certificate revocation list during the certificate validation process.
+        /// Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
+        /// The default is enabled.
+        /// </summary>
+        public bool UseAsyncDataReceivedEvents = true;
+
+        /// <summary>
+        /// Enable or disable checking certificate revocation list during the validation process.
         /// </summary>
         public bool CheckCertificateRevocation = true;
 
         /// <summary>
-        /// Gets or sets a RemoteCertificateValidationCallback delegate that's responsible for validating the certificate supplied by the remote party.
+        /// Delegate responsible for validating a certificate supplied by a remote party.
         /// </summary>
-        public RemoteCertificateValidationCallback ClientCertificateValidationCallback = null;
+        public RemoteCertificateValidationCallback CertificateValidationCallback = null;
 
         /// <summary>
         /// The list of permitted IP addresses from which connections can be received.
@@ -131,6 +137,7 @@ namespace SuperSimpleTcp
                 else _blockedIPs = value;
             }
         }
+
         #endregion
 
         #region Private-Members

@@ -396,14 +396,20 @@
             Enable or disable mutual authentication of SSL client and server.
             </summary>
         </member>
-        <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.CheckCertificateRevocation">
+        <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.UseAsyncDataReceivedEvents">
             <summary>
-            Enable or disable checking the certificate revocation list during the certificate validation process.
+            Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
+            The default is enabled.
             </summary>
         </member>
-        <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.ServerCertificateValidationCallback">
+        <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.CheckCertificateRevocation">
             <summary>
-            Gets or sets a RemoteCertificateValidationCallback delegate that's responsible for validating the certificate supplied by the remote party.
+            Enable or disable checking certificate revocation list during the validation process.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpClientSettings.CertificateValidationCallback">
+            <summary>
+            Delegate responsible for validating a certificate supplied by a remote party.
             </summary>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClientSettings.#ctor">
@@ -694,14 +700,20 @@
             Enable or disable mutual authentication of SSL client and server.
             </summary>
         </member>
-        <member name="F:SuperSimpleTcp.SimpleTcpServerSettings.CheckCertificateRevocation">
+        <member name="F:SuperSimpleTcp.SimpleTcpServerSettings.UseAsyncDataReceivedEvents">
             <summary>
-            Enable or disable checking the certificate revocation list during the certificate validation process.
+            Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
+            The default is enabled.
             </summary>
         </member>
-        <member name="F:SuperSimpleTcp.SimpleTcpServerSettings.ClientCertificateValidationCallback">
+        <member name="F:SuperSimpleTcp.SimpleTcpServerSettings.CheckCertificateRevocation">
             <summary>
-            Gets or sets a RemoteCertificateValidationCallback delegate that's responsible for validating the certificate supplied by the remote party.
+            Enable or disable checking certificate revocation list during the validation process.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpServerSettings.CertificateValidationCallback">
+            <summary>
+            Delegate responsible for validating a certificate supplied by a remote party.
             </summary>
         </member>
         <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.PermittedIPs">

@@ -749,10 +749,9 @@ namespace SuperSimpleTcp
                         {
                             client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
                         }
-                        else
-                        if (_settings.ClientCertificateValidationCallback != null)
+                        else if(_settings.CertificateValidationCallback != null)
                         {
-                            client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(_settings.ClientCertificateValidationCallback));
+                            client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
                         }
                         else
                         {
@@ -760,7 +759,7 @@ namespace SuperSimpleTcp
                         }
 
                         CancellationTokenSource tlsCts = CancellationTokenSource.CreateLinkedTokenSource(_listenerToken, _token);
-                        tlsCts.CancelAfter(_settings.IdleClientEvaluationIntervalMs);
+                        tlsCts.CancelAfter(3000);
 
                         bool success = await StartTls(client, tlsCts.Token).ConfigureAwait(false);
                         if (!success)
@@ -819,33 +818,11 @@ namespace SuperSimpleTcp
         {
             try
             {
-#if NET461 || NET48 || NETSTANDARD2_0
-
-                var authTask = client.SslStream.AuthenticateAsServerAsync(
+                await client.SslStream.AuthenticateAsServerAsync(
                     _sslCertificate,
                     _settings.MutuallyAuthenticate,
                     SslProtocols.Tls12,
-                    _settings.CheckCertificateRevocation);
-
-                if (!authTask.Wait(_settings.IdleClientEvaluationIntervalMs))
-                {
-                    Logger?.Invoke($"{_header}client {client.IpPort} not sending SSL/TLS handshake, disconnecting");
-                    client.Dispose();
-                    return false;
-                }
-
-#elif NETSTANDARD2_1 || NETCOREAPP3_1 || NET5_0_OR_GREATER
-
-                var sslServerAuthOptions = new SslServerAuthenticationOptions
-                {
-                    ServerCertificate = _sslCertificate,
-                    ClientCertificateRequired = _settings.MutuallyAuthenticate,
-                    EnabledSslProtocols = SslProtocols.Tls12,
-                    CertificateRevocationCheckMode = _settings.CheckCertificateRevocation ? X509RevocationMode.Online : X509RevocationMode.NoCheck
-                };
-                await client.SslStream.AuthenticateAsServerAsync(sslServerAuthOptions, token);
-
-#endif
+                    !_settings.AcceptInvalidCertificates).ConfigureAwait(false);
 
                 if (!client.SslStream.IsEncrypted)
                 {
@@ -870,7 +847,15 @@ namespace SuperSimpleTcp
             }
             catch (Exception e)
             {
-                Logger?.Invoke($"{_header}client {client.IpPort} SSL/TLS exception: {Environment.NewLine}{e}");
+                if (e is TaskCanceledException || e is OperationCanceledException)
+                {
+                    Logger?.Invoke($"{_header}client {client.IpPort} timeout during SSL/TLS establishment");
+                }
+                else
+                {
+                    Logger?.Invoke($"{_header}client {client.IpPort} SSL/TLS exception: {Environment.NewLine}{e}");
+                }
+
                 client.Dispose();
                 return false;
             }
@@ -914,7 +899,16 @@ namespace SuperSimpleTcp
                         continue;
                     }
 
-                    _ = Task.Run(() => _events.HandleDataReceived(this, new DataReceivedEventArgs(ipPort, data)), linkedCts.Token);
+                    Action action = () => _events.HandleDataReceived(this, new DataReceivedEventArgs(ipPort, data));
+                    if (_settings.UseAsyncDataReceivedEvents)
+                    {
+                        _ = Task.Run(action, linkedCts.Token);
+                    }
+                    else
+                    {
+                        action.Invoke();
+                    }
+
                     _statistics.ReceivedBytes += data.Count;
                     UpdateClientLastSeen(client.IpPort);
                 }

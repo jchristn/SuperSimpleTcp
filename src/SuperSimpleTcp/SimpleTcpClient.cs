@@ -477,12 +477,17 @@ namespace SuperSimpleTcp
                 if (_ssl)
                 {
                     if (_settings.AcceptInvalidCertificates)
+                    {
                         _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
+                    }
+                    else if (_settings.CertificateValidationCallback != null)
+                    {
+                        _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
+                    }
                     else
-                    if (_settings.ServerCertificateValidationCallback != null)
-                        _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.ServerCertificateValidationCallback));
-                    else
+                    {
                         _sslStream = new SslStream(_networkStream, false);
+                    }
 
                     _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
                     _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation);
@@ -611,12 +616,17 @@ namespace SuperSimpleTcp
                     if (_ssl)
                     {
                         if (_settings.AcceptInvalidCertificates)
+                        {
                             _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
+                        }
+                        else if (_settings.CertificateValidationCallback != null)
+                        {
+                            _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
+                        }
                         else
-                        if (_settings.ServerCertificateValidationCallback != null)
-                            _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.ServerCertificateValidationCallback));
-                        else
+                        {
                             _sslStream = new SslStream(_networkStream, false);
+                        }
 
                         _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
                         _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation);
@@ -884,7 +894,17 @@ namespace SuperSimpleTcp
                             if (data != null)
                             {
                                 _lastActivity = DateTime.Now;
-                                _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
+
+                                Action action = () => _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
+                                if (_settings.UseAsyncDataReceivedEvents)
+                                {
+                                    _ = Task.Run(action, token);
+                                }
+                                else
+                                {
+                                    action.Invoke();
+                                }
+
                                 _statistics.ReceivedBytes += data.Count;
 
                                 return data;

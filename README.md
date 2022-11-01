@@ -13,9 +13,12 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
-## New in v3.0.0
+## New in v3.0.x
 
 - Breaking change, allocation-free receive (thank you @joreg)
+- Configurable sync vs async for firing DataReceived events (thank you @TheNybbler)
+- More configurability around certificate validation checks (thank you @ATS-CE)
+- Better catch client timeouts during TLS establishment (thank you @ATS-CE)
 
 ## Special Thanks
 
@@ -23,7 +26,7 @@ A special thanks to the community of people that have contributed to or otherwis
 
 @tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk 
 @lukeacat @exergist @maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson 
-@EGirardi @redrabbit007 @eatyouroats @joreg @CetinOzdil @tautvilis
+@EGirardi @redrabbit007 @eatyouroats @joreg @CetinOzdil @tautvilis @ATS-CE @TheNybbler
 
 ## Help or Feedback
 
