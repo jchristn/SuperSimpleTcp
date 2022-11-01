@@ -822,7 +822,7 @@ namespace SuperSimpleTcp
                     _sslCertificate,
                     _settings.MutuallyAuthenticate,
                     SslProtocols.Tls12,
-                    !_settings.AcceptInvalidCertificates).ConfigureAwait(false);
+                    _settings.CheckCertificateRevocation).ConfigureAwait(false);
 
                 if (!client.SslStream.IsEncrypted)
                 {
