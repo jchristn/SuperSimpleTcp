@@ -353,6 +353,12 @@
             SimpleTcp client settings.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.NoDelay">
+            <summary>
+            Gets or sets a value that disables a delay when send or receive buffers are not full.
+            true if the delay is disabled; otherwise, false. The default value is false.
+            </summary>
+        </member>
         <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.StreamBufferSize">
             <summary>
             Buffer size to use while interacting with streams. 
