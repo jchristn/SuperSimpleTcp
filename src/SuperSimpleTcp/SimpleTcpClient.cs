@@ -572,6 +572,7 @@ namespace SuperSimpleTcp
 
                             _client.Dispose();
                             _client = new TcpClient();
+                            _client.NoDelay = _settings.NoDelay;
                             _client.ConnectAsync(_serverIp, _serverPort).Wait(1000, connectToken);
 
                             if (_client.Connected)
