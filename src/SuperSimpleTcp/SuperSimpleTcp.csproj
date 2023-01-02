@@ -3,11 +3,11 @@
 	<PropertyGroup>
 		<TargetFrameworks>netcoreapp3.1;netstandard2.0;netstandard2.1;net461;net48;net5.0;net6.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>3.0.5</Version>
-		<PackageReleaseNotes>Thank you @ATS-CE for fix regarding TLS timeout</PackageReleaseNotes>
+		<Version>3.0.6</Version>
+		<PackageReleaseNotes>Add NoDelay to settings (thank you @huangjia2107)</PackageReleaseNotes>
 		<Authors>Joel Christner</Authors>
 		<Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
-		<Copyright>(c)2022 Joel Christner</Copyright>
+		<Copyright>(c)2023 Joel Christner</Copyright>
 		<PackageLicenseUrl></PackageLicenseUrl>
 		<PackageProjectUrl>https://github.com/jchristn/supersimpletcp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/jchristn/supersimpletcp</RepositoryUrl>

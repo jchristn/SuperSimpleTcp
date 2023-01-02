@@ -19,6 +19,7 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 - Configurable sync vs async for firing DataReceived events (thank you @TheNybbler)
 - More configurability around certificate validation checks (thank you @ATS-CE)
 - Better catch client timeouts during TLS establishment (thank you @ATS-CE)
+- Add ```NoDelay``` to settings (thank you @huangjia2107)
 
 ## Special Thanks
 
@@ -26,7 +27,8 @@ A special thanks to the community of people that have contributed to or otherwis
 
 @tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk 
 @lukeacat @exergist @maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson 
-@EGirardi @redrabbit007 @eatyouroats @joreg @CetinOzdil @tautvilis @ATS-CE @TheNybbler
+@EGirardi @redrabbit007 @eatyouroats @joreg @CetinOzdil @tautvilis @ATS-CE 
+@TheNybbler @huangjia2107
 
 ## Help or Feedback
 

@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v3.0.6
+
+- Add ```NoDelay``` to settings (thank you @huangjia2107)
+
+## Previous Versions
+
 v3.0.5
 
 - Merge fix from @ATS-CE
-
-## Previous Versions
 
 v3.0.4
 
