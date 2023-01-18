@@ -2,11 +2,15 @@
 
 ## Current Version
 
+v3.0.7
+
+- Fix for PollSocket method, thank you @zllvm @Energiz0r @Espen-Kalhagen-Element-Logic
+
+## Previous Versions
+
 v3.0.6
 
 - Add ```NoDelay``` to settings (thank you @huangjia2107)
-
-## Previous Versions
 
 v3.0.5
 
