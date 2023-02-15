@@ -669,7 +669,7 @@ namespace SuperSimpleTcp
             Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
 
             _tokenSource.Cancel();
-            _dataReceiver.Wait();
+            WaitCompletion();
             _client.Close();
             _isConnected = false;
         }
@@ -688,7 +688,7 @@ namespace SuperSimpleTcp
             Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
 
             _tokenSource.Cancel();
-            await _dataReceiver;
+            await WaitCompletionAsync();
             _client.Close();
             _isConnected = false;
         }
@@ -1094,6 +1094,30 @@ namespace SuperSimpleTcp
             finally
             {
                 _sendLock.Release();
+            }
+        }
+
+        private void WaitCompletion()
+        {
+            try
+            {
+                _dataReceiver.Wait();
+            }
+            catch (AggregateException ex) when (ex.InnerException is TaskCanceledException)
+            {
+                Logger?.Invoke("Awaiting a canceled task");
+            }
+        }
+
+        private async Task WaitCompletionAsync()
+        {
+            try
+            {
+                await _dataReceiver;
+            }
+            catch (TaskCanceledException)
+            {
+                Logger?.Invoke("Awaiting a canceled task");
             }
         }
 

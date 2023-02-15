@@ -47,7 +47,7 @@ namespace SuperSimpleTcp.UnitTest
         public async Task Start_StartServerAndConnectWithOneClientAndSendMessages_Successful()
         {
             var ipAddress = "127.0.0.1";
-            var port = 8000;
+            var port = 8001;
             var testData = StringHelper.RandomString(1000);
             var acknowledgeData = Encoding.UTF8.GetBytes("acknowledge");
 

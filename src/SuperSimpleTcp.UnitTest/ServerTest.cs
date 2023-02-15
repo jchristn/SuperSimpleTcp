@@ -34,7 +34,7 @@ namespace SuperSimpleTcp.UnitTest
             var certificateFilePath = "simpletcp.crt";
             TestCertificateHelper.CreateCertificate(certificateFilePath);
 
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8001, true, certificateFilePath, "simpletcp");
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8003, true, certificateFilePath, "simpletcp");
             simpleTcpServer.Start();
             Assert.IsTrue(simpleTcpServer.IsListening);
         }
