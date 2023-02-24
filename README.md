@@ -26,10 +26,10 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 A special thanks to the community of people that have contributed to or otherwise improved this project!
 
-@tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk 
-@lukeacat @exergist @maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson 
-@EGirardi @redrabbit007 @eatyouroats @joreg @CetinOzdil @tautvilis @ATS-CE 
-@TheNybbler @huangjia2107 @zllvm @Energiz0r @Espen-Kalhagen-Element-Logic
+@tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat 
+@exergist @maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson @EGirardi @redrabbit007 
+@eatyouroats @joreg @CetinOzdil @tautvilis @ATS-CE @TheNybbler @huangjia2107 @zllvm 
+@Energiz0r @Espen-Kalhagen-Element-Logic @MarkBreedveld
 
 ## Help or Feedback
 

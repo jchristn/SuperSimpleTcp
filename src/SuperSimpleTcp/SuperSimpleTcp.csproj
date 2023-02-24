@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1;netstandard2.0;netstandard2.1;net461;net48;net5.0;net6.0</TargetFrameworks>
+		<TargetFrameworks>netcoreapp3.1;netstandard2.0;netstandard2.1;net461;net48;net5.0;net6.0;net7.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Version>3.0.8</Version>
-		<PackageReleaseNotes>Fix for keep alive on server</PackageReleaseNotes>
+		<PackageReleaseNotes>Fix for keep alive on server, thank you @MarkBreedveld</PackageReleaseNotes>
 		<Authors>Joel Christner</Authors>
 		<Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
 		<Copyright>(c)2023 Joel Christner</Copyright>
