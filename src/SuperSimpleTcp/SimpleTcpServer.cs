@@ -386,7 +386,7 @@ namespace SuperSimpleTcp
             if (_isListening) throw new InvalidOperationException("SimpleTcpServer is already running.");
 
             _listener = new TcpListener(_ipAddress, _port);
-
+            _listener.Server.NoDelay = _settings.NoDelay;
             _listener.Start();
             _isListening = true;
 

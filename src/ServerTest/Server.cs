@@ -43,6 +43,7 @@ namespace ServerTest
             _Server.Settings.IdleClientTimeoutMs = _IdleClientTimeoutMs; 
             _Server.Settings.MutuallyAuthenticate = false;
             _Server.Settings.AcceptInvalidCertificates = true;
+            _Server.Settings.NoDelay = true;
             _Server.Logger = Logger;
             _Server.Start();
 
