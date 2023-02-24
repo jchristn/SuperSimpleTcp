@@ -7,6 +7,7 @@ v3.0.x
 - Fix for PollSocket method, thank you @zllvm @Energiz0r @Espen-Kalhagen-Element-Logic
 - Fix for keepalive settings, thank you @MarkBreedveld
 - Added server-side ```NoDelay``` property in settings, thank you @QTPah
+- Await fix, thank you @olifer
 
 ## Previous Versions
 
