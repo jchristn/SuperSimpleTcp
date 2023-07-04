@@ -1192,13 +1192,16 @@ namespace SuperSimpleTcp
         {
             try
             {
-#if NETCOREAPP || NET5_0_OR_GREATER
+#if NETCOREAPP3_1_OR_GREATER || NET6_0_OR_GREATER
+
+                // NETCOREAPP3_1_OR_GREATER catches .NET 5.0
 
                 client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
                 client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, _keepalive.TcpKeepAliveTime);
                 client.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, _keepalive.TcpKeepAliveInterval);
 
                 // Windows 10 version 1703 or later
+
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                     && Environment.OSVersion.Version >= new Version(10, 0, 15063))
                 {
