@@ -30,7 +30,7 @@ A special thanks to the community of people that have contributed to or otherwis
 @tinohager @u1035 @cmeeren @pha3z @opnop @kopkarmecoindo @simonhaines @matt1tk @lukeacat 
 @exergist @maynardsi @sector13371 @loganwoodxyz @jwfxpr @IanPNewson @EGirardi @redrabbit007 
 @eatyouroats @joreg @CetinOzdil @tautvilis @ATS-CE @TheNybbler @huangjia2107 @zllvm 
-@Energiz0r @Espen-Kalhagen-Element-Logic @MarkBreedveld @QTPah @olifer
+@Energiz0r @Espen-Kalhagen-Element-Logic @MarkBreedveld @QTPah @olifer @KimEoJin
 
 ## Help or Feedback
 

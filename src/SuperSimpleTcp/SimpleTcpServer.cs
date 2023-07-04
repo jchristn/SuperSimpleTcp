@@ -2,7 +2,9 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -14,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace SuperSimpleTcp
 {
-    /// <summary>
+     /// <summary>
     /// SimpleTcp server with SSL support.  
     /// Set the ClientConnected, ClientDisconnected, and DataReceived events.  
     /// Once set, use Start() to begin listening for connections.
@@ -677,25 +679,39 @@ namespace SuperSimpleTcp
          
         private bool IsClientConnected(TcpClient client)
         {
-            if (!client.Connected)
+            if (client == null) return false;
+
+            var state = IPGlobalProperties.GetIPGlobalProperties()
+                .GetActiveTcpConnections()
+                    .FirstOrDefault(x =>
+                        x.LocalEndPoint.Equals(client.Client.LocalEndPoint)
+                        && x.RemoteEndPoint.Equals(client.Client.RemoteEndPoint));
+
+            if (state == default(TcpConnectionInformation)
+                || state.State == TcpState.Unknown
+                || state.State == TcpState.FinWait1
+                || state.State == TcpState.FinWait2
+                || state.State == TcpState.Closed
+                || state.State == TcpState.Closing
+                || state.State == TcpState.CloseWait)
             {
                 return false;
             }
 
-            if (client.Client.Poll(0, SelectMode.SelectWrite) && (!client.Client.Poll(0, SelectMode.SelectError)))
+            if ((client.Client.Poll(0, SelectMode.SelectWrite)) && (!client.Client.Poll(0, SelectMode.SelectError)))
             {
                 byte[] buffer = new byte[1];
                 if (client.Client.Receive(buffer, SocketFlags.Peek) == 0)
                 {
                     return false;
                 }
-               
-                return true;
+                else
+                {
+                    return true;
+                }
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         private async Task AcceptConnections()

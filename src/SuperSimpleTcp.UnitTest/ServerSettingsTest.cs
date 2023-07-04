@@ -25,7 +25,7 @@ namespace SuperSimpleTcp.UnitTest
             // Send some data
             for (int i = 0; i < 100; i++)
             {
-                simpleTcpClient.SendAsync($"Message {i}");
+                await simpleTcpClient.SendAsync($"Message {i}");
                 await Task.Delay(10);
             }
 
@@ -55,7 +55,7 @@ namespace SuperSimpleTcp.UnitTest
             // Send some data
             for (int i = 0; i < 100; i++)
             {
-                simpleTcpClient.SendAsync($"Message {i}");
+                await simpleTcpClient.SendAsync($"Message {i}");
                 await Task.Delay(10);
             }
 
