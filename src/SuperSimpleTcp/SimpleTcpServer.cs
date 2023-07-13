@@ -107,7 +107,28 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
-        /// The port that the server is running on
+        /// The IP address on which the server is configured to listen.
+        /// </summary>
+        public IPAddress IpAddress
+        {
+            get
+            {
+                return _ipAddress;
+            }
+        }
+
+        /// <summary>
+        /// The IPEndPoint on which the server is configured to listen.
+        /// </summary>
+        public EndPoint Endpoint
+        {
+            get
+            {
+                return _listener == null ? null : ((IPEndPoint)_listener.LocalEndpoint);
+            }
+        }
+        /// <summary>
+        /// The port on which the server is configured to listen.
         /// </summary>
         public int Port
         {

@@ -499,9 +499,19 @@
             Retrieve the number of current connected clients.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServer.IpAddress">
+            <summary>
+            The IP address on which the server is configured to listen.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServer.Endpoint">
+            <summary>
+            The IPEndPoint on which the server is configured to listen.
+            </summary>
+        </member>
         <member name="P:SuperSimpleTcp.SimpleTcpServer.Port">
             <summary>
-            The port that the server is running on
+            The port on which the server is configured to listen.
             </summary>
         </member>
         <member name="F:SuperSimpleTcp.SimpleTcpServer.Logger">
