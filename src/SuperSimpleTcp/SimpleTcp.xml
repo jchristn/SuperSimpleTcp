@@ -499,6 +499,11 @@
             Retrieve the number of current connected clients.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServer.Port">
+            <summary>
+            The port that the server is running on
+            </summary>
+        </member>
         <member name="F:SuperSimpleTcp.SimpleTcpServer.Logger">
             <summary>
             Method to invoke to send a log message.
