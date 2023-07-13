@@ -107,6 +107,17 @@ namespace SuperSimpleTcp
         }
 
         /// <summary>
+        /// The port that the server is running on
+        /// </summary>
+        public int Port
+        {
+            get
+            {
+                return _listener == null ? 0 : ((IPEndPoint)_listener.LocalEndpoint).Port;
+            }
+        }
+
+        /// <summary>
         /// Method to invoke to send a log message.
         /// </summary>
         public Action<string> Logger = null;
