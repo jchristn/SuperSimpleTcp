@@ -11,6 +11,7 @@ namespace SuperSimpleTcp
         #region Public-Members
 
         /// <summary>
+        /// Nagle's algorithm.
         /// Gets or sets a value that disables a delay when send or receive buffers are not full.
         /// true if the delay is disabled; otherwise, false. The default value is false.
         /// </summary>
@@ -156,7 +157,7 @@ namespace SuperSimpleTcp
 
         #region Private-Members
 
-        private bool _noDelay = false;
+        private bool _noDelay = true;
         private int _streamBufferSize = 65536;
         private int _connectTimeoutMs = 5000;
         private int _readTimeoutMs = 1000;
