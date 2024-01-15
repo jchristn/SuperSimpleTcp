@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Security;
 
 namespace SuperSimpleTcp
@@ -9,6 +10,21 @@ namespace SuperSimpleTcp
     public class SimpleTcpClientSettings
     {
         #region Public-Members
+
+        /// <summary>
+        /// The System.Net.IPEndPoint to which you bind the TCP System.Net.Sockets.Socket
+        /// </summary>
+        public IPEndPoint LocalEndpoint
+        {
+            get
+            {
+                return _LocaleEndpoint;
+            }
+            set
+            {
+                _LocaleEndpoint = value;
+            }
+        }
 
         /// <summary>
         /// Nagle's algorithm.
@@ -157,6 +173,7 @@ namespace SuperSimpleTcp
 
         #region Private-Members
 
+        private IPEndPoint _LocaleEndpoint = null;
         private bool _noDelay = true;
         private int _streamBufferSize = 65536;
         private int _connectTimeoutMs = 5000;
