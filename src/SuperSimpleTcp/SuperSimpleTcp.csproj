@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1;netstandard2.1;net461;net48;net6.0;net7.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.1;net461;net462;net48;net6.0;net7.0;net8.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>3.0.13</Version>
+		<Version>3.0.14</Version>
 		<PackageReleaseNotes>Await fix, thank you @olifer</PackageReleaseNotes>
 		<Authors>Joel Christner</Authors>
 		<Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
-		<Copyright>(c)2023 Joel Christner</Copyright>
+		<Copyright>(c)2024 Joel Christner</Copyright>
 		<PackageLicenseUrl></PackageLicenseUrl>
 		<PackageProjectUrl>https://github.com/jchristn/supersimpletcp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/jchristn/supersimpletcp</RepositoryUrl>

@@ -355,7 +355,7 @@
         </member>
         <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.LocalEndpoint">
             <summary>
-            The System.Net.IPEndPoint to which you bind the TCP System.Net.Sockets.Socket
+            The System.Net.IPEndPoint to which you bind the TCP System.Net.Sockets.Socket.
             </summary>
         </member>
         <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.NoDelay">
