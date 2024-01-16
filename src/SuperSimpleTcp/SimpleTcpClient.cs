@@ -572,7 +572,7 @@ namespace SuperSimpleTcp
                             Logger?.Invoke(msg);
 
                             _client.Dispose();
-                            _client = new TcpClient();
+                            _client = _settings.LocalEndpoint == null ? new TcpClient() : new TcpClient(_settings.LocalEndpoint);
                             _client.NoDelay = _settings.NoDelay;
                             _client.ConnectAsync(_serverIp, _serverPort).Wait(1000, connectToken);
 
@@ -846,7 +846,10 @@ namespace SuperSimpleTcp
             _ssl = ssl;
             _pfxCertFilename = pfxCertFilename;
             _pfxPassword = pfxPassword;
-            _client = new TcpClient();
+
+            _client = _settings.LocalEndpoint == null ? new TcpClient() : new TcpClient(_settings.LocalEndpoint);
+            _client.NoDelay = _settings.NoDelay;
+
             _sslStream = null;
             _sslCert = null;
             _sslCertCollection = null;
