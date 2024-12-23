@@ -1,8 +1,8 @@
-﻿using System;
-using System.Linq;
-
-namespace SuperSimpleTcp.UnitTest
+﻿namespace SuperSimpleTcp.UnitTest
 {
+    using System;
+    using System.Linq;
+
     internal static class StringHelper
     {
         private static Random _random = new Random();

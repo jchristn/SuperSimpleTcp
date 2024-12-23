@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace SuperSimpleTcp
+﻿namespace SuperSimpleTcp
 {
+    using System;
+
     /// <summary>
     /// Arguments for connection events.
     /// </summary>

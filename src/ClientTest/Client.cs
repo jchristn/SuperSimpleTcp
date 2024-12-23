@@ -1,10 +1,10 @@
-﻿using SuperSimpleTcp;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ClientTest
+﻿namespace ClientTest
 {
+    using SuperSimpleTcp;
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+
     class Program
     {
         static string _ServerIp;

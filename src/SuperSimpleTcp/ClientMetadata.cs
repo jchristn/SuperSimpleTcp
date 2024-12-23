@@ -1,10 +1,10 @@
-﻿using System;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Threading;
-
-namespace SuperSimpleTcp
+﻿namespace SuperSimpleTcp
 {
+    using System;
+    using System.Net.Security;
+    using System.Net.Sockets;
+    using System.Threading;
+
     internal class ClientMetadata : IDisposable
     {
         #region Public-Members

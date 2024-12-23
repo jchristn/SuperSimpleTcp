@@ -1,19 +1,19 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Net.Security;
-using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace SuperSimpleTcp
+﻿namespace SuperSimpleTcp
 {
+    using System;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Net.NetworkInformation;
+    using System.Net.Security;
+    using System.Net.Sockets;
+    using System.Runtime.InteropServices;
+    using System.Security.Authentication;
+    using System.Security.Cryptography.X509Certificates;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     /// <summary>
     /// SimpleTcp client with SSL support.  
     /// Set the Connected, Disconnected, and DataReceived events.  
@@ -1178,18 +1178,29 @@ namespace SuperSimpleTcp
         {
             while (!_token.IsCancellationRequested)
             {
-                await Task.Delay(_settings.IdleServerEvaluationIntervalMs, _token).ConfigureAwait(false);
-
-                if (_settings.IdleServerTimeoutMs == 0) continue;
-
-                DateTime timeoutTime = _lastActivity.AddMilliseconds(_settings.IdleServerTimeoutMs);
-
-                if (DateTime.Now > timeoutTime)
+                try
                 {
-                    Logger?.Invoke($"{_header}disconnecting from {ServerIpPort} due to timeout");
-                    _isConnected = false;
-                    _isTimeout = true;
-                    _tokenSource.Cancel(); // DataReceiver will fire events including dispose
+                    await Task.Delay(_settings.IdleServerEvaluationIntervalMs, _token).ConfigureAwait(false);
+
+                    if (_settings.IdleServerTimeoutMs == 0) continue;
+
+                    DateTime timeoutTime = _lastActivity.AddMilliseconds(_settings.IdleServerTimeoutMs);
+
+                    if (DateTime.Now > timeoutTime)
+                    {
+                        Logger?.Invoke($"{_header}disconnecting from {ServerIpPort} due to timeout");
+                        _isConnected = false;
+                        _isTimeout = true;
+                        _tokenSource.Cancel(); // DataReceiver will fire events including dispose
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
             }
         }
@@ -1198,16 +1209,27 @@ namespace SuperSimpleTcp
         {
             while (!_token.IsCancellationRequested)
             {
-                await Task.Delay(_settings.ConnectionLostEvaluationIntervalMs, _token).ConfigureAwait(false);
-
-                if (!_isConnected)
-                    continue; //Just monitor connected clients
-
-                if (!PollSocket())
+                try
                 {
-                    Logger?.Invoke($"{_header}disconnecting from {ServerIpPort} due to connection lost");
-                    _isConnected = false;
-                    _tokenSource.Cancel(); // DataReceiver will fire events including dispose
+                    await Task.Delay(_settings.ConnectionLostEvaluationIntervalMs, _token).ConfigureAwait(false);
+
+                    if (!_isConnected)
+                        continue; //Just monitor connected clients
+
+                    if (!PollSocket())
+                    {
+                        Logger?.Invoke($"{_header}disconnecting from {ServerIpPort} due to connection lost");
+                        _isConnected = false;
+                        _tokenSource.Cancel(); // DataReceiver will fire events including dispose
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
             }
         }

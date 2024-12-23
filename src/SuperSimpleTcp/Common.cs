@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace SuperSimpleTcp
+﻿namespace SuperSimpleTcp
 {
+    using System;
+
     internal static class Common
     { 
         internal static void ParseIpPort(string ipPort, out string ip, out int port) 

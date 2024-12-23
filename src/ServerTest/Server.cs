@@ -1,11 +1,11 @@
-﻿using SuperSimpleTcp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace ServerTest
+﻿namespace ServerTest
 {
+    using SuperSimpleTcp;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+
     class Program
     {
         static string _ListenerIp;

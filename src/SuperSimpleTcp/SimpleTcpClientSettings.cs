@@ -1,9 +1,9 @@
-﻿using System;
-using System.Net;
-using System.Net.Security;
-
-namespace SuperSimpleTcp
+﻿namespace SuperSimpleTcp
 {
+    using System;
+    using System.Net;
+    using System.Net.Security;
+
     /// <summary>
     /// SimpleTcp client settings.
     /// </summary>

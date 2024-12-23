@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace SuperSimpleTcp
+﻿namespace SuperSimpleTcp
 {
+    using System;
+
     /// <summary>
     /// SimpleTcp keepalive settings.
     /// Keepalive probes are sent after an idle period defined by TcpKeepAliveTime (seconds).

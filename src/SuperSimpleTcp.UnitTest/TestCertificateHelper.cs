@@ -1,7 +1,7 @@
-﻿using System.IO;
-
-namespace SuperSimpleTcp.UnitTest
+﻿namespace SuperSimpleTcp.UnitTest
 {
+    using System.IO;
+
     public static class TestCertificateHelper
     {
         public static void CreateCertificate(string certificateFilePath)
