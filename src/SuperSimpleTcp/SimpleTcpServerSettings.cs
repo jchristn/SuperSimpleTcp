@@ -155,6 +155,18 @@
             }
         }
 
+        public bool AllowAnanymousIPs
+        {
+            get
+            {
+                return _allowAnanimousIPs;
+            }
+            set
+            {
+                _allowAnanimousIPs = value;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -166,6 +178,7 @@
         private int _idleClientEvaluationIntervalMs = 5000;
         private List<string> _permittedIPs = new List<string>();
         private List<string> _blockedIPs = new List<string>();
+        private bool _allowAnanimousIPs = true;
 
         #endregion
 

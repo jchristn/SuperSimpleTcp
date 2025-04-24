@@ -775,7 +775,7 @@
                     int clientPort = 0;
                     Common.ParseIpPort(clientIpPort, out clientIp, out clientPort);
 
-                    if (_settings.PermittedIPs.Count > 0 && !_settings.PermittedIPs.Contains(clientIp))
+                    if (!_settings.AllowAnanymousIPs && !_settings.PermittedIPs.Contains(clientIp))
                     {
                         Logger?.Invoke($"{_header}rejecting connection from {clientIp} (not permitted)");
                         tcpClient.Close();
