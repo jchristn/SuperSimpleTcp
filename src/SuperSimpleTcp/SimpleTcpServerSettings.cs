@@ -155,15 +155,15 @@
             }
         }
 
-        public bool AllowAnanymousIPs
+        public bool AllowAnonymousIPs
         {
             get
             {
-                return _allowAnanimousIPs;
+                return _allowAnonymousIPs;
             }
             set
             {
-                _allowAnanimousIPs = value;
+                _allowAnonymousIPs = value;
             }
         }
 
@@ -178,7 +178,7 @@
         private int _idleClientEvaluationIntervalMs = 5000;
         private List<string> _permittedIPs = new List<string>();
         private List<string> _blockedIPs = new List<string>();
-        private bool _allowAnanimousIPs = true;
+        private bool _allowAnonymousIPs = true;
 
         #endregion
 
