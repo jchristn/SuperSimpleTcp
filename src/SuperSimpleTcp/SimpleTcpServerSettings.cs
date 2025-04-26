@@ -155,6 +155,9 @@
             }
         }
 
+        /// <summary>
+        /// The AllowAnonymousIPs flag to know if permitted IPs list should be checked or not.
+        /// </summary>
         public bool AllowAnonymousIPs
         {
             get
