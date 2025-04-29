@@ -206,7 +206,7 @@
                 {
                     _ipAddress = Dns.GetHostEntry(_listenerIp).AddressList[0];
                     _listenerIp = _ipAddress.ToString();
-                } 
+                }
             }
 
             _isListening = false;
@@ -236,16 +236,16 @@
                 _listenerIp = listenerIp;
             }
             else
-            { 
+            {
                 if (!IPAddress.TryParse(_listenerIp, out _ipAddress))
                 {
                     _ipAddress = Dns.GetHostEntry(listenerIp).AddressList[0];
                     _listenerIp = _ipAddress.ToString();
-                } 
+                }
             }
-             
+
             _isListening = false;
-            _token = _tokenSource.Token; 
+            _token = _tokenSource.Token;
         }
 
         /// <summary>
@@ -299,7 +299,7 @@
                 {
                     _sslCertificate
                 };
-            } 
+            }
         }
 
         /// <summary>
@@ -311,7 +311,7 @@
         /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
         /// <param name="pfxPassword">The password to the PFX certificate file.</param>
         public SimpleTcpServer(string listenerIp, int port, bool ssl, string pfxCertFilename, string pfxPassword)
-        { 
+        {
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             _listenerIp = listenerIp;
@@ -324,7 +324,7 @@
             }
             else if (_listenerIp == "*" || _listenerIp == "+")
             {
-                _ipAddress = IPAddress.Any; 
+                _ipAddress = IPAddress.Any;
             }
             else
             {
@@ -334,7 +334,7 @@
                     _listenerIp = _ipAddress.ToString();
                 }
             }
-             
+
             _ssl = ssl;
             _isListening = false;
             _token = _tokenSource.Token;
@@ -354,7 +354,7 @@
                 {
                     _sslCertificate
                 };
-            } 
+            }
         }
 
         /// <summary>
@@ -431,7 +431,7 @@
             _listenerToken = _listenerTokenSource.Token;
 
             _statistics = new SimpleTcpStatistics();
-            
+
             if (_idleClientMonitor == null)
             {
                 _idleClientMonitor = Task.Run(() => IdleClientMonitor(), _token);
@@ -673,7 +673,7 @@
                         {
                             curr.Value.Dispose();
                             Logger?.Invoke($"{_header}disconnected client: {curr.Key}");
-                        } 
+                        }
                     }
 
                     if (_tokenSource != null)
@@ -707,7 +707,7 @@
                 Logger?.Invoke($"{_header}disposed");
             }
         }
-         
+
         private bool IsClientConnected(TcpClient client)
         {
             if (client == null) return false;
@@ -775,7 +775,15 @@
                     int clientPort = 0;
                     Common.ParseIpPort(clientIpPort, out clientIp, out clientPort);
 
-                    if (!_settings.AllowAnonymousIPs && !_settings.PermittedIPs.Contains(clientIp))
+                    if (Settings.PermitType == PermitType.OnlyPermittedList 
+                        && (_settings.PermittedIPs.Count > 0 && !_settings.PermittedIPs.Contains(clientIp)))
+                    { 
+                            Logger?.Invoke($"{_header}rejecting connection from {clientIp} (not permitted)");
+                            tcpClient.Close();
+                            continue;
+                        
+                    }
+                    else if (!_settings.AllowAnonymousIPs && !_settings.PermittedIPs.Contains(clientIp))
                     {
                         Logger?.Invoke($"{_header}rejecting connection from {clientIp} (not permitted)");
                         tcpClient.Close();
@@ -797,7 +805,7 @@
                         {
                             client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
                         }
-                        else if(_settings.CertificateValidationCallback != null)
+                        else if (_settings.CertificateValidationCallback != null)
                         {
                             client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
                         }
@@ -927,7 +935,7 @@
             while (true)
             {
                 try
-                { 
+                {
                     if (!IsClientConnected(client.Client))
                     {
                         Logger?.Invoke($"{_header}client {ipPort} disconnected");
@@ -938,7 +946,7 @@
                     {
                         Logger?.Invoke($"{_header}cancellation requested (data receiver for client {ipPort})");
                         break;
-                    } 
+                    }
 
                     var data = await DataReadAsync(client, linkedCts.Token).ConfigureAwait(false);
                     if (data == null)
@@ -982,7 +990,7 @@
                 }
                 catch (Exception e)
                 {
-                    Logger?.Invoke($"{_header}data receiver exception [{ipPort}]:{ Environment.NewLine}{e}{Environment.NewLine}");
+                    Logger?.Invoke($"{_header}data receiver exception [{ipPort}]:{Environment.NewLine}{e}{Environment.NewLine}");
                     break;
                 }
             }
@@ -1005,13 +1013,13 @@
             _clients.TryRemove(ipPort, out _);
             _clientsLastSeen.TryRemove(ipPort, out _);
             _clientsKicked.TryRemove(ipPort, out _);
-            _clientsTimedout.TryRemove(ipPort, out _); 
+            _clientsTimedout.TryRemove(ipPort, out _);
 
             if (client != null) client.Dispose();
         }
-           
+
         private async Task<ArraySegment<byte>> DataReadAsync(ClientMetadata client, CancellationToken token)
-        { 
+        {
             byte[] buffer = new byte[_settings.StreamBufferSize];
             int read = 0;
 
@@ -1054,23 +1062,23 @@
                         }
                     }
                 }
-            } 
+            }
         }
 
         private async Task IdleClientMonitor()
         {
             while (!_token.IsCancellationRequested)
-            { 
+            {
                 await Task.Delay(_settings.IdleClientEvaluationIntervalMs, _token).ConfigureAwait(false);
 
                 if (_settings.IdleClientTimeoutMs == 0) continue;
 
                 try
-                { 
+                {
                     DateTime idleTimestamp = DateTime.Now.AddMilliseconds(-1 * _settings.IdleClientTimeoutMs);
 
                     foreach (KeyValuePair<string, DateTime> curr in _clientsLastSeen)
-                    { 
+                    {
                         if (curr.Value < idleTimestamp)
                         {
                             _clientsTimedout.TryAdd(curr.Key, DateTime.Now);
@@ -1085,14 +1093,14 @@
                 }
             }
         }
-         
+
         private void UpdateClientLastSeen(string ipPort)
         {
             if (_clientsLastSeen.ContainsKey(ipPort))
             {
                 _clientsLastSeen.TryRemove(ipPort, out _);
             }
-             
+
             _clientsLastSeen.TryAdd(ipPort, DateTime.Now);
         }
 
@@ -1114,8 +1122,8 @@
                     bytesRead = stream.Read(buffer, 0, buffer.Length);
                     if (bytesRead > 0)
                     {
-                        if (!_ssl) client.NetworkStream.Write(buffer, 0, bytesRead); 
-                        else client.SslStream.Write(buffer, 0, bytesRead); 
+                        if (!_ssl) client.NetworkStream.Write(buffer, 0, bytesRead);
+                        else client.SslStream.Write(buffer, 0, bytesRead);
 
                         bytesRemaining -= bytesRead;
                         _statistics.SentBytes += bytesRead;
@@ -1195,19 +1203,19 @@
 
 #elif NETFRAMEWORK
 
-            byte[] keepAlive = new byte[12];
+                byte[] keepAlive = new byte[12];
 
-            // Turn keepalive on
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
+                // Turn keepalive on
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)1), 0, keepAlive, 0, 4);
 
-            // Set TCP keepalive time
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)_keepalive.TcpKeepAliveTimeMilliseconds), 0, keepAlive, 4, 4);
+                // Set TCP keepalive time
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_keepalive.TcpKeepAliveTimeMilliseconds), 0, keepAlive, 4, 4);
 
-            // Set TCP keepalive interval
-            Buffer.BlockCopy(BitConverter.GetBytes((uint)_keepalive.TcpKeepAliveIntervalMilliseconds), 0, keepAlive, 8, 4);
+                // Set TCP keepalive interval
+                Buffer.BlockCopy(BitConverter.GetBytes((uint)_keepalive.TcpKeepAliveIntervalMilliseconds), 0, keepAlive, 8, 4);
 
-            // Set keepalive settings on the underlying Socket
-            _listener.Server.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
+                // Set keepalive settings on the underlying Socket
+                _listener.Server.IOControl(IOControlCode.KeepAliveValues, keepAlive, null);
 
 #elif NETSTANDARD
 

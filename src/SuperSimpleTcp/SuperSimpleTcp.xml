@@ -74,6 +74,22 @@
             The connection was not disconnected.
             </summary>
         </member>
+        <member name="T:SuperSimpleTcp.PermitType">
+            <summary>
+            PermitType's used to clarify the way to validate permitted IPs
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.PermitType.OnlyPermittedList">
+            <summary>
+            Only PermittedList is used when only the PermittedIPs list decides
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.PermitType.FlagAndPermittedList">
+            <summary>
+            FlagAndPermittedList is used to check the flag AllowAnonymousIPs first
+            and if the flag was false then checks the PermittedIPs list
+            </summary>
+        </member>
         <member name="T:SuperSimpleTcp.SimpleTcpClient">
             <summary>
             SimpleTcp client with SSL support.  
@@ -758,6 +774,16 @@
         <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.BlockedIPs">
             <summary>
             The list of blocked IP addresses from which connections will be declined.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.PermitType">
+            <summary>
+            This property indicates in which way validate IPs
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.AllowAnonymousIPs">
+            <summary>
+            The AllowAnonymousIPs flag to know if permitted IPs list should be checked or not.
             </summary>
         </member>
         <member name="M:SuperSimpleTcp.SimpleTcpServerSettings.#ctor">

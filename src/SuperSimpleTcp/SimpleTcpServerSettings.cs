@@ -156,6 +156,21 @@
         }
 
         /// <summary>
+        /// This property indicates which way to validate IPs
+        /// </summary>
+        public PermitType PermitType
+        {
+            get
+            {
+                return this._permitType;
+            }
+            set
+            {
+                this._permitType = value;
+            }
+        }
+
+        /// <summary>
         /// The AllowAnonymousIPs flag to know if permitted IPs list should be checked or not.
         /// </summary>
         public bool AllowAnonymousIPs
@@ -181,6 +196,7 @@
         private int _idleClientEvaluationIntervalMs = 5000;
         private List<string> _permittedIPs = new List<string>();
         private List<string> _blockedIPs = new List<string>();
+        private PermitType _permitType = PermitType.OnlyPermittedList;
         private bool _allowAnonymousIPs = true;
 
         #endregion
