@@ -1,5 +1,8 @@
 ﻿namespace SuperSimpleTcp
 {
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+    using System.Buffers;
+#endif
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -1011,50 +1014,63 @@
         }
            
         private async Task<ArraySegment<byte>> DataReadAsync(ClientMetadata client, CancellationToken token)
-        { 
-            byte[] buffer = new byte[_settings.StreamBufferSize];
-            int read = 0;
-
-            if (!_ssl)
+        {
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(_settings.StreamBufferSize);
+            try
             {
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    while (true)
-                    {
-                        read = await client.NetworkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+#else
+                byte[] buffer = new byte[_settings.StreamBufferSize];
+#endif
+                int read = 0;
 
-                        if (read > 0)
+                if (!_ssl)
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        while (true)
                         {
-                            await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
-                            return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-                        }
-                        else
-                        {
-                            throw new SocketException();
+                            read = await client.NetworkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+
+                            if (read > 0)
+                            {
+                                await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
+                                return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
+                            }
+                            else
+                            {
+                                throw new SocketException();
+                            }
                         }
                     }
                 }
+                else
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        while (true)
+                        {
+                            read = await client.SslStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+
+                            if (read > 0)
+                            {
+                                await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
+                                return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
+                            }
+                            else
+                            {
+                                throw new SocketException();
+                            }
+                        }
+                    }
+                }
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
             }
-            else
+            finally
             {
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    while (true)
-                    {
-                        read = await client.SslStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-
-                        if (read > 0)
-                        {
-                            await ms.WriteAsync(buffer, 0, read, token).ConfigureAwait(false);
-                            return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-                        }
-                        else
-                        {
-                            throw new SocketException();
-                        }
-                    }
-                }
-            } 
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+#endif
         }
 
         private async Task IdleClientMonitor()

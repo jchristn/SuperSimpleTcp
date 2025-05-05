@@ -1,5 +1,8 @@
 ﻿namespace SuperSimpleTcp
 {
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+    using System.Buffers;
+#endif
     using System;
     using System.IO;
     using System.Linq;
@@ -971,7 +974,11 @@
 
         private async Task<ArraySegment<byte>> DataReadAsync(CancellationToken token)
         {
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(_settings.StreamBufferSize);
+#else
             byte[] buffer = new byte[_settings.StreamBufferSize];
+#endif
             int read = 0;
 
             try
@@ -1025,6 +1032,12 @@
                 // and https://github.com/dotnet/runtime/issues/24093
                 return default;
             }
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+#endif
         }
 
         private void SendInternal(long contentLength, Stream stream)
