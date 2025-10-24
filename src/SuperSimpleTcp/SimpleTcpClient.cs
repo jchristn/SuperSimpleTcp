@@ -140,6 +140,7 @@
         private SimpleTcpStatistics _statistics = new SimpleTcpStatistics();
 
         private string _serverIp = null;
+        private AddressFamily _addressFamily = AddressFamily.InterNetwork;
         private int _serverPort = 0;
         private readonly IPAddress _ipAddress = null;
         private TcpClient _client = null;
@@ -185,6 +186,11 @@
             {
                 _ipAddress = Dns.GetHostEntry(_serverIp).AddressList[0];
                 _serverIp = _ipAddress.ToString();
+                _addressFamily = _ipAddress.AddressFamily;
+            }
+            else
+            {
+                _addressFamily = _ipAddress.AddressFamily;
             }
         }
 
@@ -225,6 +231,11 @@
             {
                 _ipAddress = Dns.GetHostEntry(serverIpOrHostname).AddressList[0];
                 _serverIp = _ipAddress.ToString();
+                _addressFamily = _ipAddress.AddressFamily;
+            }
+            else
+            {
+                _addressFamily = _ipAddress.AddressFamily;
             }
         }
 
@@ -363,6 +374,7 @@
                 _ipAddress = serverIpEndPoint.Address;
                 _serverIp = serverIpEndPoint.Address.ToString();
                 _serverPort = serverIpEndPoint.Port;
+                _addressFamily = serverIpEndPoint.AddressFamily;
             }
         }
 
@@ -572,7 +584,7 @@
                             Logger?.Invoke(msg);
 
                             _client.Dispose();
-                            _client = _settings.LocalEndpoint == null ? new TcpClient() : new TcpClient(_settings.LocalEndpoint);
+                            _client = _settings.LocalEndpoint == null ? new TcpClient(_addressFamily) : new TcpClient(_settings.LocalEndpoint);
                             _client.NoDelay = _settings.NoDelay;
                             _client.ConnectAsync(_serverIp, _serverPort).Wait(1000, connectToken);
 
@@ -847,7 +859,7 @@
             _pfxCertFilename = pfxCertFilename;
             _pfxPassword = pfxPassword;
 
-            _client = _settings.LocalEndpoint == null ? new TcpClient() : new TcpClient(_settings.LocalEndpoint);
+            _client = _settings.LocalEndpoint == null ? new TcpClient(_addressFamily) : new TcpClient(_settings.LocalEndpoint);
             _client.NoDelay = _settings.NoDelay;
 
             _sslStream = null;
