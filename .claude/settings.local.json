@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(copy \"C:\\Code\\Misc\\SuperSimpleTcp-3.0\\simpletcp.pfx\" \"C:\\Code\\Misc\\SuperSimpleTcp-3.0\\src\\AutomatedTest\\simpletcp.pfx\")",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run:*)",
+      "Bash(/dev/null)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
