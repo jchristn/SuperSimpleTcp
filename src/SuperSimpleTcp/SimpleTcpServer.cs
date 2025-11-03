@@ -930,13 +930,7 @@
             while (true)
             {
                 try
-                { 
-                    if (!IsClientConnected(client.Client))
-                    {
-                        Logger?.Invoke($"{_header}client {ipPort} disconnected");
-                        break;
-                    }
-
+                {
                     if (client.Token.IsCancellationRequested)
                     {
                         Logger?.Invoke($"{_header}cancellation requested (data receiver for client {ipPort})");
@@ -946,6 +940,18 @@
                     var data = await DataReadAsync(client, linkedCts.Token).ConfigureAwait(false);
                     if (data == null)
                     {
+                        if (!IsClientConnected(client.Client))
+                        {
+                            Logger?.Invoke($"{_header}client {ipPort} disconnected");
+                            break;
+                        }
+
+                        if (client.Token.IsCancellationRequested)
+                        {
+                            Logger?.Invoke($"{_header}cancellation requested (data receiver for client {ipPort})");
+                            break;
+                        }
+
                         await Task.Delay(10, linkedCts.Token).ConfigureAwait(false);
                         continue;
                     }
