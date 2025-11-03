@@ -4,6 +4,7 @@ namespace SuperSimpleTcp.UnitTest
     using System.Diagnostics;
     using System.Linq;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
 
     using DataReceivedEventArgs = SuperSimpleTcp.DataReceivedEventArgs;
@@ -126,6 +127,65 @@ namespace SuperSimpleTcp.UnitTest
 
             Assert.IsTrue(clientReceiveData, "Client receive no data");
             Assert.IsFalse(clientReceiveError, "Client receive error detected");
+        }
+
+        [TestMethod]
+        public async Task Start_ServerShouldProcessesAvailableReceivedDataEvenAfterAClientSideDisconnect_Successful()
+        {
+            var ipAddress = "127.0.0.1";
+            var port = 8001;
+            var testData = StringHelper.RandomString(65535);
+
+            var serverReceiveError = false;
+            var serverReceivedData = "";
+
+            var clientSendCount = 10;
+            var expectedClientConnectedCount = 1;
+            var expectedClientData = "";
+            var expectedClientDataReceivedBytes = clientSendCount * testData.Length;
+            var clientConnectedCount = 0;
+
+            void ServerClientConnected(object? sender, ConnectionEventArgs e)
+            {
+                clientConnectedCount++;
+                // The following delay is used to simulate an issue that is difficult to make happen on the
+                // loopback network interface, since it has very low latency. The specific issue happened if
+                // a client sent data and then immediately disconnected. If SimpleTcpServer's DataReceived task
+                // didn't start executing before the disconnect happened, DataReceived might exit without actually
+                // reading any of the data received from that connection.
+                Thread.Sleep(10);
+            }
+
+            void ServerDataReceived(object? sender, DataReceivedEventArgs e)
+            {
+                serverReceivedData += Encoding.UTF8.GetString(e.Data);
+            }
+
+            using var simpleTcpServer = new SimpleTcpServer($"{ipAddress}:{port}");
+            simpleTcpServer.Settings.UseAsyncDataReceivedEvents = false;
+            simpleTcpServer.Start();
+            simpleTcpServer.Events.ClientConnected += ServerClientConnected;
+            simpleTcpServer.Events.DataReceived += ServerDataReceived;
+
+            using var simpleTcpClient = new SimpleTcpClient($"{ipAddress}:{port}");
+            simpleTcpClient.Connect();
+            for (var i = 0; i < clientSendCount; i++)
+            {
+                expectedClientData += testData;
+                simpleTcpClient.Send(testData);
+            }
+            simpleTcpClient.Disconnect();
+
+            await Task.Delay(250);
+
+            simpleTcpServer.Events.ClientConnected -= ServerClientConnected;
+            simpleTcpServer.Events.DataReceived -= ServerDataReceived;
+            simpleTcpServer.Stop();
+            
+            Assert.AreEqual(expectedClientConnectedCount, clientConnectedCount);
+            Assert.IsTrue(serverReceivedData == expectedClientData, $"Server did not receive expected data");
+            Assert.IsTrue(serverReceivedData.Length == expectedClientDataReceivedBytes, $"Server received: {serverReceivedData} byte(s), expected: {expectedClientDataReceivedBytes}");
+            Assert.IsFalse(serverReceiveError, "Server receive error detected");
         }
     }
 }
