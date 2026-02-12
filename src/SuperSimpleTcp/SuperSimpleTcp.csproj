@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.1;net461;net462;net48;net6.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.1;net461;net462;net48;net8.0;net10.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>3.0.20</Version>
+		<Version>3.0.21</Version>
 		<PackageReleaseNotes>Await fix, thank you @olifer</PackageReleaseNotes>
 		<Authors>Joel Christner</Authors>
 		<Description>Simple wrapper for TCP client and server in C# with SSL support</Description>

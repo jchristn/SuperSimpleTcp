@@ -155,15 +155,15 @@ namespace AutomatedTest
 
         static async Task TestBidirectionalDataExchange()
         {
-            string receivedByServer = null;
-            string receivedByClient = null;
+            string? receivedByServer = null;
+            string? receivedByClient = null;
             var serverReceived = new ManualResetEventSlim(false);
             var clientReceived = new ManualResetEventSlim(false);
 
             using var server = new SimpleTcpServer("127.0.0.1:9002");
             server.Events.DataReceived += (s, e) =>
             {
-                receivedByServer = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
+                receivedByServer = Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count);
                 serverReceived.Set();
             };
             server.Start();
@@ -172,7 +172,7 @@ namespace AutomatedTest
             using var client = new SimpleTcpClient("127.0.0.1:9002");
             client.Events.DataReceived += (s, e) =>
             {
-                receivedByClient = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
+                receivedByClient = Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count);
                 clientReceived.Set();
             };
             client.Connect();
@@ -266,7 +266,7 @@ namespace AutomatedTest
         static async Task TestServerEventClientConnected()
         {
             bool eventFired = false;
-            string connectedClient = null;
+            string? connectedClient = null;
             var eventSignal = new ManualResetEventSlim(false);
 
             using var server = new SimpleTcpServer("127.0.0.1:9005");
@@ -322,14 +322,14 @@ namespace AutomatedTest
         static async Task TestServerEventDataReceived()
         {
             bool eventFired = false;
-            string receivedData = null;
+            string? receivedData = null;
             var eventSignal = new ManualResetEventSlim(false);
 
             using var server = new SimpleTcpServer("127.0.0.1:9007");
             server.Events.DataReceived += (s, e) =>
             {
                 eventFired = true;
-                receivedData = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count);
                 eventSignal.Set();
             };
             server.Start();
@@ -434,7 +434,7 @@ namespace AutomatedTest
         static async Task TestClientEventDataReceived()
         {
             bool eventFired = false;
-            string receivedData = null;
+            string? receivedData = null;
             var eventSignal = new ManualResetEventSlim(false);
 
             using var server = new SimpleTcpServer("127.0.0.1:9011");
@@ -445,7 +445,7 @@ namespace AutomatedTest
             client.Events.DataReceived += (s, e) =>
             {
                 eventFired = true;
-                receivedData = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count);
                 eventSignal.Set();
             };
             client.Connect();
@@ -555,9 +555,15 @@ namespace AutomatedTest
         static async Task TestSslServerByteArray()
         {
             // Load certificate from PFX with password and exportable flag, then export as byte array
+#if NET9_0_OR_GREATER
+            var certWithPassword = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+#else
             var certWithPassword = new System.Security.Cryptography.X509Certificates.X509Certificate2(
                 File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
                 System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+#endif
             byte[] certBytes = certWithPassword.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pfx);
 
             using var server = new SimpleTcpServer("127.0.0.1", 9015, certBytes);
@@ -583,9 +589,15 @@ namespace AutomatedTest
         static async Task TestSslClientByteArray()
         {
             // Load certificate from PFX with password and exportable flag, then export as byte array
+#if NET9_0_OR_GREATER
+            var certWithPassword = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+#else
             var certWithPassword = new System.Security.Cryptography.X509Certificates.X509Certificate2(
                 File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
                 System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+#endif
             byte[] certBytes = certWithPassword.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pfx);
 
             using var server = new SimpleTcpServer("127.0.0.1", 9016, certBytes);
@@ -609,13 +621,19 @@ namespace AutomatedTest
         static async Task TestSslBidirectionalDataExchange()
         {
             // Load certificate from PFX with password and exportable flag, then export as byte array
+#if NET9_0_OR_GREATER
+            var certWithPassword = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+#else
             var certWithPassword = new System.Security.Cryptography.X509Certificates.X509Certificate2(
                 File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
                 System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.Exportable);
+#endif
             byte[] certBytes = certWithPassword.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pfx);
 
-            string receivedByServer = null;
-            string receivedByClient = null;
+            string? receivedByServer = null;
+            string? receivedByClient = null;
             var serverReceived = new ManualResetEventSlim(false);
             var clientReceived = new ManualResetEventSlim(false);
 
@@ -623,7 +641,7 @@ namespace AutomatedTest
             server.Settings.AcceptInvalidCertificates = true;
             server.Events.DataReceived += (s, e) =>
             {
-                receivedByServer = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
+                receivedByServer = Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count);
                 serverReceived.Set();
             };
             server.Start();
@@ -634,7 +652,7 @@ namespace AutomatedTest
             client.Settings.AcceptInvalidCertificates = true;
             client.Events.DataReceived += (s, e) =>
             {
-                receivedByClient = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
+                receivedByClient = Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count);
                 clientReceived.Set();
             };
             client.Connect();
@@ -762,7 +780,7 @@ namespace AutomatedTest
             {
                 lock (_lock)
                 {
-                    receivedData.Append(Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count));
+                    receivedData.Append(Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count));
                     totalReceived += e.Data.Count;
                     if (totalReceived >= 100000)
                     {
@@ -796,7 +814,7 @@ namespace AutomatedTest
             {
                 lock (_lock)
                 {
-                    var message = Encoding.UTF8.GetString(e.Data.Array, 0, e.Data.Count);
+                    var message = Encoding.UTF8.GetString(e.Data.Array!, 0, e.Data.Count);
                     // Messages may be concatenated, split them
                     var parts = message.Split(new[] { "Message " }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (var part in parts)
@@ -854,9 +872,9 @@ namespace AutomatedTest
 
         class TestResult
         {
-            public string Name { get; set; }
+            public string Name { get; set; } = string.Empty;
             public bool Passed { get; set; }
-            public string ErrorMessage { get; set; }
+            public string ErrorMessage { get; set; } = string.Empty;
         }
     }
 }

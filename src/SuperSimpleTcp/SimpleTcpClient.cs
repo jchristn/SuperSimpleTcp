@@ -294,7 +294,11 @@
         {
             if (certificate == null) throw new ArgumentNullException(nameof(certificate));
             _ssl = true;
+#if NET9_0_OR_GREATER
+            _sslCert = X509CertificateLoader.LoadPkcs12(certificate, null);
+#else
             _sslCert = new X509Certificate2(certificate);
+#endif
         }
 
         /// <summary>
@@ -359,7 +363,11 @@
         {
             if (certificate == null) throw new ArgumentNullException(nameof(certificate));
             _ssl = true;
+#if NET9_0_OR_GREATER
+            _sslCert = X509CertificateLoader.LoadPkcs12(certificate, null);
+#else
             _sslCert = new X509Certificate2(certificate);
+#endif
             _sslCertCollection = new X509Certificate2Collection { _sslCert };
         }
 
@@ -419,7 +427,11 @@
         {
             if (certificate == null) throw new ArgumentNullException(nameof(certificate));
             _ssl = true;
+#if NET9_0_OR_GREATER
+            _sslCert = X509CertificateLoader.LoadPkcs12(certificate, null);
+#else
             _sslCert = new X509Certificate2(certificate);
+#endif
         }
 
         #endregion
@@ -470,8 +482,13 @@
 
             if (!String.IsNullOrEmpty(_pfxCertFilename))
             {
+#if NET9_0_OR_GREATER
+                if (String.IsNullOrEmpty(_pfxPassword)) _sslCert = X509CertificateLoader.LoadPkcs12FromFile(_pfxCertFilename, null);
+                _sslCert = X509CertificateLoader.LoadPkcs12FromFile(_pfxCertFilename, _pfxPassword);
+#else
                 if (String.IsNullOrEmpty(_pfxPassword)) _sslCert = new X509Certificate2(_pfxCertFilename);
                 _sslCert = new X509Certificate2(_pfxCertFilename, _pfxPassword);
+#endif
                 _sslCertCollection = new X509Certificate2Collection { _sslCert };
             }
 
@@ -877,11 +894,19 @@
                 }
                 else if (string.IsNullOrEmpty(pfxPassword))
                 {
+#if NET9_0_OR_GREATER
+                    _sslCert = X509CertificateLoader.LoadPkcs12FromFile(pfxCertFilename, null);
+#else
                     _sslCert = new X509Certificate2(pfxCertFilename);
+#endif
                 }
                 else
                 {
+#if NET9_0_OR_GREATER
+                    _sslCert = X509CertificateLoader.LoadPkcs12FromFile(pfxCertFilename, pfxPassword);
+#else
                     _sslCert = new X509Certificate2(pfxCertFilename, pfxPassword);
+#endif
                 }
 
                 _sslCertCollection = new X509Certificate2Collection
