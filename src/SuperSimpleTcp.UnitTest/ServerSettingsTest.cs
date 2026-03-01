@@ -40,7 +40,7 @@
         }
 
         [TestMethod]
-        public async Task UseHandleDataReceivedWorkerTask_Disable_SameThread()
+        public async Task UseHandleDataReceivedWorkerTask_Disable_Sequential()
         {
             TestDataReceiver dataReceiver = new();
 
@@ -65,30 +65,39 @@
             simpleTcpClient.Disconnect();
             simpleTcpServer.Stop();
 
-            // Check if the thread ids were different
-            Assert.IsTrue(dataReceiver.CallingThreadIds.Distinct().Count() == 1);
+            // Check that events were never handled concurrently
+            Assert.IsFalse(dataReceiver.ConcurrencyDetected, "Events should execute sequentially when UseAsyncDataReceivedEvents is false");
         }
 
         /// <summary>
-        /// Test class that captures the thread identifiers when the DataReceived method is called.
+        /// Test class that captures threading info when the DataReceived method is called.
         /// </summary>
         private class TestDataReceiver
         {
             private readonly List<int> _callingThreads = new();
+            private int _activeCount;
 
             /// <summary>
             /// Gets the calling thread ids.
             /// </summary>
-            /// <value>The calling thread ids.</value>
             public List<int> CallingThreadIds => _callingThreads;
+
+            /// <summary>
+            /// Gets whether concurrent execution was detected.
+            /// </summary>
+            public bool ConcurrencyDetected { get; private set; }
 
             public void DataReceived(object? sender, DataReceivedEventArgs args)
             {
-                // Get current thread id
+                if (Interlocked.Increment(ref _activeCount) > 1)
+                    ConcurrencyDetected = true;
+
                 lock (_callingThreads)
                 {
-                    CallingThreadIds.Add(Thread.CurrentThread.ManagedThreadId);
+                    _callingThreads.Add(Thread.CurrentThread.ManagedThreadId);
                 }
+
+                Interlocked.Decrement(ref _activeCount);
             }
         }
     }
