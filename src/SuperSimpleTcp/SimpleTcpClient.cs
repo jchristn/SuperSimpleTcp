@@ -501,7 +501,6 @@
 
                 BeginConnect();
                 await ConnectCoreAsync(token).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
                 EndConnect();
             }
             finally
