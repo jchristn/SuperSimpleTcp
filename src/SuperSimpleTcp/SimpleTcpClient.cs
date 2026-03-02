@@ -166,7 +166,7 @@
         private CancellationToken _token;
         private SemaphoreSlim _connectMutex = new SemaphoreSlim(1, 1);
 
-    private DateTime _lastActivity = DateTime.Now;
+        private DateTime _lastActivity = DateTime.Now;
         private bool _isTimeout = false;
 
         #endregion
@@ -588,7 +588,8 @@
             token.ThrowIfCancellationRequested();
             throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
         }
-        private void EndConnect() {
+        private void EndConnect()
+        {
             try
             {
                 _networkStream = _client.GetStream();
@@ -681,7 +682,7 @@
                 Task connectTask = Task.Run(() =>
                 {
                     int retryCount = 0;
-                  
+
                     while (true)
                     {
                         try
