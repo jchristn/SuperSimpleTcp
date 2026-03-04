@@ -477,6 +477,7 @@
                 _connectMutex.Release();
             }
         }
+
         /// <summary>
         /// Establish a connection to the server asynchronously.
         /// </summary>
@@ -508,6 +509,7 @@
                 _connectMutex.Release();
             }
         }
+
         private void BeginConnect()
         {
             Logger?.Invoke($"{_header}initializing client");
@@ -541,8 +543,8 @@
 #endif
                 _sslCertCollection = new X509Certificate2Collection { _sslCert };
             }
-
         }
+
         private void ConnectCore()
         {
             var ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
@@ -556,6 +558,7 @@
                 _client.EndConnect(ar);
             }
         }
+
         private async Task ConnectCoreAsync(CancellationToken token)
         {
             var connectTask = Task.Factory.FromAsync(_client.BeginConnect, _client.EndConnect, _serverIp, _serverPort, null);
@@ -581,12 +584,19 @@
             // Timeout OR cancellation won the race. Abort pending connect by closing the socket.
             _client.Close();
 
-            // Ensure EndConnect exception is observed (prevents unobserved-fault issues).
-            try { await connectTask.ConfigureAwait(false); } catch { }
+            // Ensure EndConnect exception is always observed (prevents unobserved-fault issues).
+            // Use ContinueWith so the exception is observed even if the task faults asynchronously
+            // after Close() triggers the socket teardown.
+            _ = connectTask.ContinueWith(
+                t => { _ = t.Exception; },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
 
             token.ThrowIfCancellationRequested();
             throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
         }
+
         private void EndConnect()
         {
             try
@@ -647,132 +657,81 @@
                 Logger?.Invoke($"{_header}already connected");
                 return;
             }
-            else
+
+            _connectMutex.Wait();
+            try
             {
-                Logger?.Invoke($"{_header}initializing client");
-
-                InitializeClient(_ssl, _pfxCertFilename, _pfxPassword, _sslCert);
-
-                Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
-            }
-
-            _tokenSource = new CancellationTokenSource();
-            _token = _tokenSource.Token;
-            _token.Register(() =>
-            {
-                if (!_ssl)
+                if (IsConnected)
                 {
-                    if (_sslStream == null) return;
-                    _sslStream.Close();
+                    Logger?.Invoke($"{_header}already connected");
+                    return;
                 }
-                else
+
+                BeginConnect();
+
+                using (CancellationTokenSource connectTokenSource = new CancellationTokenSource())
                 {
-                    if (_networkStream == null) return;
-                    _networkStream.Close();
-                }
-            });
+                    CancellationToken connectToken = connectTokenSource.Token;
 
-
-            using (CancellationTokenSource connectTokenSource = new CancellationTokenSource())
-            {
-                CancellationToken connectToken = connectTokenSource.Token;
-
-                Task cancelTask = Task.Delay(_settings.ConnectTimeoutMs, _token);
-                Task connectTask = Task.Run(() =>
-                {
-                    int retryCount = 0;
-
-                    while (true)
+                    Task cancelTask = Task.Delay(_settings.ConnectTimeoutMs, _token);
+                    Task connectTask = Task.Run(() =>
                     {
-                        try
+                        int retryCount = 0;
+
+                        while (true)
                         {
-                            string msg = $"{_header}attempting connection to {_serverIp}:{_serverPort}";
-                            if (retryCount > 0) msg += $" ({retryCount} retries)";
-                            Logger?.Invoke(msg);
-
-                            _client.Dispose();
-                            _client = _settings.LocalEndpoint == null ? new TcpClient(_addressFamily) : new TcpClient(_settings.LocalEndpoint);
-                            _client.NoDelay = _settings.NoDelay;
-                            _client.ConnectAsync(_serverIp, _serverPort).Wait(1000, connectToken);
-
-                            if (_client.Connected)
+                            try
                             {
-                                Logger?.Invoke($"{_header}connected to {_serverIp}:{_serverPort}");
+                                string msg = $"{_header}attempting connection to {_serverIp}:{_serverPort}";
+                                if (retryCount > 0) msg += $" ({retryCount} retries)";
+                                Logger?.Invoke(msg);
+
+                                _client.Dispose();
+                                _client = _settings.LocalEndpoint == null ? new TcpClient(_addressFamily) : new TcpClient(_settings.LocalEndpoint);
+                                _client.NoDelay = _settings.NoDelay;
+                                _client.ConnectAsync(_serverIp, _serverPort).Wait(1000, connectToken);
+
+                                if (_client.Connected)
+                                {
+                                    Logger?.Invoke($"{_header}connected to {_serverIp}:{_serverPort}");
+                                    break;
+                                }
+                            }
+                            catch (TaskCanceledException)
+                            {
                                 break;
                             }
+                            catch (OperationCanceledException)
+                            {
+                                break;
+                            }
+                            catch (Exception e)
+                            {
+                                Logger?.Invoke($"{_header}failed connecting to {_serverIp}:{_serverPort}: {e.Message}");
+                            }
+                            finally
+                            {
+                                retryCount++;
+                            }
                         }
-                        catch (TaskCanceledException)
-                        {
-                            break;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            break;
-                        }
-                        catch (Exception e)
-                        {
-                            Logger?.Invoke($"{_header}failed connecting to {_serverIp}:{_serverPort}: {e.Message}");
-                        }
-                        finally
-                        {
-                            retryCount++;
-                        }
-                    }
-                }, connectToken);
+                    }, connectToken);
 
-                Task.WhenAny(cancelTask, connectTask).Wait();
+                    Task.WhenAny(cancelTask, connectTask).Wait();
 
-                if (cancelTask.IsCompleted)
-                {
-                    connectTokenSource.Cancel();
-                    _client.Close();
-                    throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
-                }
-
-                try
-                {
-                    _networkStream = _client.GetStream();
-                    _networkStream.ReadTimeout = _settings.ReadTimeoutMs;
-
-                    if (_ssl)
+                    if (cancelTask.IsCompleted)
                     {
-                        if (_settings.AcceptInvalidCertificates)
-                        {
-                            _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
-                        }
-                        else if (_settings.CertificateValidationCallback != null)
-                        {
-                            _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
-                        }
-                        else
-                        {
-                            _sslStream = new SslStream(_networkStream, false);
-                        }
-
-                        _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
-                        _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation);
-
-                        if (!_sslStream.IsEncrypted) throw new AuthenticationException("Stream is not encrypted");
-                        if (!_sslStream.IsAuthenticated) throw new AuthenticationException("Stream is not authenticated");
-                        if (_settings.MutuallyAuthenticate && !_sslStream.IsMutuallyAuthenticated) throw new AuthenticationException("Mutual authentication failed");
+                        connectTokenSource.Cancel();
+                        _client.Close();
+                        throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
                     }
-
-                    if (_keepalive.EnableTcpKeepAlives) EnableKeepalives();
-                }
-                catch (Exception)
-                {
-                    throw;
                 }
 
+                EndConnect();
             }
-
-            _isConnected = true;
-            _lastActivity = DateTime.Now;
-            _isTimeout = false;
-            _events.HandleConnected(this, new ConnectionEventArgs(ServerIpPort));
-            _dataReceiver = Task.Run(() => DataReceiver(_token), _token);
-            _idleServerMonitor = Task.Run(IdleServerMonitor, _token);
-            _connectionMonitor = Task.Run(ConnectedMonitor, _token);
+            finally
+            {
+                _connectMutex.Release();
+            }
         }
 
         /// <summary>

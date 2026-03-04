@@ -255,6 +255,11 @@
             Establish a connection to the server.
             </summary>
         </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpClient.ConnectAsync(System.Threading.CancellationToken)">
+            <summary>
+            Establish a connection to the server asynchronously.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClient.ConnectWithRetries(System.Nullable{System.Int32})">
             <summary>
             Establish the connection to the server with retries up to either the timeout specified or the value in Settings.ConnectTimeoutMs.

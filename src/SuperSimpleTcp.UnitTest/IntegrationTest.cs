@@ -19,7 +19,6 @@ namespace SuperSimpleTcp.UnitTest
         public async Task Start_StartServerAndConnectWithOneClient_Successful()
         {
             var ipAddress = "127.0.0.1";
-            var port = 8000;
 
             var expectedClientConnectedCount = 1;
             var clientConnectedCount = 0;
@@ -29,8 +28,9 @@ namespace SuperSimpleTcp.UnitTest
                 clientConnectedCount++;
             }
 
-            using var simpleTcpServer = new SimpleTcpServer($"{ipAddress}:{port}");
+            using var simpleTcpServer = new SimpleTcpServer(ipAddress, 0);
             simpleTcpServer.Start();
+            var port = simpleTcpServer.Port;
             simpleTcpServer.Events.ClientConnected += ClientConnected;
 
             using var simpleTcpClient = new SimpleTcpClient($"{ipAddress}:{port}");
@@ -50,7 +50,6 @@ namespace SuperSimpleTcp.UnitTest
         public async Task Start_StartServerAndConnectWithOneClientAndSendMessages_Successful()
         {
             var ipAddress = "127.0.0.1";
-            var port = 8001;
             var testData = StringHelper.RandomString(1000);
             var acknowledgeData = Encoding.UTF8.GetBytes("acknowledge");
 
@@ -99,8 +98,9 @@ namespace SuperSimpleTcp.UnitTest
                 }
             }
 
-            using var simpleTcpServer = new SimpleTcpServer($"{ipAddress}:{port}");
+            using var simpleTcpServer = new SimpleTcpServer(ipAddress, 0);
             simpleTcpServer.Start();
+            var port = simpleTcpServer.Port;
             simpleTcpServer.Events.ClientConnected += ServerClientConnected;
             simpleTcpServer.Events.DataReceived += ServerDataReceived;
 
@@ -133,7 +133,6 @@ namespace SuperSimpleTcp.UnitTest
         public async Task Start_ServerShouldProcessesAvailableReceivedDataEvenAfterAClientSideDisconnect_Successful()
         {
             var ipAddress = "127.0.0.1";
-            var port = 8001;
             var testData = StringHelper.RandomString(65535);
 
             var serverReceiveError = false;
@@ -161,9 +160,10 @@ namespace SuperSimpleTcp.UnitTest
                 serverReceivedData += Encoding.UTF8.GetString(e.Data);
             }
 
-            using var simpleTcpServer = new SimpleTcpServer($"{ipAddress}:{port}");
+            using var simpleTcpServer = new SimpleTcpServer(ipAddress, 0);
             simpleTcpServer.Settings.UseAsyncDataReceivedEvents = false;
             simpleTcpServer.Start();
+            var port = simpleTcpServer.Port;
             simpleTcpServer.Events.ClientConnected += ServerClientConnected;
             simpleTcpServer.Events.DataReceived += ServerDataReceived;
 
@@ -181,7 +181,7 @@ namespace SuperSimpleTcp.UnitTest
             simpleTcpServer.Events.ClientConnected -= ServerClientConnected;
             simpleTcpServer.Events.DataReceived -= ServerDataReceived;
             simpleTcpServer.Stop();
-            
+
             Assert.AreEqual(expectedClientConnectedCount, clientConnectedCount);
             Assert.IsTrue(serverReceivedData == expectedClientData, $"Server did not receive expected data");
             Assert.IsTrue(serverReceivedData.Length == expectedClientDataReceivedBytes, $"Server received: {serverReceivedData} byte(s), expected: {expectedClientDataReceivedBytes}");

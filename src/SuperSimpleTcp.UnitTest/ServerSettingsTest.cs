@@ -1,4 +1,4 @@
-﻿namespace SuperSimpleTcp.UnitTest
+namespace SuperSimpleTcp.UnitTest
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     using System.Collections.Generic;
@@ -14,12 +14,13 @@
         {
             TestDataReceiver dataReceiver = new ();
 
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 50000);
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 0);
             simpleTcpServer.Settings.UseAsyncDataReceivedEvents = true;
             simpleTcpServer.Events.DataReceived += dataReceiver.DataReceived;
             simpleTcpServer.Start();
+            var port = simpleTcpServer.Port;
 
-            using var simpleTcpClient = new SimpleTcpClient("127.0.0.1", 50000);
+            using var simpleTcpClient = new SimpleTcpClient("127.0.0.1", port);
             simpleTcpClient.Connect();
 
             // Send some data
@@ -44,12 +45,13 @@
         {
             TestDataReceiver dataReceiver = new();
 
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 50000);
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 0);
             simpleTcpServer.Settings.UseAsyncDataReceivedEvents = false;
             simpleTcpServer.Events.DataReceived += dataReceiver.DataReceived;
             simpleTcpServer.Start();
+            var port = simpleTcpServer.Port;
 
-            using var simpleTcpClient = new SimpleTcpClient("127.0.0.1", 50000);
+            using var simpleTcpClient = new SimpleTcpClient("127.0.0.1", port);
             simpleTcpClient.Connect();
 
             // Send some data

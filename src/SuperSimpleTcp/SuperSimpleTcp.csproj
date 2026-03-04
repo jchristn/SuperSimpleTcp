@@ -3,8 +3,8 @@
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.1;net461;net462;net48;net8.0;net10.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>3.0.22</Version>
-		<PackageReleaseNotes>Fix issue per @Sympatron</PackageReleaseNotes>
+		<Version>3.0.23</Version>
+		<PackageReleaseNotes>Add ConnectAsync method per @Sympatron</PackageReleaseNotes>
 		<Authors>Joel Christner</Authors>
 		<Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
 		<Copyright>(c)2026 Joel Christner</Copyright>

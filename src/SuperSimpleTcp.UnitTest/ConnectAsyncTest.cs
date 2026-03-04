@@ -18,15 +18,14 @@ public sealed class ConnectAsyncTest
     [TestMethod]
     public async Task ConnectAsync_ConcurrentCalls_OnlyOnePhysicalConnection()
     {
-        var port = 9000;
-
         var serverConnectedCount = 0;
         void ServerClientConnected(object? sender, ConnectionEventArgs e) =>
             Interlocked.Increment(ref serverConnectedCount);
 
-        using var server = new SimpleTcpServer($"{LoopbackIp}:{port}");
+        using var server = new SimpleTcpServer(LoopbackIp, 0);
         server.Events.ClientConnected += ServerClientConnected;
         server.Start();
+        var port = server.Port;
 
         using var client = new SimpleTcpClient($"{LoopbackIp}:{port}");
 
@@ -50,22 +49,21 @@ public sealed class ConnectAsyncTest
     [TestMethod]
     public async Task ConnectAsync_TokenAlreadyCanceled_ThrowsOperationCanceledException_AndDoesNotConnect()
     {
-        var port = 9001;
-
         var serverConnectedCount = 0;
         void ServerClientConnected(object? sender, ConnectionEventArgs e) =>
             Interlocked.Increment(ref serverConnectedCount);
 
-        using var server = new SimpleTcpServer($"{LoopbackIp}:{port}");
+        using var server = new SimpleTcpServer(LoopbackIp, 0);
         server.Events.ClientConnected += ServerClientConnected;
         server.Start();
+        var port = server.Port;
 
         using var client = new SimpleTcpClient($"{LoopbackIp}:{port}");
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
             WithTimeoutAsync(client.ConnectAsync(cts.Token), TimeSpan.FromSeconds(2))
         );
 
@@ -81,7 +79,13 @@ public sealed class ConnectAsyncTest
     [TestMethod]
     public async Task ConnectAsync_WhenConnectFaults_PropagatesSocketException()
     {
-        var port = 9002;
+        // Get an OS-assigned port that has no listener. Bind (without listen) avoids TIME_WAIT.
+        int port;
+        using (var temp = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+        {
+            temp.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+            port = ((IPEndPoint)temp.LocalEndPoint!).Port;
+        }
 
         // Nothing listens on this port.
         using var client = new SimpleTcpClient($"{LoopbackIp}:{port}");
@@ -89,7 +93,7 @@ public sealed class ConnectAsyncTest
         // Keep timeout large; we want the immediate connect failure path (connectTask completes first).
         client.Settings.ConnectTimeoutMs = 5000;
 
-        await Assert.ThrowsExceptionAsync<SocketException>(() => client.ConnectAsync());
+        await Assert.ThrowsExactlyAsync<SocketException>(() => client.ConnectAsync());
 
         Assert.IsFalse(client.IsConnected);
     }
@@ -102,14 +106,14 @@ public sealed class ConnectAsyncTest
         using var client = new SimpleTcpClient($"{LoopbackIp}:{blackhole.Port}");
         client.Settings.ConnectTimeoutMs = 150;
 
-        await Assert.ThrowsExceptionAsync<TimeoutException>(() =>
+        await Assert.ThrowsExactlyAsync<TimeoutException>(() =>
             WithTimeoutAsync(client.ConnectAsync(), TimeSpan.FromSeconds(2))
         );
 
         Assert.IsFalse(client.IsConnected);
 
         // Second attempt should also finish promptly (verifies mutex is released on exception paths).
-        await Assert.ThrowsExceptionAsync<TimeoutException>(() =>
+        await Assert.ThrowsExactlyAsync<TimeoutException>(() =>
             WithTimeoutAsync(client.ConnectAsync(), TimeSpan.FromSeconds(2))
         );
 
@@ -124,7 +128,7 @@ public sealed class ConnectAsyncTest
         using var client = new SimpleTcpClient($"{LoopbackIp}:{blackhole.Port}");
         client.Settings.ConnectTimeoutMs = 150;
 
-        await Assert.ThrowsExceptionAsync<TimeoutException>(() =>
+        await Assert.ThrowsExactlyAsync<TimeoutException>(() =>
             WithTimeoutAsync(client.ConnectAsync(), TimeSpan.FromSeconds(2))
         );
 
@@ -161,7 +165,7 @@ public sealed class ConnectAsyncTest
         var taskB = Task.Run(() => client.ConnectAsync(ctsB.Token));
 
         // B must complete quickly with OCE (wait cancellation path).
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
             WithTimeoutAsync(taskB, TimeSpan.FromSeconds(2))
         );
 
@@ -184,7 +188,7 @@ public sealed class ConnectAsyncTest
         cts.CancelAfter(25);
 
         // When timeout task is canceled, ConnectCoreAsync must throw cancellation (not TimeoutException).
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
             WithTimeoutAsync(client.ConnectAsync(cts.Token), TimeSpan.FromSeconds(2))
         );
 
@@ -195,6 +199,12 @@ public sealed class ConnectAsyncTest
     public async Task ConnectAsync_TimeoutAndCancellation_DoNotProduceUnobservedTaskException_FromPendingConnectTask()
     {
         using var blackhole = await RequireBacklogBlackholeAsync();
+
+        // Flush any pre-existing unobserved exceptions from prior tests so they
+        // don't get attributed to this test when we call GC.Collect below.
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
 
         var unobserved = new ConcurrentQueue<AggregateException>();
         void Handler(object? sender, UnobservedTaskExceptionEventArgs e)
@@ -209,7 +219,7 @@ public sealed class ConnectAsyncTest
             using var client = new SimpleTcpClient($"{LoopbackIp}:{blackhole.Port}");
             client.Settings.ConnectTimeoutMs = 150;
 
-            await Assert.ThrowsExceptionAsync<TimeoutException>(() =>
+            await Assert.ThrowsExactlyAsync<TimeoutException>(() =>
                 WithTimeoutAsync(client.ConnectAsync(), TimeSpan.FromSeconds(2))
             );
 
@@ -217,9 +227,12 @@ public sealed class ConnectAsyncTest
             cts.CancelAfter(75);
             client.Settings.ConnectTimeoutMs = 5000;
 
-            await Assert.ThrowsExceptionAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
                 WithTimeoutAsync(client.ConnectAsync(cts.Token), TimeSpan.FromSeconds(2))
             );
+
+            // Allow brief async settlement for ContinueWith observation to complete.
+            await Task.Delay(50);
 
             // Encourage finalizers to run and surface any unobserved exceptions.
             GC.Collect();
@@ -237,10 +250,9 @@ public sealed class ConnectAsyncTest
     [TestMethod]
     public async Task ConnectAsync_CancelAfterSuccessfulConnect_DoesNotDisconnect()
     {
-        var port = 9003;
-
-        using var server = new SimpleTcpServer($"{LoopbackIp}:{port}");
+        using var server = new SimpleTcpServer(LoopbackIp, 0);
         server.Start();
+        var port = server.Port;
 
         using var client = new SimpleTcpClient($"{LoopbackIp}:{port}");
 

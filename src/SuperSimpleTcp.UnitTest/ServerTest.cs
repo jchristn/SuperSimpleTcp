@@ -10,20 +10,19 @@ namespace SuperSimpleTcp.UnitTest
         //Unit Test Naming
         //[UnitOfWork_StateUnderTest_ExpectedBehavior]
 
-        //TODO: Server hangs here at startup
-        [Ignore]
         [TestMethod]
         public async Task StartAsync_ValidListenerIpAndPort_Successful()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8000);
-            await simpleTcpServer.StartAsync();
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 0);
+            _ = simpleTcpServer.StartAsync();
+            await Task.Delay(100);
             Assert.IsTrue(simpleTcpServer.IsListening);
         }
 
         [TestMethod]
         public void Start_ValidListenerIpAndPort_Successful()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8001);
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 0);
             simpleTcpServer.Start();
             Assert.IsTrue(simpleTcpServer.IsListening);
         }
@@ -31,10 +30,7 @@ namespace SuperSimpleTcp.UnitTest
         [TestMethod]
         public void Start_ValidListenerIpAndPortSll_Successful()
         {
-            var certificateFilePath = "simpletcp.crt";
-            TestCertificateHelper.CreateCertificate(certificateFilePath);
-
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 8003, true, certificateFilePath, "simpletcp");
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 0, true, "simpletcp.pfx", "simpletcp");
             simpleTcpServer.Start();
             Assert.IsTrue(simpleTcpServer.IsListening);
         }
@@ -42,41 +38,49 @@ namespace SuperSimpleTcp.UnitTest
         [TestMethod]
         public void Start_ValidIpAndPort_Successful()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:8002");
+            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1", 0);
             simpleTcpServer.Start();
             Assert.IsTrue(simpleTcpServer.IsListening);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void Start_ValidIpToHighPort1_ThrowException()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:65536");
-            simpleTcpServer.Start();
+            Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            {
+                using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:65536");
+                simpleTcpServer.Start();
+            });
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void Start_ValidIpToHighPort2_ThrowException()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:123456789");
-            simpleTcpServer.Start();
+            Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            {
+                using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:123456789");
+                simpleTcpServer.Start();
+            });
         }
 
         [TestMethod]
-        [ExpectedException(typeof(OverflowException))]
         public void Start_ValidIpToHighPort3_ThrowException()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:2147483648");
-            simpleTcpServer.Start();
+            Assert.ThrowsExactly<OverflowException>(() =>
+            {
+                using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:2147483648");
+                simpleTcpServer.Start();
+            });
         }
 
         [TestMethod]
-        [ExpectedException(typeof(FormatException))]
         public void Start_CorruptPort_ThrowException()
         {
-            using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:INVALID_PORT");
-            simpleTcpServer.Start();
+            Assert.ThrowsExactly<FormatException>(() =>
+            {
+                using var simpleTcpServer = new SimpleTcpServer("127.0.0.1:INVALID_PORT");
+                simpleTcpServer.Start();
+            });
         }
     }
 }

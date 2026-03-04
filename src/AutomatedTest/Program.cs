@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,6 +50,64 @@ namespace AutomatedTest
                 await RunTest("Large Data Transfer", TestLargeDataTransfer);
                 await RunTest("Concurrent Sends", TestConcurrentSends);
                 await RunTest("Connect With Retries", TestConnectWithRetries);
+
+                // ConnectAsync tests
+                await RunTest("ConnectAsync Basic", TestConnectAsyncBasic);
+                await RunTest("ConnectAsync With Cancellation", TestConnectAsyncWithCancellation);
+                await RunTest("ConnectAsync Already Connected", TestConnectAsyncAlreadyConnected);
+
+                // DisconnectAsync
+                await RunTest("DisconnectAsync", TestDisconnectAsync);
+
+                // Server StartAsync
+                await RunTest("Server StartAsync", TestServerStartAsync);
+
+                // Client Send overloads
+                await RunTest("Client Send Byte Array", TestClientSendByteArray);
+                await RunTest("Client Send Stream", TestClientSendStream);
+                await RunTest("Client SendAsync Byte Array", TestClientSendAsyncByteArray);
+                await RunTest("Client SendAsync Stream", TestClientSendAsyncStream);
+                await RunTest("Client Send String Sync", TestClientSendStringSync);
+
+                // Server Send overloads
+                await RunTest("Server Send Byte Array", TestServerSendByteArray);
+                await RunTest("Server Send Stream", TestServerSendStream);
+                await RunTest("Server SendAsync Byte Array", TestServerSendAsyncByteArray);
+                await RunTest("Server SendAsync Stream", TestServerSendAsyncStream);
+                await RunTest("Server Send String Sync", TestServerSendStringSync);
+
+                // Constructor coverage
+                await RunTest("Client Constructor IPAddress+Port", TestClientConstructorIPAddressPort);
+                await RunTest("Client Constructor IPEndPoint", TestClientConstructorIPEndPoint);
+                await RunTest("Client Constructor Hostname+Port", TestClientConstructorHostnamePort);
+                await RunTest("Client Constructor IPAddress+Port+SSL", TestClientConstructorIPAddressPortSsl);
+                await RunTest("Client Constructor IPEndPoint+SSL PFX", TestClientConstructorIPEndPointSslPfx);
+                await RunTest("Client Constructor String+Port+X509", TestClientConstructorStringPortX509);
+                await RunTest("Client Constructor IPAddress+Port+X509", TestClientConstructorIPAddressPortX509);
+                await RunTest("Client Constructor IPEndPoint+X509", TestClientConstructorIPEndPointX509);
+                await RunTest("Server Constructor IP+Port", TestServerConstructorIPPort);
+                await RunTest("Server Constructor IP+Port+SSL PFX", TestServerConstructorIPPortSslPfx);
+
+                // Settings & Configuration
+                await RunTest("Keepalive Settings", TestKeepaliveSettings);
+                await RunTest("Statistics Reset", TestStatisticsReset);
+                await RunTest("Logger Callback", TestLoggerCallback);
+                await RunTest("MaxConnections Enforcement", TestMaxConnectionsEnforcement);
+                await RunTest("Client Settings Validation", TestClientSettingsValidation);
+                await RunTest("Server Settings Validation", TestServerSettingsValidation);
+
+                // Properties
+                await RunTest("Client LocalEndpoint", TestClientLocalEndpoint);
+                await RunTest("Server Port Property", TestServerPortProperty);
+                await RunTest("Client ServerIpPort", TestClientServerIpPort);
+
+                // Edge Cases & Error Paths
+                await RunTest("Connect Already Connected", TestConnectAlreadyConnected);
+                await RunTest("Send To Disconnected Client", TestSendToDisconnectedClient);
+                await RunTest("SSL With PFX File Path", TestSslWithPfxFilePath);
+                await RunTest("SSL CertificateValidationCallback", TestSslCertificateValidationCallback);
+                await RunTest("Idle Client Timeout", TestIdleClientTimeout);
+                await RunTest("Idle Server Timeout", TestIdleServerTimeout);
 
                 PrintSummary();
             }
@@ -868,6 +929,1033 @@ namespace AutomatedTest
 
             client.Disconnect();
             server.Stop();
+        }
+
+        // ===== ConnectAsync Tests =====
+
+        static async Task TestConnectAsyncBasic()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9025");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9025");
+            await client.ConnectAsync();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client is not connected after ConnectAsync");
+
+            client.Disconnect();
+            await Task.Delay(100);
+            if (client.IsConnected) throw new Exception("Client is still connected after disconnect");
+
+            server.Stop();
+        }
+
+        static async Task TestConnectAsyncWithCancellation()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9026");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9026");
+            var cts = new CancellationTokenSource();
+            cts.Cancel(); // pre-cancel
+
+            bool caughtException = false;
+            try
+            {
+                await client.ConnectAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                caughtException = true;
+            }
+
+            if (!caughtException) throw new Exception("Expected OperationCanceledException for pre-canceled token");
+
+            server.Stop();
+        }
+
+        static async Task TestConnectAsyncAlreadyConnected()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9027");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9027");
+            await client.ConnectAsync();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client is not connected");
+
+            // Call ConnectAsync again - should be a no-op
+            await client.ConnectAsync();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client disconnected after second ConnectAsync");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        // ===== DisconnectAsync =====
+
+        static async Task TestDisconnectAsync()
+        {
+            var disconnectedSignal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9028");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9028");
+            client.Events.Disconnected += (s, e) => disconnectedSignal.Set();
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client is not connected");
+
+            await client.DisconnectAsync();
+            if (!disconnectedSignal.Wait(5000)) throw new Exception("Disconnected event not fired");
+            if (client.IsConnected) throw new Exception("Client is still connected after DisconnectAsync");
+
+            server.Stop();
+        }
+
+        // ===== Server StartAsync =====
+
+        static async Task TestServerStartAsync()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9029");
+            // StartAsync returns the AcceptConnections task (runs until stopped), so don't await it
+            _ = server.StartAsync();
+            await Task.Delay(100);
+            if (!server.IsListening) throw new Exception("Server is not listening after StartAsync");
+
+            server.Stop();
+            await Task.Delay(100);
+            if (server.IsListening) throw new Exception("Server is still listening after stop");
+        }
+
+        // ===== Client Send Overloads =====
+
+        static async Task TestClientSendByteArray()
+        {
+            byte[]? receivedBytes = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9030");
+            server.Events.DataReceived += (s, e) =>
+            {
+                receivedBytes = new byte[e.Data.Count];
+                Array.Copy(e.Data.Array!, e.Data.Offset, receivedBytes, 0, e.Data.Count);
+                signal.Set();
+            };
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9030");
+            client.Connect();
+            await Task.Delay(100);
+
+            byte[] data = new byte[] { 0x01, 0x02, 0x03, 0xFF };
+            client.Send(data);
+
+            if (!signal.Wait(5000)) throw new Exception("Server did not receive byte array");
+            if (receivedBytes!.Length != 4) throw new Exception($"Expected 4 bytes, got {receivedBytes.Length}");
+            if (receivedBytes[0] != 0x01 || receivedBytes[3] != 0xFF) throw new Exception("Byte content mismatch");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientSendStream()
+        {
+            string? receivedData = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9031");
+            server.Events.DataReceived += (s, e) =>
+            {
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, e.Data.Offset, e.Data.Count);
+                signal.Set();
+            };
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9031");
+            client.Connect();
+            await Task.Delay(100);
+
+            byte[] streamData = Encoding.UTF8.GetBytes("Stream data");
+            using var ms = new MemoryStream(streamData);
+            client.Send(streamData.Length, ms);
+
+            if (!signal.Wait(5000)) throw new Exception("Server did not receive stream data");
+            if (receivedData != "Stream data") throw new Exception($"Expected 'Stream data', got '{receivedData}'");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientSendAsyncByteArray()
+        {
+            byte[]? receivedBytes = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9032");
+            server.Events.DataReceived += (s, e) =>
+            {
+                receivedBytes = new byte[e.Data.Count];
+                Array.Copy(e.Data.Array!, e.Data.Offset, receivedBytes, 0, e.Data.Count);
+                signal.Set();
+            };
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9032");
+            client.Connect();
+            await Task.Delay(100);
+
+            byte[] data = new byte[] { 0xAA, 0xBB, 0xCC };
+            await client.SendAsync(data);
+
+            if (!signal.Wait(5000)) throw new Exception("Server did not receive async byte array");
+            if (receivedBytes!.Length != 3) throw new Exception($"Expected 3 bytes, got {receivedBytes.Length}");
+            if (receivedBytes[0] != 0xAA) throw new Exception("Byte content mismatch");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientSendAsyncStream()
+        {
+            string? receivedData = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9033");
+            server.Events.DataReceived += (s, e) =>
+            {
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, e.Data.Offset, e.Data.Count);
+                signal.Set();
+            };
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9033");
+            client.Connect();
+            await Task.Delay(100);
+
+            byte[] streamData = Encoding.UTF8.GetBytes("Async stream");
+            using var ms = new MemoryStream(streamData);
+            await client.SendAsync(streamData.Length, ms);
+
+            if (!signal.Wait(5000)) throw new Exception("Server did not receive async stream data");
+            if (receivedData != "Async stream") throw new Exception($"Expected 'Async stream', got '{receivedData}'");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientSendStringSync()
+        {
+            string? receivedData = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9034");
+            server.Events.DataReceived += (s, e) =>
+            {
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, e.Data.Offset, e.Data.Count);
+                signal.Set();
+            };
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9034");
+            client.Connect();
+            await Task.Delay(100);
+
+            client.Send("Sync string send");
+
+            if (!signal.Wait(5000)) throw new Exception("Server did not receive sync string");
+            if (receivedData != "Sync string send") throw new Exception($"Expected 'Sync string send', got '{receivedData}'");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        // ===== Server Send Overloads =====
+
+        static async Task TestServerSendByteArray()
+        {
+            byte[]? receivedBytes = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9035");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9035");
+            client.Events.DataReceived += (s, e) =>
+            {
+                receivedBytes = new byte[e.Data.Count];
+                Array.Copy(e.Data.Array!, e.Data.Offset, receivedBytes, 0, e.Data.Count);
+                signal.Set();
+            };
+            client.Connect();
+            await Task.Delay(100);
+
+            var clients = server.GetClients().ToList();
+            byte[] data = new byte[] { 0x10, 0x20, 0x30 };
+            server.Send(clients[0], data);
+
+            if (!signal.Wait(5000)) throw new Exception("Client did not receive byte array from server");
+            if (receivedBytes!.Length != 3) throw new Exception($"Expected 3 bytes, got {receivedBytes.Length}");
+            if (receivedBytes[0] != 0x10) throw new Exception("Byte content mismatch");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestServerSendStream()
+        {
+            string? receivedData = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9036");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9036");
+            client.Events.DataReceived += (s, e) =>
+            {
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, e.Data.Offset, e.Data.Count);
+                signal.Set();
+            };
+            client.Connect();
+            await Task.Delay(100);
+
+            var clients = server.GetClients().ToList();
+            byte[] streamData = Encoding.UTF8.GetBytes("Server stream");
+            using var ms = new MemoryStream(streamData);
+            server.Send(clients[0], streamData.Length, ms);
+
+            if (!signal.Wait(5000)) throw new Exception("Client did not receive stream from server");
+            if (receivedData != "Server stream") throw new Exception($"Expected 'Server stream', got '{receivedData}'");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestServerSendAsyncByteArray()
+        {
+            byte[]? receivedBytes = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9037");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9037");
+            client.Events.DataReceived += (s, e) =>
+            {
+                receivedBytes = new byte[e.Data.Count];
+                Array.Copy(e.Data.Array!, e.Data.Offset, receivedBytes, 0, e.Data.Count);
+                signal.Set();
+            };
+            client.Connect();
+            await Task.Delay(100);
+
+            var clients = server.GetClients().ToList();
+            byte[] data = new byte[] { 0xDE, 0xAD };
+            await server.SendAsync(clients[0], data);
+
+            if (!signal.Wait(5000)) throw new Exception("Client did not receive async byte array from server");
+            if (receivedBytes!.Length != 2) throw new Exception($"Expected 2 bytes, got {receivedBytes.Length}");
+            if (receivedBytes[0] != 0xDE) throw new Exception("Byte content mismatch");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestServerSendAsyncStream()
+        {
+            string? receivedData = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9038");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9038");
+            client.Events.DataReceived += (s, e) =>
+            {
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, e.Data.Offset, e.Data.Count);
+                signal.Set();
+            };
+            client.Connect();
+            await Task.Delay(100);
+
+            var clients = server.GetClients().ToList();
+            byte[] streamData = Encoding.UTF8.GetBytes("Async server stream");
+            using var ms = new MemoryStream(streamData);
+            await server.SendAsync(clients[0], streamData.Length, ms);
+
+            if (!signal.Wait(5000)) throw new Exception("Client did not receive async stream from server");
+            if (receivedData != "Async server stream") throw new Exception($"Expected 'Async server stream', got '{receivedData}'");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestServerSendStringSync()
+        {
+            string? receivedData = null;
+            var signal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9039");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9039");
+            client.Events.DataReceived += (s, e) =>
+            {
+                receivedData = Encoding.UTF8.GetString(e.Data.Array!, e.Data.Offset, e.Data.Count);
+                signal.Set();
+            };
+            client.Connect();
+            await Task.Delay(100);
+
+            var clients = server.GetClients().ToList();
+            server.Send(clients[0], "Sync server string");
+
+            if (!signal.Wait(5000)) throw new Exception("Client did not receive sync string from server");
+            if (receivedData != "Sync server string") throw new Exception($"Expected 'Sync server string', got '{receivedData}'");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        // ===== Constructor Coverage =====
+
+        static async Task TestClientConstructorIPAddressPort()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9040");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient(IPAddress.Parse("127.0.0.1"), 9040);
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via IPAddress+Port constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientConstructorIPEndPoint()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9041");
+            server.Start();
+            await Task.Delay(100);
+
+            var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9041);
+            using var client = new SimpleTcpClient(endpoint);
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via IPEndPoint constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientConstructorHostnamePort()
+        {
+            // Use "127.0.0.1" as hostname to avoid IPv4/IPv6 mismatch (localhost may resolve to ::1)
+            using var server = new SimpleTcpServer("127.0.0.1:9042");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1", 9042);
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via hostname+port constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientConstructorIPAddressPortSsl()
+        {
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#else
+            var cert = new X509Certificate2(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#endif
+            byte[] certBytes = cert.Export(X509ContentType.Pfx);
+
+            using var server = new SimpleTcpServer("127.0.0.1", 9043, certBytes);
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient(
+                IPAddress.Parse("127.0.0.1"), 9043, true, "simpletcp.pfx", "simpletcp");
+            client.Settings.AcceptInvalidCertificates = true;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via IPAddress+Port+SSL constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientConstructorIPEndPointSslPfx()
+        {
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#else
+            var cert = new X509Certificate2(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#endif
+            byte[] certBytes = cert.Export(X509ContentType.Pfx);
+
+            using var server = new SimpleTcpServer("127.0.0.1", 9044, certBytes);
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+
+            var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9044);
+            using var client = new SimpleTcpClient(endpoint, true, "simpletcp.pfx", "simpletcp");
+            client.Settings.AcceptInvalidCertificates = true;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via IPEndPoint+SSL PFX constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientConstructorStringPortX509()
+        {
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#else
+            var cert = new X509Certificate2(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#endif
+            byte[] certBytes = cert.Export(X509ContentType.Pfx);
+
+            using var server = new SimpleTcpServer("127.0.0.1", 9045, certBytes);
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+
+#if NET9_0_OR_GREATER
+            var clientCert = X509CertificateLoader.LoadPkcs12(certBytes, null);
+#else
+            var clientCert = new X509Certificate2(certBytes);
+#endif
+            using var client = new SimpleTcpClient("127.0.0.1", 9045, clientCert);
+            client.Settings.AcceptInvalidCertificates = true;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via String+Port+X509 constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientConstructorIPAddressPortX509()
+        {
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#else
+            var cert = new X509Certificate2(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#endif
+            byte[] certBytes = cert.Export(X509ContentType.Pfx);
+
+            using var server = new SimpleTcpServer("127.0.0.1", 9046, certBytes);
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+
+#if NET9_0_OR_GREATER
+            var clientCert = X509CertificateLoader.LoadPkcs12(certBytes, null);
+#else
+            var clientCert = new X509Certificate2(certBytes);
+#endif
+            using var client = new SimpleTcpClient(IPAddress.Parse("127.0.0.1"), 9046, clientCert);
+            client.Settings.AcceptInvalidCertificates = true;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via IPAddress+Port+X509 constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientConstructorIPEndPointX509()
+        {
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#else
+            var cert = new X509Certificate2(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#endif
+            byte[] certBytes = cert.Export(X509ContentType.Pfx);
+
+            using var server = new SimpleTcpServer("127.0.0.1", 9047, certBytes);
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+
+#if NET9_0_OR_GREATER
+            var clientCert = X509CertificateLoader.LoadPkcs12(certBytes, null);
+#else
+            var clientCert = new X509Certificate2(certBytes);
+#endif
+            var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9047);
+            using var client = new SimpleTcpClient(endpoint, clientCert);
+            client.Settings.AcceptInvalidCertificates = true;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via IPEndPoint+X509 constructor");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestServerConstructorIPPort()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1", 9048);
+            server.Start();
+            await Task.Delay(100);
+            if (!server.IsListening) throw new Exception("Server not listening via IP+Port constructor");
+
+            using var client = new SimpleTcpClient("127.0.0.1:9048");
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected to IP+Port server");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestServerConstructorIPPortSslPfx()
+        {
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#else
+            var cert = new X509Certificate2(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#endif
+            byte[] certBytes = cert.Export(X509ContentType.Pfx);
+
+            using var server = new SimpleTcpServer("127.0.0.1", 9049, true, "simpletcp.pfx", "simpletcp");
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+            if (!server.IsListening) throw new Exception("SSL server not listening via IP+Port+SSL constructor");
+
+            var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9049);
+            using var client = new SimpleTcpClient(endpoint, certBytes);
+            client.Settings.AcceptInvalidCertificates = true;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected to SSL IP+Port server");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        // ===== Settings & Configuration =====
+
+        static async Task TestKeepaliveSettings()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9050");
+            server.Keepalive.EnableTcpKeepAlives = true;
+            server.Keepalive.TcpKeepAliveInterval = 5;
+            server.Keepalive.TcpKeepAliveTime = 5;
+            server.Keepalive.TcpKeepAliveRetryCount = 3;
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9050");
+            client.Keepalive.EnableTcpKeepAlives = true;
+            client.Keepalive.TcpKeepAliveInterval = 5;
+            client.Keepalive.TcpKeepAliveTime = 5;
+            client.Keepalive.TcpKeepAliveRetryCount = 3;
+            client.Connect();
+            await Task.Delay(100);
+
+            if (!client.IsConnected) throw new Exception("Client not connected with keepalives enabled");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestStatisticsReset()
+        {
+            var serverReceived = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9051");
+            server.Events.DataReceived += (s, e) => serverReceived.Set();
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9051");
+            client.Connect();
+            await Task.Delay(100);
+
+            await client.SendAsync("test data");
+            if (!serverReceived.Wait(5000)) throw new Exception("Server did not receive data");
+            await Task.Delay(200);
+
+            if (client.Statistics.SentBytes <= 0) throw new Exception("Client SentBytes should be > 0");
+            if (server.Statistics.ReceivedBytes <= 0) throw new Exception("Server ReceivedBytes should be > 0");
+
+            client.Statistics.Reset();
+            server.Statistics.Reset();
+
+            if (client.Statistics.SentBytes != 0) throw new Exception($"Client SentBytes should be 0 after reset, got {client.Statistics.SentBytes}");
+            if (client.Statistics.ReceivedBytes != 0) throw new Exception($"Client ReceivedBytes should be 0 after reset, got {client.Statistics.ReceivedBytes}");
+            if (server.Statistics.SentBytes != 0) throw new Exception($"Server SentBytes should be 0 after reset, got {server.Statistics.SentBytes}");
+            if (server.Statistics.ReceivedBytes != 0) throw new Exception($"Server ReceivedBytes should be 0 after reset, got {server.Statistics.ReceivedBytes}");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestLoggerCallback()
+        {
+            var serverLogs = new List<string>();
+            var clientLogs = new List<string>();
+
+            using var server = new SimpleTcpServer("127.0.0.1:9052");
+            server.Logger = (msg) => { lock (_lock) { serverLogs.Add(msg); } };
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9052");
+            client.Logger = (msg) => { lock (_lock) { clientLogs.Add(msg); } };
+            client.Connect();
+            await Task.Delay(200);
+
+            if (clientLogs.Count == 0) throw new Exception("Client logger captured no messages");
+            if (serverLogs.Count == 0) throw new Exception("Server logger captured no messages");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestMaxConnectionsEnforcement()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9053");
+            server.Settings.MaxConnections = 2;
+            server.Start();
+            await Task.Delay(100);
+
+            using var client1 = new SimpleTcpClient("127.0.0.1:9053");
+            using var client2 = new SimpleTcpClient("127.0.0.1:9053");
+            using var client3 = new SimpleTcpClient("127.0.0.1:9053");
+
+            client1.Connect();
+            await Task.Delay(100);
+            client2.Connect();
+            await Task.Delay(100);
+
+            if (server.Connections != 2) throw new Exception($"Expected 2 connections, got {server.Connections}");
+
+            // Third client connects - server should reject/disconnect it
+            try
+            {
+                client3.Connect();
+                await Task.Delay(500);
+            }
+            catch
+            {
+                // Connection might fail - that's OK
+            }
+
+            // Server should still have at most 2 connections
+            if (server.Connections > 2) throw new Exception($"Expected max 2 connections, got {server.Connections}");
+
+            client1.Disconnect();
+            client2.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestClientSettingsValidation()
+        {
+            var settings = new SimpleTcpClientSettings();
+
+            // StreamBufferSize < 1
+            bool threw = false;
+            try { settings.StreamBufferSize = 0; } catch (ArgumentException) { threw = true; }
+            if (!threw) throw new Exception("StreamBufferSize=0 should throw");
+
+            // StreamBufferSize > 65536
+            threw = false;
+            try { settings.StreamBufferSize = 65537; } catch (ArgumentException) { threw = true; }
+            if (!threw) throw new Exception("StreamBufferSize=65537 should throw");
+
+            // ConnectTimeoutMs < 1
+            threw = false;
+            try { settings.ConnectTimeoutMs = 0; } catch (ArgumentException) { threw = true; }
+            if (!threw) throw new Exception("ConnectTimeoutMs=0 should throw");
+
+            // IdleServerTimeoutMs < 0
+            threw = false;
+            try { settings.IdleServerTimeoutMs = -1; } catch (ArgumentException) { threw = true; }
+            if (!threw) throw new Exception("IdleServerTimeoutMs=-1 should throw");
+
+            // Valid values should not throw
+            settings.StreamBufferSize = 1024;
+            settings.ConnectTimeoutMs = 5000;
+            settings.IdleServerTimeoutMs = 0;
+
+            await Task.CompletedTask;
+        }
+
+        static async Task TestServerSettingsValidation()
+        {
+            var settings = new SimpleTcpServerSettings();
+
+            // StreamBufferSize < 1
+            bool threw = false;
+            try { settings.StreamBufferSize = 0; } catch (ArgumentException) { threw = true; }
+            if (!threw) throw new Exception("StreamBufferSize=0 should throw");
+
+            // MaxConnections < 1
+            threw = false;
+            try { settings.MaxConnections = 0; } catch (ArgumentException) { threw = true; }
+            if (!threw) throw new Exception("MaxConnections=0 should throw");
+
+            // IdleClientTimeoutMs < 0
+            threw = false;
+            try { settings.IdleClientTimeoutMs = -1; } catch (ArgumentException) { threw = true; }
+            if (!threw) throw new Exception("IdleClientTimeoutMs=-1 should throw");
+
+            // Valid values
+            settings.StreamBufferSize = 4096;
+            settings.MaxConnections = 100;
+            settings.IdleClientTimeoutMs = 0;
+
+            await Task.CompletedTask;
+        }
+
+        // ===== Properties =====
+
+        static async Task TestClientLocalEndpoint()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9056");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9056");
+            client.Connect();
+            await Task.Delay(100);
+
+            var localEp = client.LocalEndpoint;
+            if (localEp == null) throw new Exception("LocalEndpoint is null when connected");
+            if (!localEp.Address.Equals(IPAddress.Parse("127.0.0.1")))
+                throw new Exception($"Expected 127.0.0.1, got {localEp.Address}");
+            if (localEp.Port <= 0) throw new Exception($"LocalEndpoint port should be > 0, got {localEp.Port}");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestServerPortProperty()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9057");
+            server.Start();
+            await Task.Delay(100);
+
+            if (server.Port != 9057) throw new Exception($"Expected port 9057, got {server.Port}");
+
+            server.Stop();
+        }
+
+        static async Task TestClientServerIpPort()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9058");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9058");
+            if (client.ServerIpPort != "127.0.0.1:9058") throw new Exception($"Expected '127.0.0.1:9058', got '{client.ServerIpPort}'");
+
+            server.Stop();
+        }
+
+        // ===== Edge Cases & Error Paths =====
+
+        static async Task TestConnectAlreadyConnected()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9059");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9059");
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected");
+
+            // Call Connect() again - should be no-op
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client disconnected after second Connect()");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestSendToDisconnectedClient()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9060");
+            server.Start();
+            await Task.Delay(100);
+
+            // Server.Send to unknown ipPort silently returns (no-op) - verify no crash
+            server.Send("127.0.0.1:99999", "test");
+
+            // Verify Send with null/empty ipPort throws ArgumentNullException
+            bool threw = false;
+            try
+            {
+                server.Send("", "test");
+            }
+            catch (ArgumentNullException)
+            {
+                threw = true;
+            }
+            if (!threw) throw new Exception("Sending with empty ipPort should throw ArgumentNullException");
+
+            server.Stop();
+        }
+
+        static async Task TestSslWithPfxFilePath()
+        {
+            using var server = new SimpleTcpServer("127.0.0.1:9061", true, "simpletcp.pfx", "simpletcp");
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+            if (!server.IsListening) throw new Exception("SSL server with PFX file not listening");
+
+            using var client = new SimpleTcpClient("127.0.0.1:9061", true, "simpletcp.pfx", "simpletcp");
+            client.Settings.AcceptInvalidCertificates = true;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected via PFX file path SSL");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestSslCertificateValidationCallback()
+        {
+            bool callbackInvoked = false;
+
+#if NET9_0_OR_GREATER
+            var cert = X509CertificateLoader.LoadPkcs12(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#else
+            var cert = new X509Certificate2(
+                File.ReadAllBytes("simpletcp.pfx"), "simpletcp",
+                X509KeyStorageFlags.Exportable);
+#endif
+            byte[] certBytes = cert.Export(X509ContentType.Pfx);
+
+            using var server = new SimpleTcpServer("127.0.0.1", 9062, certBytes);
+            server.Settings.AcceptInvalidCertificates = true;
+            server.Start();
+            await Task.Delay(100);
+
+            var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 9062);
+            using var client = new SimpleTcpClient(endpoint, certBytes);
+            client.Settings.AcceptInvalidCertificates = false;
+            client.Settings.MutuallyAuthenticate = false;
+            client.Settings.CertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
+            {
+                callbackInvoked = true;
+                return true;
+            };
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected with custom validation callback");
+            if (!callbackInvoked) throw new Exception("CertificateValidationCallback was not invoked");
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        static async Task TestIdleClientTimeout()
+        {
+            var clientDisconnected = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9063");
+            server.Settings.IdleClientTimeoutMs = 2000;
+            server.Settings.IdleClientEvaluationIntervalMs = 500;
+            server.Events.ClientDisconnected += (s, e) => clientDisconnected.Set();
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9063");
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected");
+
+            // Wait for idle timeout - server should disconnect the client
+            if (!clientDisconnected.Wait(10000))
+                throw new Exception("Client was not disconnected by idle timeout");
+        }
+
+        static async Task TestIdleServerTimeout()
+        {
+            var clientDisconnectedSignal = new ManualResetEventSlim(false);
+
+            using var server = new SimpleTcpServer("127.0.0.1:9064");
+            server.Start();
+            await Task.Delay(100);
+
+            using var client = new SimpleTcpClient("127.0.0.1:9064");
+            client.Settings.IdleServerTimeoutMs = 2000;
+            client.Settings.IdleServerEvaluationIntervalMs = 500;
+            client.Events.Disconnected += (s, e) => clientDisconnectedSignal.Set();
+            client.Connect();
+            await Task.Delay(100);
+            if (!client.IsConnected) throw new Exception("Client not connected");
+
+            // Wait for idle timeout - client should disconnect due to server inactivity
+            if (!clientDisconnectedSignal.Wait(10000))
+                throw new Exception("Client did not disconnect due to idle server timeout");
         }
 
         class TestResult
