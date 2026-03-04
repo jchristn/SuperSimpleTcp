@@ -164,6 +164,7 @@
         private Task _connectionMonitor = null;
         private CancellationTokenSource _tokenSource = new CancellationTokenSource();
         private CancellationToken _token;
+        private SemaphoreSlim _connectMutex = new SemaphoreSlim(1, 1);
 
         private DateTime _lastActivity = DateTime.Now;
         private bool _isTimeout = false;
@@ -457,12 +458,61 @@
                 Logger?.Invoke($"{_header}already connected");
                 return;
             }
-            else
+
+            _connectMutex.Wait();
+            try
             {
-                Logger?.Invoke($"{_header}initializing client");
-                InitializeClient(_ssl, _pfxCertFilename, _pfxPassword, _sslCert);
-                Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
+                if (IsConnected)
+                {
+                    Logger?.Invoke($"{_header}already connected");
+                    return;
+                }
+
+                BeginConnect();
+                ConnectCore();
+                EndConnect();
             }
+            finally
+            {
+                _connectMutex.Release();
+            }
+        }
+        /// <summary>
+        /// Establish a connection to the server asynchronously.
+        /// </summary>
+        public async Task ConnectAsync(CancellationToken token = default)
+        {
+            if (IsConnected)
+            {
+                Logger?.Invoke($"{_header}already connected");
+                return;
+            }
+
+            token.ThrowIfCancellationRequested();
+
+            await _connectMutex.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                if (IsConnected)
+                {
+                    Logger?.Invoke($"{_header}already connected");
+                    return;
+                }
+
+                BeginConnect();
+                await ConnectCoreAsync(token).ConfigureAwait(false);
+                EndConnect();
+            }
+            finally
+            {
+                _connectMutex.Release();
+            }
+        }
+        private void BeginConnect()
+        {
+            Logger?.Invoke($"{_header}initializing client");
+            InitializeClient(_ssl, _pfxCertFilename, _pfxPassword, _sslCert);
+            Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
@@ -492,18 +542,55 @@
                 _sslCertCollection = new X509Certificate2Collection { _sslCert };
             }
 
-            IAsyncResult ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
-            WaitHandle wh = ar.AsyncWaitHandle;
-
-            try
+        }
+        private void ConnectCore()
+        {
+            var ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
+            using (var wh = ar.AsyncWaitHandle)
             {
-                if (!ar.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(_settings.ConnectTimeoutMs), false))
+                if (!wh.WaitOne(TimeSpan.FromMilliseconds(_settings.ConnectTimeoutMs), false))
                 {
                     _client.Close();
                     throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
                 }
-
                 _client.EndConnect(ar);
+            }
+        }
+        private async Task ConnectCoreAsync(CancellationToken token)
+        {
+            var connectTask = Task.Factory.FromAsync(_client.BeginConnect, _client.EndConnect, _serverIp, _serverPort, null);
+            var timeoutOrCancelTask = Task.Delay(_settings.ConnectTimeoutMs, token); // Delay supports CancellationToken
+
+            var completed = await Task.WhenAny(connectTask, timeoutOrCancelTask).ConfigureAwait(false);
+
+            if (completed == connectTask)
+            {
+                // Propagate connect failures
+                await connectTask.ConfigureAwait(false);
+
+                // If cancellation arrived after connect completed, close and honor cancellation.
+                if (token.IsCancellationRequested)
+                {
+                    _client.Close();
+                    token.ThrowIfCancellationRequested();
+                }
+
+                return;
+            }
+
+            // Timeout OR cancellation won the race. Abort pending connect by closing the socket.
+            _client.Close();
+
+            // Ensure EndConnect exception is observed (prevents unobserved-fault issues).
+            try { await connectTask.ConfigureAwait(false); } catch { }
+
+            token.ThrowIfCancellationRequested();
+            throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
+        }
+        private void EndConnect()
+        {
+            try
+            {
                 _networkStream = _client.GetStream();
                 _networkStream.ReadTimeout = _settings.ReadTimeoutMs;
 
