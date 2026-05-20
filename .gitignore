@@ -342,4 +342,7 @@ __pycache__/
 # Benchmark output
 benchmarks/*.txt
 !benchmarks/.gitkeep
+
+# Local Claude settings
+.claude/
  
