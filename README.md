@@ -13,15 +13,14 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
-## New in v3.0.x
+## New in v3.1.0
 
-- Breaking change, allocation-free receive (thank you @joreg)
-- Configurable sync vs async for firing DataReceived events (thank you @TheNybbler)
-- More configurability around certificate validation checks (thank you @ATS-CE)
-- Better catch client timeouts during TLS establishment (thank you @ATS-CE)
-- Add ```NoDelay``` to settings (thank you @huangjia2107)
-- Fix for PollSocket method, thank you @zllvm @Energiz0r @Espen-Kalhagen-Element-Logic
-- Added server-side ```NoDelay``` property in settings, thank you @QTPah
+- Internal performance refactor to reduce send/receive allocations, remove unnecessary scheduler hops, and tighten connection teardown
+- Async connect and retry paths now rely on a shared non-blocking core and async TLS handshake setup
+- Server max-connection handling now keeps the listener open and rejects overflow connections instead of stop/sleep/restart churn
+- Idle timeout tracking now uses monotonic timestamps and per-client state instead of dictionary churn
+- Touchstone-based shared test suites with console, xUnit, and NUnit runners
+- Included benchmark harness and `RunBenchmarks.bat` runner that writes timestamped summaries under `benchmarks/`
 
 ## Special Thanks
 
@@ -133,7 +132,7 @@ Both SimpleTcpClient and SimpleTcpServer have settable values for:
 
 SimpleTcpServer also has:
 
-- ```Settings.IdleClientTimeoutSeconds``` - automatically disconnect a client if data is not received within the specified number of seconds
+- ```Settings.IdleClientTimeoutMs``` - automatically disconnect a client if data is not received within the specified number of milliseconds
 
 Additionally, both SimpleTcpClient and SimpleTcpServer offer a statistics object under ```SimpleTcpClient.Statistics``` and ```SimpleTcpServer.Statistics```.  These values (other than start time and uptime) can be reset using the ```Statistics.Reset()``` API.
 
@@ -150,6 +149,10 @@ Additionally, both SimpleTcpClient and SimpleTcpServer offer a statistics object
 ### Testing with SSL
 
 A certificate named ```simpletcp.pfx``` is provided for simple testing. It should not expire for a really long time. It's a self-signed certificate and you should NOT use it in production. Its export password is ```simpletcp```.
+
+## Benchmarking
+
+Run `RunBenchmarks.bat` from the repository root to build `src/Test.PerformanceBenchmark` and write a timestamped benchmark summary to `benchmarks/Benchmark-YYYYMMDD-HHMMSS.txt`.
 
 ## Disconnection Handling
 

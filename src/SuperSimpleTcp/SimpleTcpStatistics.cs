@@ -1,6 +1,7 @@
 ﻿namespace SuperSimpleTcp
 {
     using System;
+    using System.Threading;
 
     /// <summary>
     /// SimpleTcp statistics.
@@ -38,11 +39,7 @@
         {
             get
             {
-                return _receivedBytes;
-            }
-            internal set
-            {
-                _receivedBytes = value;
+                return Interlocked.Read(ref _receivedBytes);
             }
         }
          
@@ -53,11 +50,7 @@
         {
             get
             {
-                return _sentBytes;
-            }
-            internal set
-            {
-                _sentBytes = value;
+                return Interlocked.Read(ref _sentBytes);
             }
         }
          
@@ -105,8 +98,18 @@
         /// </summary>
         public void Reset()
         {
-            _receivedBytes = 0; 
-            _sentBytes = 0; 
+            Interlocked.Exchange(ref _receivedBytes, 0);
+            Interlocked.Exchange(ref _sentBytes, 0);
+        }
+
+        internal void AddReceivedBytes(long bytes)
+        {
+            Interlocked.Add(ref _receivedBytes, bytes);
+        }
+
+        internal void AddSentBytes(long bytes)
+        {
+            Interlocked.Add(ref _sentBytes, bytes);
         }
 
         #endregion

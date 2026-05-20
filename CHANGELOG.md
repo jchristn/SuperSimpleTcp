@@ -2,14 +2,23 @@
 
 ## Current Version
 
-v3.0.x
+v3.1.0
+
+- Internal performance refactor for connect, send, receive, timeout, and teardown paths while preserving the public API
+- Server max-connection enforcement no longer stop/sleep/restarts the listener; overflow connections are rejected while the listener remains active
+- Reduced hot-path allocations by removing string/byte[] `MemoryStream` wrappers, pooling stream send buffers, and using exact-size receive copies
+- Async `DataReceived` dispatch now uses an internal worker queue instead of per-message `Task.Run`
+- Added Touchstone-based shared test suites with console, xUnit, and NUnit runners
+- Added `src/Test.PerformanceBenchmark` plus `RunBenchmarks.bat` to capture timestamped benchmark summaries under `benchmarks/`
+
+## Previous Versions
+
+v3.0.23
 
 - Fix for PollSocket method, thank you @zllvm @Energiz0r @Espen-Kalhagen-Element-Logic
 - Fix for keepalive settings, thank you @MarkBreedveld
 - Added server-side ```NoDelay``` property in settings, thank you @QTPah
 - Await fix, thank you @olifer
-
-## Previous Versions
 
 v3.0.6
 

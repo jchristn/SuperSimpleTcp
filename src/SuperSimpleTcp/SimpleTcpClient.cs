@@ -162,12 +162,14 @@
         private Task _dataReceiver = null;
         private Task _idleServerMonitor = null;
         private Task _connectionMonitor = null;
+        private AsyncEventDispatcher<DataReceivedEventArgs> _asyncDataReceivedDispatcher = null;
         private CancellationTokenSource _tokenSource = new CancellationTokenSource();
         private CancellationToken _token;
         private SemaphoreSlim _connectMutex = new SemaphoreSlim(1, 1);
 
-        private DateTime _lastActivity = DateTime.Now;
+        private long _lastActivityTimestamp = MonotonicTime.GetTimestamp();
         private bool _isTimeout = false;
+        private readonly byte[] _pollBuffer = new byte[1];
 
         #endregion
 
@@ -469,7 +471,7 @@
                 }
 
                 BeginConnect();
-                ConnectCore();
+                ConnectCore(_settings.ConnectTimeoutMs);
                 EndConnect();
             }
             finally
@@ -501,8 +503,8 @@
                 }
 
                 BeginConnect();
-                await ConnectCoreAsync(token).ConfigureAwait(false);
-                EndConnect();
+                await ConnectCoreAsync(_settings.ConnectTimeoutMs, token).ConfigureAwait(false);
+                await EndConnectAsync(token).ConfigureAwait(false);
             }
             finally
             {
@@ -512,6 +514,22 @@
 
         private void BeginConnect()
         {
+            if (_tokenSource != null)
+            {
+                try
+                {
+                    if (!_tokenSource.IsCancellationRequested)
+                    {
+                        _tokenSource.Cancel();
+                    }
+                }
+                catch
+                {
+                }
+
+                _tokenSource.Dispose();
+            }
+
             Logger?.Invoke($"{_header}initializing client");
             InitializeClient(_ssl, _pfxCertFilename, _pfxPassword, _sslCert);
             Logger?.Invoke($"{_header}connecting to {ServerIpPort}");
@@ -520,15 +538,28 @@
             _token = _tokenSource.Token;
             _token.Register(() =>
             {
-                if (!_ssl)
+                try
                 {
-                    if (_sslStream == null) return;
-                    _sslStream.Close();
+                    _sslStream?.Close();
                 }
-                else
+                catch
                 {
-                    if (_networkStream == null) return;
-                    _networkStream.Close();
+                }
+
+                try
+                {
+                    _networkStream?.Close();
+                }
+                catch
+                {
+                }
+
+                try
+                {
+                    _client?.Close();
+                }
+                catch
+                {
                 }
             });
 
@@ -536,21 +567,21 @@
             {
 #if NET9_0_OR_GREATER
                 if (String.IsNullOrEmpty(_pfxPassword)) _sslCert = X509CertificateLoader.LoadPkcs12FromFile(_pfxCertFilename, null);
-                _sslCert = X509CertificateLoader.LoadPkcs12FromFile(_pfxCertFilename, _pfxPassword);
+                else _sslCert = X509CertificateLoader.LoadPkcs12FromFile(_pfxCertFilename, _pfxPassword);
 #else
                 if (String.IsNullOrEmpty(_pfxPassword)) _sslCert = new X509Certificate2(_pfxCertFilename);
-                _sslCert = new X509Certificate2(_pfxCertFilename, _pfxPassword);
+                else _sslCert = new X509Certificate2(_pfxCertFilename, _pfxPassword);
 #endif
                 _sslCertCollection = new X509Certificate2Collection { _sslCert };
             }
         }
 
-        private void ConnectCore()
+        private void ConnectCore(int timeoutMs)
         {
             var ar = _client.BeginConnect(_serverIp, _serverPort, null, null);
             using (var wh = ar.AsyncWaitHandle)
             {
-                if (!wh.WaitOne(TimeSpan.FromMilliseconds(_settings.ConnectTimeoutMs), false))
+                if (!wh.WaitOne(TimeSpan.FromMilliseconds(timeoutMs), false))
                 {
                     _client.Close();
                     throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
@@ -559,10 +590,10 @@
             }
         }
 
-        private async Task ConnectCoreAsync(CancellationToken token)
+        private async Task ConnectCoreAsync(int timeoutMs, CancellationToken token)
         {
             var connectTask = Task.Factory.FromAsync(_client.BeginConnect, _client.EndConnect, _serverIp, _serverPort, null);
-            var timeoutOrCancelTask = Task.Delay(_settings.ConnectTimeoutMs, token); // Delay supports CancellationToken
+            var timeoutOrCancelTask = Task.Delay(timeoutMs, token);
 
             var completed = await Task.WhenAny(connectTask, timeoutOrCancelTask).ConfigureAwait(false);
 
@@ -599,48 +630,34 @@
 
         private void EndConnect()
         {
-            try
+            InitializeConnectedStreams();
+
+            if (_ssl)
             {
-                _networkStream = _client.GetStream();
-                _networkStream.ReadTimeout = _settings.ReadTimeoutMs;
-
-                if (_ssl)
-                {
-                    if (_settings.AcceptInvalidCertificates)
-                    {
-                        _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
-                    }
-                    else if (_settings.CertificateValidationCallback != null)
-                    {
-                        _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
-                    }
-                    else
-                    {
-                        _sslStream = new SslStream(_networkStream, false);
-                    }
-
-                    _sslStream.ReadTimeout = _settings.ReadTimeoutMs;
-                    _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation);
-
-                    if (!_sslStream.IsEncrypted) throw new AuthenticationException("Stream is not encrypted");
-                    if (!_sslStream.IsAuthenticated) throw new AuthenticationException("Stream is not authenticated");
-                    if (_settings.MutuallyAuthenticate && !_sslStream.IsMutuallyAuthenticated) throw new AuthenticationException("Mutual authentication failed");
-                }
-
-                if (_keepalive.EnableTcpKeepAlives) EnableKeepalives();
-            }
-            catch (Exception)
-            {
-                throw;
+                _sslStream.AuthenticateAsClient(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation);
+                ValidateAuthenticatedStream();
             }
 
-            _isConnected = true;
-            _lastActivity = DateTime.Now;
-            _isTimeout = false;
-            _events.HandleConnected(this, new ConnectionEventArgs(ServerIpPort));
-            _dataReceiver = Task.Run(() => DataReceiver(_token), _token);
-            _idleServerMonitor = Task.Run(IdleServerMonitor, _token);
-            _connectionMonitor = Task.Run(ConnectedMonitor, _token);
+            CompleteConnect();
+        }
+
+        private async Task EndConnectAsync(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+
+            InitializeConnectedStreams();
+
+            if (_ssl)
+            {
+                await _sslStream
+                    .AuthenticateAsClientAsync(_serverIp, _sslCertCollection, SslProtocols.Tls12, _settings.CheckCertificateRevocation)
+                    .ConfigureAwait(false);
+
+                token.ThrowIfCancellationRequested();
+                ValidateAuthenticatedStream();
+            }
+
+            CompleteConnect();
         }
 
         /// <summary>
@@ -667,66 +684,49 @@
                     return;
                 }
 
-                BeginConnect();
+                int retryCount = 0;
+                long started = MonotonicTime.GetTimestamp();
+                Exception lastException = null;
 
-                using (CancellationTokenSource connectTokenSource = new CancellationTokenSource())
+                while (true)
                 {
-                    CancellationToken connectToken = connectTokenSource.Token;
-
-                    Task cancelTask = Task.Delay(_settings.ConnectTimeoutMs, _token);
-                    Task connectTask = Task.Run(() =>
+                    int remainingMs = MonotonicTime.RemainingMilliseconds(started, _settings.ConnectTimeoutMs);
+                    if (remainingMs <= 0)
                     {
-                        int retryCount = 0;
+                        SafeCloseClient();
+                        throw lastException == null
+                            ? new TimeoutException($"Timeout connecting to {ServerIpPort}")
+                            : new TimeoutException($"Timeout connecting to {ServerIpPort}", lastException);
+                    }
 
-                        while (true)
-                        {
-                            try
-                            {
-                                string msg = $"{_header}attempting connection to {_serverIp}:{_serverPort}";
-                                if (retryCount > 0) msg += $" ({retryCount} retries)";
-                                Logger?.Invoke(msg);
-
-                                _client.Dispose();
-                                _client = _settings.LocalEndpoint == null ? new TcpClient(_addressFamily) : new TcpClient(_settings.LocalEndpoint);
-                                _client.NoDelay = _settings.NoDelay;
-                                _client.ConnectAsync(_serverIp, _serverPort).Wait(1000, connectToken);
-
-                                if (_client.Connected)
-                                {
-                                    Logger?.Invoke($"{_header}connected to {_serverIp}:{_serverPort}");
-                                    break;
-                                }
-                            }
-                            catch (TaskCanceledException)
-                            {
-                                break;
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                break;
-                            }
-                            catch (Exception e)
-                            {
-                                Logger?.Invoke($"{_header}failed connecting to {_serverIp}:{_serverPort}: {e.Message}");
-                            }
-                            finally
-                            {
-                                retryCount++;
-                            }
-                        }
-                    }, connectToken);
-
-                    Task.WhenAny(cancelTask, connectTask).Wait();
-
-                    if (cancelTask.IsCompleted)
+                    try
                     {
-                        connectTokenSource.Cancel();
-                        _client.Close();
-                        throw new TimeoutException($"Timeout connecting to {ServerIpPort}");
+                        string msg = $"{_header}attempting connection to {_serverIp}:{_serverPort}";
+                        if (retryCount > 0) msg += $" ({retryCount} retries)";
+                        Logger?.Invoke(msg);
+
+                        BeginConnect();
+                        ConnectCore(Math.Min(remainingMs, 1000));
+                        EndConnect();
+                        Logger?.Invoke($"{_header}connected to {_serverIp}:{_serverPort}");
+                        return;
+                    }
+                    catch (Exception e) when (
+                        e is TimeoutException
+                        || e is SocketException
+                        || e is ObjectDisposedException
+                        || e is IOException
+                        || e is AuthenticationException)
+                    {
+                        lastException = e;
+                        Logger?.Invoke($"{_header}failed connecting to {_serverIp}:{_serverPort}: {e.Message}");
+                        SafeCloseClient();
+                    }
+                    finally
+                    {
+                        retryCount++;
                     }
                 }
-
-                EndConnect();
             }
             finally
             {
@@ -748,8 +748,8 @@
             Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
 
             _tokenSource.Cancel();
+            CloseTransport();
             WaitCompletion();
-            _client.Close();
             _isConnected = false;
         }
 
@@ -767,8 +767,8 @@
             Logger?.Invoke($"{_header}disconnecting from {ServerIpPort}");
 
             _tokenSource.Cancel();
+            CloseTransport();
             await WaitCompletionAsync();
-            _client.Close();
             _isConnected = false;
         }
 
@@ -793,13 +793,7 @@
         {
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
             if (!_isConnected) throw new IOException("Not connected to the server; use Connect() first.");
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                ms.Write(data, 0, data.Length);
-                ms.Seek(0, SeekOrigin.Begin);
-                SendInternal(data.Length, ms);
-            }
+            SendInternal(data);
         }
 
         /// <summary>
@@ -829,13 +823,7 @@
             if (token == default(CancellationToken)) token = _token;
 
             byte[] bytes = Encoding.UTF8.GetBytes(data);
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                await ms.WriteAsync(bytes, 0, bytes.Length, token).ConfigureAwait(false);
-                ms.Seek(0, SeekOrigin.Begin);
-                await SendInternalAsync(bytes.Length, ms, token).ConfigureAwait(false);
-            }
+            await SendInternalAsync(bytes, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -848,13 +836,7 @@
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
             if (!_isConnected) throw new IOException("Not connected to the server; use Connect() first.");
             if (token == default(CancellationToken)) token = _token;
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                await ms.WriteAsync(data, 0, data.Length, token).ConfigureAwait(false);
-                ms.Seek(0, SeekOrigin.Begin);
-                await SendInternalAsync(data.Length, ms, token).ConfigureAwait(false);
-            }
+            await SendInternalAsync(data, token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -915,6 +897,12 @@
                     _client.Dispose();
                 }
 
+                if (_asyncDataReceivedDispatcher != null)
+                {
+                    _asyncDataReceivedDispatcher.Dispose();
+                    _asyncDataReceivedDispatcher = null;
+                }
+
                 Logger?.Invoke($"{_header}dispose complete");
             }
         }
@@ -937,6 +925,7 @@
                 if (sslCert != null)
                 {
                     _sslCert = sslCert;
+                    _sslCertCollection = new X509Certificate2Collection { _sslCert };
                 }
                 else if (string.IsNullOrEmpty(pfxPassword))
                 {
@@ -969,44 +958,25 @@
 
         private async Task DataReceiver(CancellationToken token)
         {
-            Stream outerStream = null;
-            if (!_ssl) outerStream = _networkStream;
-            else outerStream = _sslStream;
-
             while (!token.IsCancellationRequested && _client != null && _client.Connected)
             {
                 try
                 {
-                    await DataReadAsync(token).ContinueWith(async task =>
-                        {
-                            if (task.IsCanceled) return default;
-                            var data = task.Result;
+                    bool ready = await WaitForReadReadyAsync(token).ConfigureAwait(false);
+                    if (!ready)
+                    {
+                        continue;
+                    }
 
-                            if (data != null)
-                            {
-                                _lastActivity = DateTime.Now;
+                    var data = await DataReadAsync(token).ConfigureAwait(false);
+                    if (data.Array == null)
+                    {
+                        continue;
+                    }
 
-                                Action action = () => _events.HandleDataReceived(this, new DataReceivedEventArgs(ServerIpPort, data));
-                                if (_settings.UseAsyncDataReceivedEvents)
-                                {
-                                    _ = Task.Run(action, token);
-                                }
-                                else
-                                {
-                                    action.Invoke();
-                                }
-
-                                _statistics.ReceivedBytes += data.Count;
-
-                                return data;
-                            }
-                            else
-                            {
-                                await Task.Delay(100).ConfigureAwait(false);
-                                return default;
-                            }
-
-                        }, token).ContinueWith(task => { }).ConfigureAwait(false);
+                    _lastActivityTimestamp = MonotonicTime.GetTimestamp();
+                    QueueDataReceived(data);
+                    _statistics.AddReceivedBytes(data.Count);
                 }
                 catch (AggregateException)
                 {
@@ -1066,68 +1036,109 @@
 
             try
             {
-                if (!_ssl)
-                {
-                    read = await _networkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-                }
-                else
-                {
-                    read = await _sslStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-                }
+                read = !_ssl
+                    ? await _networkStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false)
+                    : await _sslStream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
 
                 if (read > 0)
                 {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        ms.Write(buffer, 0, read);
-                        return new ArraySegment<byte>(ms.GetBuffer(), 0, (int)ms.Length);
-                    }
+                    byte[] payload = new byte[read];
+                    Buffer.BlockCopy(buffer, 0, payload, 0, read);
+                    return new ArraySegment<byte>(payload, 0, read);
                 }
-                else
+
+                IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+                TcpConnectionInformation[] tcpConnections = ipProperties.GetActiveTcpConnections()
+                    .Where(x => x.LocalEndPoint.Equals(this._client.Client.LocalEndPoint) && x.RemoteEndPoint.Equals(this._client.Client.RemoteEndPoint)).ToArray();
+
+                var isOk = false;
+
+                if (tcpConnections != null && tcpConnections.Length > 0)
                 {
-                    IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-                    TcpConnectionInformation[] tcpConnections = ipProperties.GetActiveTcpConnections()
-                        .Where(x => x.LocalEndPoint.Equals(this._client.Client.LocalEndPoint) && x.RemoteEndPoint.Equals(this._client.Client.RemoteEndPoint)).ToArray();
-
-                    var isOk = false;
-
-                    if (tcpConnections != null && tcpConnections.Length > 0)
+                    TcpState stateOfConnection = tcpConnections.First().State;
+                    if (stateOfConnection == TcpState.Established)
                     {
-                        TcpState stateOfConnection = tcpConnections.First().State;
-                        if (stateOfConnection == TcpState.Established)
-                        {
-                            isOk = true;
-                        }
+                        isOk = true;
                     }
-
-                    if (!isOk)
-                    {
-                        await this.DisconnectAsync();
-                    }
-
-                    throw new SocketException();
                 }
+
+                if (!isOk)
+                {
+                    _tokenSource.Cancel();
+                }
+
+                throw new SocketException();
             }
-            catch (IOException)
-            {
-                // thrown if ReadTimeout (ms) is exceeded
-                // see https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.networkstream.readtimeout?view=net-6.0
-                // and https://github.com/dotnet/runtime/issues/24093
-                return default;
-            }
-#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
             finally
             {
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
                 ArrayPool<byte>.Shared.Return(buffer);
-            }
 #endif
+            }
+        }
+
+        private void SendInternal(byte[] data)
+        {
+            try
+            {
+                _sendLock.Wait();
+
+                if (!_ssl) _networkStream.Write(data, 0, data.Length);
+                else _sslStream.Write(data, 0, data.Length);
+
+                if (!_ssl) _networkStream.Flush();
+                else _sslStream.Flush();
+
+                _statistics.AddSentBytes(data.Length);
+                _events.HandleDataSent(this, new DataSentEventArgs(ServerIpPort, data.Length));
+            }
+            finally
+            {
+                _sendLock.Release();
+            }
+        }
+
+        private async Task SendInternalAsync(byte[] data, CancellationToken token)
+        {
+            bool sendLockHeld = false;
+            try
+            {
+                await _sendLock.WaitAsync(token).ConfigureAwait(false);
+                sendLockHeld = true;
+
+                if (!_ssl) await _networkStream.WriteAsync(data, 0, data.Length, token).ConfigureAwait(false);
+                else await _sslStream.WriteAsync(data, 0, data.Length, token).ConfigureAwait(false);
+
+                if (!_ssl) await _networkStream.FlushAsync(token).ConfigureAwait(false);
+                else await _sslStream.FlushAsync(token).ConfigureAwait(false);
+
+                _statistics.AddSentBytes(data.Length);
+                _events.HandleDataSent(this, new DataSentEventArgs(ServerIpPort, data.Length));
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                if (sendLockHeld)
+                {
+                    _sendLock.Release();
+                }
+            }
         }
 
         private void SendInternal(long contentLength, Stream stream)
         {
             long bytesRemaining = contentLength;
             int bytesRead = 0;
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(_settings.StreamBufferSize);
+#else
             byte[] buffer = new byte[_settings.StreamBufferSize];
+#endif
 
             try
             {
@@ -1136,14 +1147,16 @@
                 while (bytesRemaining > 0)
                 {
                     bytesRead = stream.Read(buffer, 0, buffer.Length);
-                    if (bytesRead > 0)
+                    if (bytesRead <= 0)
                     {
-                        if (!_ssl) _networkStream.Write(buffer, 0, bytesRead);
-                        else _sslStream.Write(buffer, 0, bytesRead);
-
-                        bytesRemaining -= bytesRead;
-                        _statistics.SentBytes += bytesRead;
+                        break;
                     }
+
+                    if (!_ssl) _networkStream.Write(buffer, 0, bytesRead);
+                    else _sslStream.Write(buffer, 0, bytesRead);
+
+                    bytesRemaining -= bytesRead;
+                    _statistics.AddSentBytes(bytesRead);
                 }
 
                 if (!_ssl) _networkStream.Flush();
@@ -1152,31 +1165,42 @@
             }
             finally
             {
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+                ArrayPool<byte>.Shared.Return(buffer);
+#endif
                 _sendLock.Release();
             }
         }
 
         private async Task SendInternalAsync(long contentLength, Stream stream, CancellationToken token)
         {
+            bool sendLockHeld = false;
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(_settings.StreamBufferSize);
+#else
+            byte[] buffer = new byte[_settings.StreamBufferSize];
+#endif
             try
             {
                 long bytesRemaining = contentLength;
                 int bytesRead = 0;
-                byte[] buffer = new byte[_settings.StreamBufferSize];
 
                 await _sendLock.WaitAsync(token).ConfigureAwait(false);
+                sendLockHeld = true;
 
                 while (bytesRemaining > 0)
                 {
                     bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
-                    if (bytesRead > 0)
+                    if (bytesRead <= 0)
                     {
-                        if (!_ssl) await _networkStream.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
-                        else await _sslStream.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
-
-                        bytesRemaining -= bytesRead;
-                        _statistics.SentBytes += bytesRead;
+                        break;
                     }
+
+                    if (!_ssl) await _networkStream.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
+                    else await _sslStream.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
+
+                    bytesRemaining -= bytesRead;
+                    _statistics.AddSentBytes(bytesRead);
                 }
 
                 if (!_ssl) await _networkStream.FlushAsync(token).ConfigureAwait(false);
@@ -1193,32 +1217,28 @@
             }
             finally
             {
-                _sendLock.Release();
+#if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+                ArrayPool<byte>.Shared.Return(buffer);
+#endif
+                if (sendLockHeld)
+                {
+                    _sendLock.Release();
+                }
             }
         }
 
         private void WaitCompletion()
         {
-            try
-            {
-                _dataReceiver.Wait();
-            }
-            catch (AggregateException ex) when (ex.InnerException is TaskCanceledException)
-            {
-                Logger?.Invoke("Awaiting a canceled task");
-            }
+            WaitForTaskCompletion(_dataReceiver, 2000);
+            WaitForTaskCompletion(_idleServerMonitor, 2000);
+            WaitForTaskCompletion(_connectionMonitor, 2000);
         }
 
         private async Task WaitCompletionAsync()
         {
-            try
-            {
-                await _dataReceiver;
-            }
-            catch (TaskCanceledException)
-            {
-                Logger?.Invoke("Awaiting a canceled task");
-            }
+            await WaitForTaskCompletionAsync(_dataReceiver, 2000).ConfigureAwait(false);
+            await WaitForTaskCompletionAsync(_idleServerMonitor, 2000).ConfigureAwait(false);
+            await WaitForTaskCompletionAsync(_connectionMonitor, 2000).ConfigureAwait(false);
         }
 
         private void EnableKeepalives()
@@ -1280,14 +1300,13 @@
 
                     if (_settings.IdleServerTimeoutMs == 0) continue;
 
-                    DateTime timeoutTime = _lastActivity.AddMilliseconds(_settings.IdleServerTimeoutMs);
-
-                    if (DateTime.Now > timeoutTime)
+                    if (MonotonicTime.HasElapsed(_lastActivityTimestamp, _settings.IdleServerTimeoutMs))
                     {
                         Logger?.Invoke($"{_header}disconnecting from {ServerIpPort} due to timeout");
                         _isConnected = false;
                         _isTimeout = true;
                         _tokenSource.Cancel(); // DataReceiver will fire events including dispose
+                        CloseTransport();
                     }
                 }
                 catch (TaskCanceledException)
@@ -1317,6 +1336,7 @@
                         Logger?.Invoke($"{_header}disconnecting from {ServerIpPort} due to connection lost");
                         _isConnected = false;
                         _tokenSource.Cancel(); // DataReceiver will fire events including dispose
+                        CloseTransport();
                     }
                 }
                 catch (TaskCanceledException)
@@ -1347,8 +1367,7 @@
                 if (!_client.Client.Poll(0, SelectMode.SelectRead))
                     return true;
 
-                var buff = new byte[1];
-                var clientSentData = _client.Client.Receive(buff, SocketFlags.Peek) != 0;
+                var clientSentData = _client.Client.Receive(_pollBuffer, SocketFlags.Peek) != 0;
                 return clientSentData; //False here though Poll() succeeded means we had a disconnect!
             }
             catch (SocketException ex)
@@ -1359,6 +1378,210 @@
             catch (Exception)
             {
                 return false;
+            }
+        }
+
+        private void InitializeConnectedStreams()
+        {
+            _networkStream = _client.GetStream();
+
+            if (!_ssl)
+            {
+                return;
+            }
+
+            if (_settings.AcceptInvalidCertificates)
+            {
+                _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
+            }
+            else if (_settings.CertificateValidationCallback != null)
+            {
+                _sslStream = new SslStream(_networkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
+            }
+            else
+            {
+                _sslStream = new SslStream(_networkStream, false);
+            }
+        }
+
+        private void ValidateAuthenticatedStream()
+        {
+            if (!_sslStream.IsEncrypted) throw new AuthenticationException("Stream is not encrypted");
+            if (!_sslStream.IsAuthenticated) throw new AuthenticationException("Stream is not authenticated");
+            if (_settings.MutuallyAuthenticate && !_sslStream.IsMutuallyAuthenticated) throw new AuthenticationException("Mutual authentication failed");
+        }
+
+        private void CompleteConnect()
+        {
+            if (_keepalive.EnableTcpKeepAlives) EnableKeepalives();
+
+            _isConnected = true;
+            _lastActivityTimestamp = MonotonicTime.GetTimestamp();
+            _isTimeout = false;
+            _events.HandleConnected(this, new ConnectionEventArgs(ServerIpPort));
+            _dataReceiver = DataReceiver(_token);
+            _idleServerMonitor = IdleServerMonitor();
+            _connectionMonitor = ConnectedMonitor();
+        }
+
+        private void EnsureAsyncDataReceivedDispatcher()
+        {
+            if (_asyncDataReceivedDispatcher != null)
+            {
+                return;
+            }
+
+            int workerCount = Math.Min(Math.Max(Environment.ProcessorCount, 2), 4);
+            _asyncDataReceivedDispatcher = new AsyncEventDispatcher<DataReceivedEventArgs>(
+                args => _events.HandleDataReceived(this, args),
+                workerCount);
+        }
+
+        private void QueueDataReceived(ArraySegment<byte> data)
+        {
+            var args = new DataReceivedEventArgs(ServerIpPort, data);
+            if (_settings.UseAsyncDataReceivedEvents)
+            {
+                EnsureAsyncDataReceivedDispatcher();
+                _asyncDataReceivedDispatcher.Enqueue(args);
+                return;
+            }
+
+            _events.HandleDataReceived(this, args);
+        }
+
+        private async Task<bool> WaitForReadReadyAsync(CancellationToken token)
+        {
+            if (_client?.Client == null)
+            {
+                return false;
+            }
+
+            await Task.Yield();
+
+            long started = MonotonicTime.GetTimestamp();
+            int sliceMs = 1;
+
+            while (!token.IsCancellationRequested)
+            {
+                Socket socket = _client?.Client;
+                if (socket == null)
+                {
+                    return false;
+                }
+
+                if (socket.Poll(sliceMs * 1000, SelectMode.SelectRead))
+                {
+                    return true;
+                }
+
+                if (MonotonicTime.HasElapsed(started, _settings.ReadTimeoutMs))
+                {
+                    return false;
+                }
+            }
+
+            token.ThrowIfCancellationRequested();
+            return false;
+        }
+
+        private void CloseTransport()
+        {
+            try
+            {
+                _sslStream?.Close();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                _networkStream?.Close();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (_client?.Client != null && _client.Client.Connected)
+                {
+                    _client.Client.Shutdown(SocketShutdown.Both);
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                _client?.Close();
+            }
+            catch
+            {
+            }
+        }
+
+        private void SafeCloseClient()
+        {
+            try
+            {
+                _client?.Close();
+            }
+            catch
+            {
+            }
+        }
+
+        private void WaitForTaskCompletion(Task task, int timeoutMs)
+        {
+            if (task == null)
+            {
+                return;
+            }
+
+            try
+            {
+                task.Wait(timeoutMs);
+            }
+            catch (AggregateException ex) when (
+                ex.InnerException is TaskCanceledException
+                || ex.InnerException is OperationCanceledException
+                || ex.InnerException is ObjectDisposedException)
+            {
+                Logger?.Invoke("Awaiting a canceled task");
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        private async Task WaitForTaskCompletionAsync(Task task, int timeoutMs)
+        {
+            if (task == null)
+            {
+                return;
+            }
+
+            try
+            {
+                Task completedTask = await Task.WhenAny(task, Task.Delay(timeoutMs)).ConfigureAwait(false);
+                if (completedTask == task)
+                {
+                    await task.ConfigureAwait(false);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                Logger?.Invoke("Awaiting a canceled task");
+            }
+            catch (OperationCanceledException)
+            {
+                Logger?.Invoke("Awaiting a canceled task");
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
 
