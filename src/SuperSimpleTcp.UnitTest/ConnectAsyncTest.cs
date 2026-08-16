@@ -36,7 +36,15 @@ public sealed class ConnectAsyncTest
 
         await WithTimeoutAsync(Task.WhenAll(tasks), TimeSpan.FromSeconds(5));
 
-        await Task.Delay(50);
+        // Wait for the server to actually observe the (single) physical connection
+        // rather than relying on a fixed delay, which is flaky under load.
+        await WaitForConditionAsync(
+            () => Volatile.Read(ref serverConnectedCount) >= 1 && client.IsConnected,
+            TimeSpan.FromSeconds(5));
+
+        // Give any (erroneous) duplicate physical connections a chance to surface
+        // so the "exactly one" assertion is meaningful.
+        await Task.Delay(200);
 
         Assert.AreEqual(1, serverConnectedCount);
         Assert.IsTrue(client.IsConnected);
@@ -280,6 +288,18 @@ public sealed class ConnectAsyncTest
             Assert.Fail($"Operation did not complete within {timeout.TotalMilliseconds}ms.");
 
         await task.ConfigureAwait(false);
+    }
+
+    private static async Task WaitForConditionAsync(Func<bool> condition, TimeSpan timeout)
+    {
+        var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
+        while (!condition())
+        {
+            if (Environment.TickCount64 >= deadline)
+                Assert.Fail($"Condition was not met within {timeout.TotalMilliseconds}ms.");
+
+            await Task.Delay(25).ConfigureAwait(false);
+        }
     }
 
     private static async Task<BacklogBlackhole> RequireBacklogBlackholeAsync()
