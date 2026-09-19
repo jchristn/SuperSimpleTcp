@@ -2,6 +2,12 @@
 
 ## Current Version
 
+v3.1.1
+
+- Async `DataReceived` dispatch (`UseAsyncDataReceivedEvents`, enabled by default) now uses a single dedicated worker, guaranteeing handlers run one-at-a-time and in the exact order data was received, preventing out-of-order or overlapping delivery from corrupting message reassembly (thank you @aa53420, issue #236)
+
+## Previous Versions
+
 v3.1.0
 
 - Internal performance refactor for connect, send, receive, timeout, and teardown paths while preserving the public API
@@ -10,8 +16,6 @@ v3.1.0
 - Async `DataReceived` dispatch now uses an internal worker queue instead of per-message `Task.Run`
 - Added Touchstone-based shared test suites with console, xUnit, and NUnit runners
 - Added `src/Test.PerformanceBenchmark` plus `RunBenchmarks.bat` to capture timestamped benchmark summaries under `benchmarks/`
-
-## Previous Versions
 
 v3.0.23
 

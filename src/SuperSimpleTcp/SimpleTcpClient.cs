@@ -1431,7 +1431,12 @@
                 return;
             }
 
-            int workerCount = Math.Min(Math.Max(Environment.ProcessorCount, 2), 4);
+            // A single worker guarantees that DataReceived handlers execute one-at-a-time and in
+            // the exact order segments were read from the socket, while still decoupling handler
+            // execution from the receive loop. Using multiple workers would allow a later segment
+            // to be handled before (or concurrently with) an earlier one, corrupting message
+            // reassembly for stream-oriented consumers. See issue #236.
+            const int workerCount = 1;
             _asyncDataReceivedDispatcher = new AsyncEventDispatcher<DataReceivedEventArgs>(
                 args => _events.HandleDataReceived(this, args),
                 workerCount);

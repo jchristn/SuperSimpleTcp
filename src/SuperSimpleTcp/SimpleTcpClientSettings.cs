@@ -156,6 +156,9 @@
         /// <summary>
         /// Enable or disable whether the data receiver thread fires the DataReceived event from a background task.
         /// The default is enabled.
+        /// When enabled, events are dispatched from a single dedicated worker so that handlers execute one-at-a-time
+        /// and in the exact order data was received, keeping the receive loop from blocking on slow handlers without
+        /// reordering or overlapping message delivery.
         /// </summary>
         public bool UseAsyncDataReceivedEvents = true;
 

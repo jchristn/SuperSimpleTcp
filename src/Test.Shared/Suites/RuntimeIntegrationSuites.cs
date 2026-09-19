@@ -1490,7 +1490,7 @@ internal static partial class RuntimeSuites
                 TestCaseFactory.Async(
                     suiteId,
                     "ServerAsyncDataEventsEnabled",
-                    "SimpleTcpServerSettings.UseAsyncDataReceivedEvents can dispatch work on multiple threads",
+                    "SimpleTcpServerSettings.UseAsyncDataReceivedEvents dispatches asynchronously without overlapping handlers",
                     async token =>
                     {
                         ConcurrencyTracker tracker = new(expectedEvents: 100);
@@ -1511,9 +1511,9 @@ internal static partial class RuntimeSuites
 
                         await tracker.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
                         await Task.Delay(500, token).ConfigureAwait(false);
-                        TestAssert.True(
-                            tracker.CallingThreadIds.Distinct().Count() > 1,
-                            "Async server DataReceived handlers should execute on more than one thread over repeated deliveries.");
+                        TestAssert.False(
+                            tracker.ConcurrencyDetected,
+                            "Async server DataReceived handlers must execute one-at-a-time and never overlap (single-worker dispatch).");
 
                         client.Disconnect();
                         StopServer(server);

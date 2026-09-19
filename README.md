@@ -13,6 +13,10 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
+## New in v3.1.1
+
+- `DataReceived` events dispatched via `UseAsyncDataReceivedEvents` (the default) now use a single dedicated worker, guaranteeing handlers execute one-at-a-time and in the exact order data was received. This preserves the receive-loop decoupling while eliminating the possibility of out-of-order or overlapping delivery that could corrupt message reassembly (thank you @aa53420, issue #236)
+
 ## New in v3.1.0
 
 - Internal performance refactor to reduce send/receive allocations, remove unnecessary scheduler hops, and tighten connection teardown
