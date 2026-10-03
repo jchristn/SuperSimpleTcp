@@ -1419,7 +1419,8 @@
                     Telemetry.DispatchDequeued(InstanceTelemetry.ElapsedSeconds(item.EnqueuedTimestamp));
                     InvokeDataReceived(item.Args, item.ParentContext, SimpleTcpTelemetryNames.DispatchAsync);
                 },
-                workerCount);
+                workerCount,
+                e => Logger?.Invoke($"{_header}DataReceived handler exception: {e}"));
         }
 
         private void QueueDataReceived(string ipPort, ArraySegment<byte> data)

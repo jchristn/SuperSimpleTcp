@@ -159,6 +159,7 @@
         /// When enabled, events are dispatched from a single dedicated worker so that handlers execute one-at-a-time
         /// and in the exact order data was received, keeping the receive loop from blocking on slow handlers without
         /// reordering or overlapping message delivery.
+        /// An exception thrown by a handler is caught, reported through Logger, and does not stop delivery of later data.
         /// </summary>
         public bool UseAsyncDataReceivedEvents = true;
 

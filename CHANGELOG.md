@@ -2,6 +2,12 @@
 
 ## Current Version
 
+v3.2.1
+
+- Fix: with `UseAsyncDataReceivedEvents` enabled (the default), an exception thrown by a `DataReceived` handler stopped the dispatch worker for that server or client, so every later segment was queued but never delivered. The worker now catches the exception, reports it through `Logger` (and the existing `errors{operation="handler"}` metric and `process` span), and continues with the next segment
+
+## Previous Versions
+
 v3.2.0
 
 - Built-in observability through the .NET base class library: a `Meter` and an `ActivitySource`, both named `SuperSimpleTcp`. No exporter or Radiant dependency; hosts subscribe by name. See `TELEMETRY.md`
@@ -10,8 +16,6 @@ v3.2.0
 - New `SimpleTcpTelemetrySettings` (`Enable`, `EnableMetrics`, `EnableTraces`, `InstanceName`) exposed as `Settings.Telemetry` on server and client, and `SimpleTcpTelemetryNames` with every meter, instrument, span, and attribute name as public constants
 - Adds a dependency on `System.Diagnostics.DiagnosticSource` 8.0.1 for `netstandard2.1`, `net461`, `net462`, and `net48` (in-box on `net8.0` and later)
 - Instrumentation is best-effort and never changes control flow; a throwing listener cannot affect networking
-
-## Previous Versions
 
 v3.1.1
 

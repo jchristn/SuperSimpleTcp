@@ -3,8 +3,8 @@
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.1;net461;net462;net48;net8.0;net10.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>3.2.0</Version>
-		<PackageReleaseNotes>Built-in observability: metrics and traces through a BCL Meter and ActivitySource named SuperSimpleTcp (connections, accept, TLS, connect, send, receive, DataReceived handler and dispatch queue, monitors, errors). No exporter dependency; see TELEMETRY.md.</PackageReleaseNotes>
+		<Version>3.2.1</Version>
+		<PackageReleaseNotes>Fix: an exception thrown by a DataReceived handler no longer stops the asynchronous dispatch worker; later data continues to be delivered and the exception is reported through Logger and telemetry.</PackageReleaseNotes>
 		<Authors>Joel Christner</Authors>
 		<Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
 		<Copyright>(c)2026 Joel Christner</Copyright>

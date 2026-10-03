@@ -282,7 +282,7 @@ groups:
         labels: { severity: warning }
 ```
 
-`SuperSimpleTcpHandlerErrors` deserves attention. With asynchronous dispatch (the default), an exception thrown by your `DataReceived` handler stops the dispatch worker for that server or client, and later segments are queued but never delivered. The alert, together with a growing `dispatch.queue.depth`, is how you see it. Catch exceptions inside your handler.
+`SuperSimpleTcpHandlerErrors` deserves attention. An exception thrown by your `DataReceived` handler means that segment was not processed. The library catches it and keeps delivering later segments (since v3.2.1; earlier versions stopped the asynchronous dispatch worker), but the data in that segment is lost to your application. With synchronous dispatch the exception still ends the receive loop and the connection closes. Catch exceptions inside your handler.
 
 ## Dashboard map
 

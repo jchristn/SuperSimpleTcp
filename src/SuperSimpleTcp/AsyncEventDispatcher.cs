@@ -10,18 +10,20 @@ namespace SuperSimpleTcp
     internal sealed class AsyncEventDispatcher<T> : IDisposable
     {
         private readonly Action<T> _handler;
+        private readonly Action<Exception> _onHandlerException;
         private readonly CancellationTokenSource _tokenSource = new CancellationTokenSource();
         private readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
         private readonly ConcurrentQueue<T> _queue = new ConcurrentQueue<T>();
         private readonly List<Task> _workers;
         private bool _disposed;
 
-        internal AsyncEventDispatcher(Action<T> handler, int workerCount)
+        internal AsyncEventDispatcher(Action<T> handler, int workerCount, Action<Exception> onHandlerException = null)
         {
             if (handler == null) throw new ArgumentNullException(nameof(handler));
             if (workerCount < 1) throw new ArgumentOutOfRangeException(nameof(workerCount));
 
             _handler = handler;
+            _onHandlerException = onHandlerException;
             _workers = new List<Task>(workerCount);
 
             for (int i = 0; i < workerCount; i++)
@@ -116,7 +118,21 @@ namespace SuperSimpleTcp
 
                 while (_queue.TryDequeue(out T item))
                 {
-                    _handler(item);
+                    // A throwing handler must not end the worker; otherwise every later item queues forever.
+                    try
+                    {
+                        _handler(item);
+                    }
+                    catch (Exception e)
+                    {
+                        try
+                        {
+                            _onHandlerException?.Invoke(e);
+                        }
+                        catch
+                        {
+                        }
+                    }
                 }
             }
         }

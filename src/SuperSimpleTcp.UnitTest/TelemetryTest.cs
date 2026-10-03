@@ -483,16 +483,17 @@ namespace SuperSimpleTcp.UnitTest
         }
 
         [TestMethod]
-        public async Task AsyncHandlerException_RecordsHandlerErrorAndQueueBacklog()
+        public async Task AsyncHandlerException_RecordsHandlerErrorAndWorkerKeepsDelivering()
         {
             using TelemetryCapture capture = new TelemetryCapture();
             int calls = 0;
+            List<string> logs = new List<string>();
 
             using SimpleTcpServer server = capture.Configure(new SimpleTcpServer(LoopbackIp, 0));
+            server.Logger = msg => { lock (logs) logs.Add(msg); };
             server.Events.DataReceived += (_, _) =>
             {
-                Interlocked.Increment(ref calls);
-                throw new InvalidDataException("bad frame");
+                if (Interlocked.Increment(ref calls) == 1) throw new InvalidDataException("bad frame");
             };
             server.Start();
 
@@ -505,12 +506,48 @@ namespace SuperSimpleTcp.UnitTest
             Assert.AreEqual(1, capture.Count(N.Errors, Server, N.AttributeOperation, N.OperationHandler));
             Assert.AreEqual(ActivityStatusCode.Error, capture.Spans(N.SpanProcess, Server).Single().Status);
 
-            // Existing behavior: the dispatch worker stops after a handler throws, so later segments queue up.
-            // The queue depth metric is what makes that visible to an operator.
+            // The dispatch worker survives a throwing handler: later segments are still delivered and the queue drains.
             await Task.Delay(100);
             client.Send("second");
-            Assert.IsTrue(await TelemetryCapture.WaitUntil(() => capture.Sum(N.DispatchQueueDepth, Server) >= 1));
-            Assert.AreEqual(1, Volatile.Read(ref calls));
+            Assert.IsTrue(await TelemetryCapture.WaitUntil(() => Volatile.Read(ref calls) == 2));
+            Assert.IsTrue(await TelemetryCapture.WaitUntil(() => capture.Count(N.HandlerDuration, Server, N.AttributeOutcome, N.OutcomeSuccess) == 1));
+            Assert.AreEqual(0, capture.Sum(N.DispatchQueueDepth, Server));
+            Assert.IsTrue(server.IsListening);
+            Assert.AreEqual(1, server.GetClients().Count());
+            lock (logs) Assert.IsTrue(logs.Any(l => l.Contains("DataReceived handler exception") && l.Contains("bad frame")));
+
+            client.Disconnect();
+            server.Stop();
+        }
+
+        [TestMethod]
+        public async Task AsyncHandlerException_ClientWorkerKeepsDelivering()
+        {
+            using TelemetryCapture capture = new TelemetryCapture();
+            int calls = 0;
+
+            using SimpleTcpServer server = new SimpleTcpServer(LoopbackIp, 0);
+            string? clientIpPort = null;
+            server.Events.ClientConnected += (_, e) => clientIpPort = e.IpPort;
+            server.Start();
+
+            using SimpleTcpClient client = capture.Configure(new SimpleTcpClient(LoopbackIp, server.Port));
+            client.Events.DataReceived += (_, _) =>
+            {
+                if (Interlocked.Increment(ref calls) == 1) throw new InvalidDataException("bad frame");
+            };
+            client.Connect();
+            Assert.IsTrue(await TelemetryCapture.WaitUntil(() => clientIpPort != null));
+
+            server.Send(clientIpPort!, "first");
+            Assert.IsTrue(await TelemetryCapture.WaitUntil(() => capture.Count(N.HandlerDuration, Client, N.AttributeOutcome, N.OutcomeError) == 1));
+
+            await Task.Delay(100);
+            server.Send(clientIpPort!, "second");
+            Assert.IsTrue(await TelemetryCapture.WaitUntil(() => Volatile.Read(ref calls) == 2));
+            Assert.IsTrue(await TelemetryCapture.WaitUntil(() => capture.Count(N.HandlerDuration, Client, N.AttributeOutcome, N.OutcomeSuccess) == 1));
+            Assert.AreEqual(0, capture.Sum(N.DispatchQueueDepth, Client));
+            Assert.IsTrue(client.IsConnected);
 
             client.Disconnect();
             server.Stop();

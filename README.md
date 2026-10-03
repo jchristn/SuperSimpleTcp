@@ -13,6 +13,10 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
+## New in v3.2.1
+
+- Fix: a `DataReceived` handler that throws no longer stops asynchronous event dispatch; later data is still delivered and the exception is reported through `Logger` and telemetry. Catching exceptions in your own handler is still recommended
+
 ## New in v3.2.0
 
 - Built-in observability: metrics and traces through a BCL `Meter` and `ActivitySource`, both named `SuperSimpleTcp`, with no exporter dependency. Covers connections (active, limit, opened, closed by reason, rejected by reason, lifetime), accept, TLS handshake, connect and retries, send (including send-lock wait), bytes and segment sizes, `DataReceived` handler duration, async dispatch queue depth and wait, background monitors, and errors by operation and exception type
