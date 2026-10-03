@@ -13,6 +13,12 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
+## New in v3.2.0
+
+- Built-in observability: metrics and traces through a BCL `Meter` and `ActivitySource`, both named `SuperSimpleTcp`, with no exporter dependency. Covers connections (active, limit, opened, closed by reason, rejected by reason, lifetime), accept, TLS handshake, connect and retries, send (including send-lock wait), bytes and segment sizes, `DataReceived` handler duration, async dispatch queue depth and wait, background monitors, and errors by operation and exception type
+- Per-instance `Settings.Telemetry` (`Enable`, `EnableMetrics`, `EnableTraces`, `InstanceName`) on both server and client
+- All names are public constants in `SimpleTcpTelemetryNames`; see [TELEMETRY.md](TELEMETRY.md) for the catalog, span topology, PromQL, and alerts
+
 ## New in v3.1.1
 
 - `DataReceived` events dispatched via `UseAsyncDataReceivedEvents` (the default) now use a single dedicated worker, guaranteeing handlers execute one-at-a-time and in the exact order data was received. This preserves the receive-loop decoupling while eliminating the possibility of out-of-order or overlapping delivery that could corrupt message reassembly (thank you @aa53420, issue #236)
@@ -153,6 +159,31 @@ Additionally, both SimpleTcpClient and SimpleTcpServer offer a statistics object
 ### Testing with SSL
 
 A certificate named ```simpletcp.pfx``` is provided for simple testing. It should not expire for a really long time. It's a self-signed certificate and you should NOT use it in production. Its export password is ```simpletcp```.
+
+## Telemetry
+
+SuperSimpleTcp emits metrics and traces on a `Meter` and an `ActivitySource` named `SuperSimpleTcp`. Nothing is exported until your application subscribes a collector, and the cost is negligible when nothing is listening. Subscribe with Radiant, the OpenTelemetry SDK, or any `MeterListener`/`ActivityListener`:
+
+```csharp
+// Radiant
+RadiantSettings settings = new RadiantSettings("my-service");
+settings.Sources.AddMeter(SimpleTcpTelemetryNames.MeterName);
+settings.Sources.AddActivitySource(SimpleTcpTelemetryNames.ActivitySourceName);
+using RadiantHost host = RadiantHost.Start(settings);
+
+// OpenTelemetry SDK
+using MeterProvider meters = Sdk.CreateMeterProviderBuilder().AddMeter("SuperSimpleTcp").AddOtlpExporter().Build();
+using TracerProvider tracer = Sdk.CreateTracerProviderBuilder().AddSource("SuperSimpleTcp").AddOtlpExporter().Build();
+```
+
+Name each server or client so their series can be told apart, and turn signals off per instance if needed:
+
+```csharp
+server.Settings.Telemetry.InstanceName = "ingest";   // supersimpletcp.instance label
+server.Settings.Telemetry.EnableTraces = false;      // metrics only
+```
+
+Operators get connection counts versus `MaxConnections`, rejections by reason (`not_permitted`, `blocked`, `max_connections`, `tls_failed`), close reasons (`normal`, `kicked`, `timeout`), connect/TLS/send latency with outcome and `error.type`, send-lock wait, the async `DataReceived` queue depth and wait, handler duration, and an error counter by operation. Spans cover accept, TLS handshake, connect (with retries), send, receive, handler processing (propagated across the async dispatch hand-off), and disconnect. The full catalog, label values, trace topology, PromQL, and recommended alerts are in [TELEMETRY.md](TELEMETRY.md).
 
 ## Benchmarking
 

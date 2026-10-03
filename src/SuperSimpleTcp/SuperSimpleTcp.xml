@@ -432,6 +432,13 @@
             Delegate responsible for validating a certificate supplied by a remote party.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpClientSettings.Telemetry">
+            <summary>
+            Telemetry settings (metrics and traces emitted on the SuperSimpleTcp Meter and ActivitySource).
+            Enabled by default; costs effectively nothing until a collector subscribes.  Setting null restores the defaults.
+            See TELEMETRY.md for the catalog of metrics and spans.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpClientSettings.#ctor">
             <summary>
             Instantiate the object.
@@ -771,6 +778,13 @@
             The list of blocked IP addresses from which connections will be declined.
             </summary>
         </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpServerSettings.Telemetry">
+            <summary>
+            Telemetry settings (metrics and traces emitted on the SuperSimpleTcp Meter and ActivitySource).
+            Enabled by default; costs effectively nothing until a collector subscribes.  Setting null restores the defaults.
+            See TELEMETRY.md for the catalog of metrics and spans.
+            </summary>
+        </member>
         <member name="M:SuperSimpleTcp.SimpleTcpServerSettings.#ctor">
             <summary>
             Instantiate the object.
@@ -815,6 +829,441 @@
         <member name="M:SuperSimpleTcp.SimpleTcpStatistics.Reset">
             <summary>
             Reset statistics other than StartTime and UpTime.
+            </summary>
+        </member>
+        <member name="T:SuperSimpleTcp.SimpleTcpTelemetryNames">
+            <summary>
+            Stable public names for SuperSimpleTcp telemetry: the meter, the activity source, every metric instrument, every span, and every attribute key and value.
+            These strings are a public contract consumed by collectors, dashboards, and alerts.  They will not change without a major version increment.
+            Instrument names are dotted (OpenTelemetry style); a Prometheus exporter rewrites them to snake case with unit and type suffixes,
+            for example supersimpletcp.send.duration becomes supersimpletcp_send_duration_seconds.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.MeterName">
+            <summary>
+            Name of the System.Diagnostics.Metrics.Meter that emits all SuperSimpleTcp metrics.
+            Subscribe a collector to this name, for example settings.Sources.AddMeter("SuperSimpleTcp") in Radiant.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ActivitySourceName">
+            <summary>
+            Name of the System.Diagnostics.ActivitySource that emits all SuperSimpleTcp spans.
+            Subscribe a collector to this name, for example settings.Sources.AddActivitySource("SuperSimpleTcp") in Radiant.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ConnectionsActive">
+            <summary>
+            UpDownCounter, {connection}.  Connections currently established.  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ConnectionsLimit">
+            <summary>
+            UpDownCounter, {connection}.  Configured connection capacity (server MaxConnections) of every listening server.  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ConnectionsOpened">
+            <summary>
+            Counter, {connection}.  Connections successfully established (server accepted or client connected).  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ConnectionsClosed">
+            <summary>
+            Counter, {connection}.  Connections closed.  Labels: role, instance, tls, reason.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ConnectionsRejected">
+            <summary>
+            Counter, {connection}.  Inbound connections rejected by the server before being established.  Labels: role, instance, tls, reject reason.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ConnectionDuration">
+            <summary>
+            Histogram, seconds.  Lifetime of a connection from establishment to close.  Labels: role, instance, tls, reason.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ListenersActive">
+            <summary>
+            UpDownCounter, {listener}.  Server listeners currently accepting connections.  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AcceptDuration">
+            <summary>
+            Histogram, seconds.  Server time from socket accept to the connection being ready or rejected (filtering plus TLS).  Labels: role, instance, tls, outcome.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.TlsHandshakeDuration">
+            <summary>
+            Histogram, seconds.  TLS handshake duration.  Labels: role, instance, tls, outcome, error.type (on failure).
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ConnectDuration">
+            <summary>
+            Histogram, seconds.  Duration of a single client connection attempt (TCP connect plus TLS).  Labels: role, instance, tls, outcome, error.type (on failure).
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SendDuration">
+            <summary>
+            Histogram, seconds.  Duration of a send operation including send-lock wait, write, and flush.  Labels: role, instance, tls, outcome, error.type (on failure).
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SendLockWaitDuration">
+            <summary>
+            Histogram, seconds.  Time a send spent waiting for the per-connection send lock (concurrency limiter).  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SentBytes">
+            <summary>
+            Counter, bytes.  Bytes written to the network.  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ReceivedBytes">
+            <summary>
+            Counter, bytes.  Bytes read from the network.  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.ReceiveSegmentSize">
+            <summary>
+            Histogram, bytes.  Size of each segment read from the network (bounded by StreamBufferSize).  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.HandlerDuration">
+            <summary>
+            Histogram, seconds.  Execution time of the application's DataReceived handler.  Labels: role, instance, tls, dispatch mode, outcome, error.type (on failure).
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.DispatchQueueDepth">
+            <summary>
+            UpDownCounter, {segment}.  Received segments queued for asynchronous DataReceived dispatch and not yet handled.  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.DispatchQueueWait">
+            <summary>
+            Histogram, seconds.  Time a received segment waited in the asynchronous dispatch queue before its handler started.  Labels: role, instance, tls.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.MonitorRuns">
+            <summary>
+            Counter, {run}.  Background monitor evaluations.  Labels: role, instance, tls, monitor, outcome.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.Errors">
+            <summary>
+            Counter, {error}.  Errors by operation and exception type.  Labels: role, instance, tls, operation, error.type.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.BuildInfo">
+            <summary>
+            ObservableGauge, {info}.  Always 1; carries the library version as a label.  Labels: version.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanAccept">
+            <summary>
+            Span (Server kind).  Server accepting one inbound connection: filtering, TLS, registration.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanTlsHandshake">
+            <summary>
+            Span (Internal kind).  TLS handshake, child of accept or connect.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanConnect">
+            <summary>
+            Span (Client kind).  One client connection attempt.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanConnectWithRetries">
+            <summary>
+            Span (Internal kind).  ConnectWithRetries; parent of each connect attempt.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanSend">
+            <summary>
+            Span (Client kind).  One send operation.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanReceive">
+            <summary>
+            Span (Consumer kind).  One segment read from the network.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanProcess">
+            <summary>
+            Span (Internal kind).  Execution of the DataReceived handler for one segment; child of receive, including across the asynchronous dispatch hand-off.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.SpanDisconnect">
+            <summary>
+            Span (Internal kind).  A connection closing, with its reason and lifetime.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeRole">
+            <summary>
+            Attribute key: role of the emitting component.  Values: server, client.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeInstance">
+            <summary>
+            Attribute key: application-assigned instance name from Settings.Telemetry.InstanceName.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeTls">
+            <summary>
+            Attribute key: whether the connection uses SSL/TLS.  Values: true, false.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeOutcome">
+            <summary>
+            Attribute key: outcome of an operation.  Values: success, error, canceled, timeout, rejected, not_found.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeReason">
+            <summary>
+            Attribute key: disconnect reason.  Values: normal, kicked, timeout.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeRejectReason">
+            <summary>
+            Attribute key: reason a server rejected an inbound connection.  Values: not_permitted, blocked, max_connections, tls_failed, duplicate.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeOperation">
+            <summary>
+            Attribute key: the operation an error occurred in.  Values: accept, tls_handshake, connect, send, receive, handler, monitor, keepalive.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeMonitor">
+            <summary>
+            Attribute key: background monitor name.  Values: idle_client, idle_server, connection_lost.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeDispatchMode">
+            <summary>
+            Attribute key: DataReceived dispatch mode.  Values: sync, async.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeVersion">
+            <summary>
+            Attribute key: library version, on the build info gauge.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeBytes">
+            <summary>
+            Span attribute key: number of payload bytes for a send or receive.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeAttempt">
+            <summary>
+            Span attribute key: connection attempt number (1-based) within ConnectWithRetries.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeConnectionDuration">
+            <summary>
+            Span attribute key: connection lifetime in seconds, on the disconnect span.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeErrorType">
+            <summary>
+            OpenTelemetry attribute key: exception or error type.  Fully qualified exception type name.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeNetworkTransport">
+            <summary>
+            OpenTelemetry attribute key: transport protocol.  Always tcp.  Span only.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeNetworkPeerAddress">
+            <summary>
+            OpenTelemetry attribute key: remote peer address.  Span only.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeNetworkPeerPort">
+            <summary>
+            OpenTelemetry attribute key: remote peer port.  Span only.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeServerAddress">
+            <summary>
+            OpenTelemetry attribute key: server address.  Span only.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeServerPort">
+            <summary>
+            OpenTelemetry attribute key: server port.  Span only.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.AttributeTlsProtocolVersion">
+            <summary>
+            OpenTelemetry attribute key: negotiated TLS protocol version.  Span only.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.RoleServer">
+            <summary>
+            Role value: server.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.RoleClient">
+            <summary>
+            Role value: client.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OutcomeSuccess">
+            <summary>
+            Outcome value: the operation succeeded.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OutcomeError">
+            <summary>
+            Outcome value: the operation failed with an exception.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OutcomeCanceled">
+            <summary>
+            Outcome value: the operation was canceled.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OutcomeTimeout">
+            <summary>
+            Outcome value: the operation timed out.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OutcomeRejected">
+            <summary>
+            Outcome value: the server rejected the connection.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OutcomeNotFound">
+            <summary>
+            Outcome value: the target client of a server send was not connected.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.RejectNotPermitted">
+            <summary>
+            Reject reason value: client IP is not in PermittedIPs.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.RejectBlocked">
+            <summary>
+            Reject reason value: client IP is in BlockedIPs.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.RejectMaxConnections">
+            <summary>
+            Reject reason value: MaxConnections reached.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.RejectTlsFailed">
+            <summary>
+            Reject reason value: TLS handshake or validation failed.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.RejectDuplicate">
+            <summary>
+            Reject reason value: a connection with the same IP:port is already registered.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationAccept">
+            <summary>
+            Operation value: server accept.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationTlsHandshake">
+            <summary>
+            Operation value: TLS handshake.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationConnect">
+            <summary>
+            Operation value: client connect.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationSend">
+            <summary>
+            Operation value: send.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationReceive">
+            <summary>
+            Operation value: receive loop.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationHandler">
+            <summary>
+            Operation value: application DataReceived handler.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationMonitor">
+            <summary>
+            Operation value: background monitor.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.OperationKeepalive">
+            <summary>
+            Operation value: TCP keepalive configuration.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.MonitorIdleClient">
+            <summary>
+            Monitor value: server idle client monitor.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.MonitorIdleServer">
+            <summary>
+            Monitor value: client idle server monitor.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.MonitorConnectionLost">
+            <summary>
+            Monitor value: client connection-lost monitor.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.DispatchSync">
+            <summary>
+            Dispatch mode value: DataReceived invoked on the receive loop.
+            </summary>
+        </member>
+        <member name="F:SuperSimpleTcp.SimpleTcpTelemetryNames.DispatchAsync">
+            <summary>
+            Dispatch mode value: DataReceived invoked on the ordered asynchronous dispatcher.
+            </summary>
+        </member>
+        <member name="T:SuperSimpleTcp.SimpleTcpTelemetrySettings">
+            <summary>
+            Telemetry settings for a SimpleTcpServer or SimpleTcpClient.
+            SuperSimpleTcp emits metrics and traces through the .NET base class library (a Meter and an ActivitySource, both named SuperSimpleTcp).
+            It takes no dependency on any exporter; the host application subscribes a collector (for example Radiant or the OpenTelemetry SDK) to those names.
+            Emission is enabled by default and costs a few nanoseconds per operation when nothing is listening.
+            Instances are not thread-safe for concurrent writes; configure them before calling Start() or Connect().
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpTelemetrySettings.Enable">
+            <summary>
+            Master switch for this instance's telemetry.  Default true.
+            When false, this instance emits no metrics and no spans regardless of EnableMetrics and EnableTraces.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpTelemetrySettings.EnableMetrics">
+            <summary>
+            Emit metrics on the SuperSimpleTcp meter.  Default true.  Has no effect when Enable is false.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpTelemetrySettings.EnableTraces">
+            <summary>
+            Emit spans on the SuperSimpleTcp activity source.  Default true.  Has no effect when Enable is false.
+            Spans are created only when a listener samples them, so leaving this on is free when no tracer is subscribed.
+            </summary>
+        </member>
+        <member name="P:SuperSimpleTcp.SimpleTcpTelemetrySettings.InstanceName">
+            <summary>
+            Name used for the supersimpletcp.instance label on every metric and span, so that several servers or clients in one process can be told apart.
+            Default "default".  Must be non-empty and at most 64 characters.
+            Use a small, fixed set of names (for example "ingest" or "control"); never use per-connection or per-request values, because every distinct value creates new time series.
+            </summary>
+            <exception cref="T:System.ArgumentNullException">Thrown when the value is null or empty.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">Thrown when the value is longer than 64 characters.</exception>
+        </member>
+        <member name="M:SuperSimpleTcp.SimpleTcpTelemetrySettings.#ctor">
+            <summary>
+            Instantiate the object with defaults: telemetry, metrics, and traces enabled, instance name "default".
             </summary>
         </member>
     </members>

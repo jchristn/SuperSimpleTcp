@@ -172,6 +172,24 @@
         /// </summary>
         public RemoteCertificateValidationCallback CertificateValidationCallback = null;
 
+        /// <summary>
+        /// Telemetry settings (metrics and traces emitted on the SuperSimpleTcp Meter and ActivitySource).
+        /// Enabled by default; costs effectively nothing until a collector subscribes.  Setting null restores the defaults.
+        /// See TELEMETRY.md for the catalog of metrics and spans.
+        /// </summary>
+        public SimpleTcpTelemetrySettings Telemetry
+        {
+            get
+            {
+                return _telemetry;
+            }
+            set
+            {
+                if (value == null) _telemetry = new SimpleTcpTelemetrySettings();
+                else _telemetry = value;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -184,6 +202,7 @@
         private int _idleServerTimeoutMs = 0;
         private int _idleServerEvaluationIntervalMs = 1000;
         private int _connectionLostEvaluationIntervalMs = 200;
+        private SimpleTcpTelemetrySettings _telemetry = new SimpleTcpTelemetrySettings();
 
         #endregion
 

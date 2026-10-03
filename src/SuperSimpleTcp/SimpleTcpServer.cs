@@ -6,6 +6,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -175,13 +176,23 @@
         private CancellationToken _listenerToken;
         private Task _acceptConnections = null;
         private Task _idleClientMonitor = null;
-        private AsyncEventDispatcher<DataReceivedEventArgs> _asyncDataReceivedDispatcher = null;
+        private AsyncEventDispatcher<DataReceivedWorkItem> _asyncDataReceivedDispatcher = null;
+        private InstanceTelemetry _telemetry = null;
         private HashSet<string> _permittedIpLookup = null;
         private List<string> _permittedIpSource = null;
         private int _permittedIpLookupCount = -1;
         private HashSet<string> _blockedIpLookup = null;
         private List<string> _blockedIpSource = null;
         private int _blockedIpLookupCount = -1;
+
+        private InstanceTelemetry Telemetry
+        {
+            get
+            {
+                if (_telemetry == null) _telemetry = new InstanceTelemetry(SimpleTcpTelemetryNames.RoleServer, _ssl, () => _settings.Telemetry);
+                return _telemetry;
+            }
+        }
 
         #endregion
 
@@ -703,6 +714,7 @@
                     if (_asyncDataReceivedDispatcher != null)
                     {
                         _asyncDataReceivedDispatcher.Dispose();
+                        Telemetry.DispatchDropped(_asyncDataReceivedDispatcher.DrainPending());
                         _asyncDataReceivedDispatcher = null;
                     }
                 }
@@ -756,111 +768,168 @@
 
         private async Task AcceptConnections()
         {
-            while (!_listenerToken.IsCancellationRequested)
+            InstanceTelemetry.DetachAmbientSpan();
+
+            int connectionLimit = _settings.MaxConnections;
+            Telemetry.ListenerStarted(connectionLimit);
+
+            try
             {
-                ClientMetadata client = null;
-
-                try
+                while (!_listenerToken.IsCancellationRequested)
                 {
-                    TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
-                    tcpClient.NoDelay = _settings.NoDelay;
-                    string clientIpPort = tcpClient.Client.RemoteEndPoint.ToString();
+                    ClientMetadata client = null;
+                    Activity acceptActivity = null;
+                    long acceptStart = 0;
 
-                    string clientIp = null;
-                    int clientPort = 0;
-                    Common.ParseIpPort(clientIpPort, out clientIp, out clientPort);
-
-                    if (!IsClientPermitted(clientIp))
+                    try
                     {
-                        Logger?.Invoke($"{_header}rejecting connection from {clientIp} (not permitted)");
-                        tcpClient.Close();
-                        continue;
-                    }
+                        TcpClient tcpClient = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
+                        acceptStart = InstanceTelemetry.Timestamp();
+                        tcpClient.NoDelay = _settings.NoDelay;
+                        string clientIpPort = tcpClient.Client.RemoteEndPoint.ToString();
 
-                    if (IsClientBlocked(clientIp))
-                    {
-                        Logger?.Invoke($"{_header}rejecting connection from {clientIp} (blocked)");
-                        tcpClient.Close();
-                        continue;
-                    }
+                        acceptActivity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanAccept, ActivityKind.Server);
+                        InstanceTelemetry.SetPeer(acceptActivity, clientIpPort);
+                        InstanceTelemetry.SetTag(acceptActivity, SimpleTcpTelemetryNames.AttributeServerAddress, _listenerIp);
+                        InstanceTelemetry.SetTag(acceptActivity, SimpleTcpTelemetryNames.AttributeServerPort, Port);
 
-                    if (_clients.Count >= _settings.MaxConnections)
-                    {
-                        Logger?.Invoke($"{_header}rejecting connection from {clientIpPort} (maximum connections {_settings.MaxConnections} reached)");
-                        tcpClient.Close();
-                        continue;
-                    }
+                        string clientIp = null;
+                        int clientPort = 0;
+                        Common.ParseIpPort(clientIpPort, out clientIp, out clientPort);
 
-                    client = new ClientMetadata(tcpClient);
-
-                    if (_ssl)
-                    {
-                        if (_settings.AcceptInvalidCertificates)
+                        if (!IsClientPermitted(clientIp))
                         {
-                            client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
+                            Logger?.Invoke($"{_header}rejecting connection from {clientIp} (not permitted)");
+                            tcpClient.Close();
+                            RecordRejected(acceptActivity, acceptStart, SimpleTcpTelemetryNames.RejectNotPermitted, false);
+                            continue;
                         }
-                        else if(_settings.CertificateValidationCallback != null)
+
+                        if (IsClientBlocked(clientIp))
                         {
-                            client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
+                            Logger?.Invoke($"{_header}rejecting connection from {clientIp} (blocked)");
+                            tcpClient.Close();
+                            RecordRejected(acceptActivity, acceptStart, SimpleTcpTelemetryNames.RejectBlocked, false);
+                            continue;
+                        }
+
+                        if (_clients.Count >= _settings.MaxConnections)
+                        {
+                            Logger?.Invoke($"{_header}rejecting connection from {clientIpPort} (maximum connections {_settings.MaxConnections} reached)");
+                            tcpClient.Close();
+                            RecordRejected(acceptActivity, acceptStart, SimpleTcpTelemetryNames.RejectMaxConnections, true);
+                            continue;
+                        }
+
+                        client = new ClientMetadata(tcpClient);
+
+                        if (_ssl)
+                        {
+                            if (_settings.AcceptInvalidCertificates)
+                            {
+                                client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
+                            }
+                            else if(_settings.CertificateValidationCallback != null)
+                            {
+                                client.SslStream = new SslStream(client.NetworkStream, false, new RemoteCertificateValidationCallback(_settings.CertificateValidationCallback));
+                            }
+                            else
+                            {
+                                client.SslStream = new SslStream(client.NetworkStream, false);
+                            }
+
+                            using (CancellationTokenSource tlsCts = CancellationTokenSource.CreateLinkedTokenSource(_listenerToken, _token))
+                            {
+                                tlsCts.CancelAfter(3000);
+
+                                bool success = await StartTls(client, tlsCts.Token).ConfigureAwait(false);
+                                if (!success)
+                                {
+                                    client.Dispose();
+                                    RecordRejected(acceptActivity, acceptStart, SimpleTcpTelemetryNames.RejectTlsFailed, true);
+                                    continue;
+                                }
+                            }
+                        }
+
+                        if (!_clients.TryAdd(clientIpPort, client))
+                        {
+                            client.Dispose();
+                            RecordRejected(acceptActivity, acceptStart, SimpleTcpTelemetryNames.RejectDuplicate, true);
+                            continue;
+                        }
+
+                        client.ConnectedTimestamp = InstanceTelemetry.Timestamp();
+                        client.UpdateLastSeen(MonotonicTime.GetTimestamp());
+                        Telemetry.ConnectionOpened();
+                        Logger?.Invoke($"{_header}starting data receiver for: {clientIpPort}");
+                        _events.HandleClientConnected(this, new ConnectionEventArgs(clientIpPort));
+
+                        if (_keepalive.EnableTcpKeepAlives) EnableKeepalives(tcpClient);
+
+                        client.ReceiveTask = DataReceiver(client);
+
+                        InstanceTelemetry.SetOutcome(acceptActivity, SimpleTcpTelemetryNames.OutcomeSuccess);
+                        Telemetry.AcceptCompleted(SimpleTcpTelemetryNames.OutcomeSuccess, InstanceTelemetry.ElapsedSeconds(acceptStart));
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is TaskCanceledException
+                            || ex is OperationCanceledException
+                            || ex is ObjectDisposedException
+                            || ex is InvalidOperationException)
+                        {
+                            _isListening = false;
+                            if (client != null) client.Dispose();
+                            InstanceTelemetry.SetOutcome(acceptActivity, SimpleTcpTelemetryNames.OutcomeCanceled);
+                            Logger?.Invoke($"{_header}stopped listening");
+                            break;
                         }
                         else
                         {
-                            client.SslStream = new SslStream(client.NetworkStream, false);
-                        }
+                            if (client != null) client.Dispose();
 
-                        using (CancellationTokenSource tlsCts = CancellationTokenSource.CreateLinkedTokenSource(_listenerToken, _token))
-                        {
-                            tlsCts.CancelAfter(3000);
-
-                            bool success = await StartTls(client, tlsCts.Token).ConfigureAwait(false);
-                            if (!success)
+                            // Stop() aborts the pending accept with a SocketException; that is shutdown, not a failure.
+                            if (!_listenerToken.IsCancellationRequested)
                             {
-                                client.Dispose();
-                                continue;
+                                InstanceTelemetry.SetException(acceptActivity, SimpleTcpTelemetryNames.OutcomeError, ex);
+                                if (acceptStart != 0) Telemetry.AcceptCompleted(SimpleTcpTelemetryNames.OutcomeError, InstanceTelemetry.ElapsedSeconds(acceptStart));
+                                Telemetry.Error(SimpleTcpTelemetryNames.OperationAccept, ex);
                             }
+
+                            Logger?.Invoke($"{_header}exception while awaiting connections: {ex}");
+                            continue;
                         }
                     }
-
-                    if (!_clients.TryAdd(clientIpPort, client))
+                    finally
                     {
-                        client.Dispose();
-                        continue;
-                    }
-
-                    client.UpdateLastSeen(MonotonicTime.GetTimestamp());
-                    Logger?.Invoke($"{_header}starting data receiver for: {clientIpPort}");
-                    _events.HandleClientConnected(this, new ConnectionEventArgs(clientIpPort));
-
-                    if (_keepalive.EnableTcpKeepAlives) EnableKeepalives(tcpClient);
-
-                    client.ReceiveTask = DataReceiver(client);
-                }
-                catch (Exception ex)
-                {
-                    if (ex is TaskCanceledException
-                        || ex is OperationCanceledException
-                        || ex is ObjectDisposedException
-                        || ex is InvalidOperationException)
-                    {
-                        _isListening = false;
-                        if (client != null) client.Dispose();
-                        Logger?.Invoke($"{_header}stopped listening");
-                        break;
-                    }
-                    else
-                    {
-                        if (client != null) client.Dispose();
-                        Logger?.Invoke($"{_header}exception while awaiting connections: {ex}");
-                        continue;
+                        InstanceTelemetry.Stop(acceptActivity);
                     }
                 }
+            }
+            finally
+            {
+                Telemetry.ListenerStopped(connectionLimit);
             }
 
             _isListening = false;
         }
 
+        private void RecordRejected(Activity acceptActivity, long acceptStart, string rejectReason, bool isError)
+        {
+            InstanceTelemetry.SetTag(acceptActivity, SimpleTcpTelemetryNames.AttributeRejectReason, rejectReason);
+            if (isError) InstanceTelemetry.SetFailure(acceptActivity, SimpleTcpTelemetryNames.OutcomeRejected, rejectReason);
+            else InstanceTelemetry.SetOutcome(acceptActivity, SimpleTcpTelemetryNames.OutcomeRejected);
+
+            Telemetry.ConnectionRejected(rejectReason);
+            Telemetry.AcceptCompleted(SimpleTcpTelemetryNames.OutcomeRejected, InstanceTelemetry.ElapsedSeconds(acceptStart));
+        }
+
         private async Task<bool> StartTls(ClientMetadata client, CancellationToken token)
         {
+            Activity tlsActivity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanTlsHandshake, ActivityKind.Internal);
+            long tlsStart = InstanceTelemetry.Timestamp();
+
             try
             {
                 await client.SslStream.AuthenticateAsServerAsync(
@@ -872,6 +941,7 @@
                 if (!client.SslStream.IsEncrypted)
                 {
                     Logger?.Invoke($"{_header}client {client.IpPort} not encrypted, disconnecting");
+                    Telemetry.EndTlsHandshake(tlsActivity, tlsStart, SimpleTcpTelemetryNames.OutcomeError, new AuthenticationException("Stream is not encrypted"));
                     client.Dispose();
                     return false;
                 }
@@ -879,6 +949,7 @@
                 if (!client.SslStream.IsAuthenticated)
                 {
                     Logger?.Invoke($"{_header}client {client.IpPort} not SSL/TLS authenticated, disconnecting");
+                    Telemetry.EndTlsHandshake(tlsActivity, tlsStart, SimpleTcpTelemetryNames.OutcomeError, new AuthenticationException("Stream is not authenticated"));
                     client.Dispose();
                     return false;
                 }
@@ -886,19 +957,25 @@
                 if (_settings.MutuallyAuthenticate && !client.SslStream.IsMutuallyAuthenticated)
                 {
                     Logger?.Invoke($"{_header}client {client.IpPort} failed mutual authentication, disconnecting");
+                    Telemetry.EndTlsHandshake(tlsActivity, tlsStart, SimpleTcpTelemetryNames.OutcomeError, new AuthenticationException("Mutual authentication failed"));
                     client.Dispose();
                     return false;
                 }
+
+                InstanceTelemetry.SetTag(tlsActivity, SimpleTcpTelemetryNames.AttributeTlsProtocolVersion, InstanceTelemetry.TlsVersion(client.SslStream.SslProtocol));
+                Telemetry.EndTlsHandshake(tlsActivity, tlsStart, SimpleTcpTelemetryNames.OutcomeSuccess, null);
             }
             catch (Exception e)
             {
                 if (e is TaskCanceledException || e is OperationCanceledException)
                 {
                     Logger?.Invoke($"{_header}client {client.IpPort} timeout during SSL/TLS establishment");
+                    Telemetry.EndTlsHandshake(tlsActivity, tlsStart, SimpleTcpTelemetryNames.OutcomeTimeout, new TimeoutException("Timeout during SSL/TLS establishment", e));
                 }
                 else
                 {
                     Logger?.Invoke($"{_header}client {client.IpPort} SSL/TLS exception: {Environment.NewLine}{e}");
+                    Telemetry.EndTlsHandshake(tlsActivity, tlsStart, SimpleTcpTelemetryNames.OutcomeError, e);
                 }
 
                 client.Dispose();
@@ -916,7 +993,10 @@
 
         private async Task DataReceiver(ClientMetadata client)
         {
+            InstanceTelemetry.DetachAmbientSpan();
+
             string ipPort = client.IpPort;
+            Exception terminalException = null;
             Logger?.Invoke($"{_header}data receiver started for client {ipPort}");
 
             using (CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_token, client.Token))
@@ -950,6 +1030,7 @@
                             continue;
                         }
 
+                        Telemetry.SegmentReceived(data.Count);
                         QueueDataReceived(ipPort, data);
                         _statistics.AddReceivedBytes(data.Count);
                         client.UpdateLastSeen(MonotonicTime.GetTimestamp());
@@ -982,6 +1063,7 @@
                     catch (Exception e)
                     {
                         Logger?.Invoke($"{_header}data receiver exception [{ipPort}]:{ Environment.NewLine}{e}{Environment.NewLine}");
+                        terminalException = e;
                         break;
                     }
                 }
@@ -995,10 +1077,35 @@
                 reason = DisconnectReason.Normal;
             }
 
+            RecordDisconnect(ipPort, reason, client.ConnectedTimestamp, terminalException);
+
             _events.HandleClientDisconnected(this, new ConnectionEventArgs(ipPort, reason));
 
             _clients.TryRemove(ipPort, out _);
             if (client != null) client.Dispose();
+        }
+
+        private void RecordDisconnect(string ipPort, DisconnectReason reason, long connectedTimestamp, Exception terminalException)
+        {
+            double durationSeconds = InstanceTelemetry.ElapsedSeconds(connectedTimestamp);
+
+            Activity activity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanDisconnect, ActivityKind.Internal);
+            InstanceTelemetry.SetPeer(activity, ipPort);
+            InstanceTelemetry.SetTag(activity, SimpleTcpTelemetryNames.AttributeReason, InstanceTelemetry.ReasonValue(reason));
+            InstanceTelemetry.SetTag(activity, SimpleTcpTelemetryNames.AttributeConnectionDuration, durationSeconds);
+
+            if (terminalException != null)
+            {
+                InstanceTelemetry.SetException(activity, SimpleTcpTelemetryNames.OutcomeError, terminalException);
+                Telemetry.Error(SimpleTcpTelemetryNames.OperationReceive, terminalException);
+            }
+            else
+            {
+                InstanceTelemetry.SetOutcome(activity, SimpleTcpTelemetryNames.OutcomeSuccess);
+            }
+
+            Telemetry.ConnectionClosed(reason, durationSeconds);
+            InstanceTelemetry.Stop(activity);
         }
            
         private async Task<ArraySegment<byte>> DataReadAsync(ClientMetadata client, CancellationToken token)
@@ -1033,13 +1140,19 @@
 
         private async Task IdleClientMonitor()
         {
+            InstanceTelemetry.DetachAmbientSpan();
+
             while (!_token.IsCancellationRequested)
             { 
                 try
                 {
                     await Task.Delay(_settings.IdleClientEvaluationIntervalMs, _token).ConfigureAwait(false);
 
-                    if (_settings.IdleClientTimeoutMs == 0) continue;
+                    if (_settings.IdleClientTimeoutMs == 0)
+                    {
+                        Telemetry.MonitorRun(SimpleTcpTelemetryNames.MonitorIdleClient, null);
+                        continue;
+                    }
 
                     long now = MonotonicTime.GetTimestamp();
                     foreach (ClientMetadata client in _clients.Values)
@@ -1056,6 +1169,8 @@
                             DisconnectClientInternal(client);
                         }
                     }
+
+                    Telemetry.MonitorRun(SimpleTcpTelemetryNames.MonitorIdleClient, null);
                 }
                 catch (TaskCanceledException)
                 {
@@ -1068,18 +1183,27 @@
                 catch (Exception e)
                 {
                     Logger?.Invoke($"{_header}monitor exception: {e}");
+                    Telemetry.MonitorRun(SimpleTcpTelemetryNames.MonitorIdleClient, e);
                 }
             }
         }
 
         private void SendInternal(string ipPort, byte[] data)
         {
-            if (!_clients.TryGetValue(ipPort, out ClientMetadata client)) return;
-            if (client == null) return;
+            Activity activity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanSend, ActivityKind.Client);
+            InstanceTelemetry.SetPeer(activity, ipPort);
+            long start = InstanceTelemetry.Timestamp();
+
+            if (!_clients.TryGetValue(ipPort, out ClientMetadata client) || client == null)
+            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeNotFound, null, 0);
+                return;
+            }
 
             try
             {
                 client.SendLock.Wait();
+                Telemetry.SendLockWaited(InstanceTelemetry.ElapsedSeconds(start));
 
                 if (!_ssl) client.NetworkStream.Write(data, 0, data.Length);
                 else client.SslStream.Write(data, 0, data.Length);
@@ -1088,7 +1212,14 @@
                 else client.SslStream.Flush();
 
                 _statistics.AddSentBytes(data.Length);
+                Telemetry.BytesSent(data.Length);
                 _events.HandleDataSent(this, new DataSentEventArgs(ipPort, data.Length));
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeSuccess, null, data.Length);
+            }
+            catch (Exception e)
+            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeError, e, data.Length);
+                throw;
             }
             finally
             {
@@ -1100,14 +1231,21 @@
         {
             ClientMetadata client = null;
             bool sendLockHeld = false;
+            Activity activity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanSend, ActivityKind.Client);
+            InstanceTelemetry.SetPeer(activity, ipPort);
+            long start = InstanceTelemetry.Timestamp();
 
             try
             {
-                if (!_clients.TryGetValue(ipPort, out client)) return;
-                if (client == null) return;
+                if (!_clients.TryGetValue(ipPort, out client) || client == null)
+                {
+                    Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeNotFound, null, 0);
+                    return;
+                }
 
                 await client.SendLock.WaitAsync(token).ConfigureAwait(false);
                 sendLockHeld = true;
+                Telemetry.SendLockWaited(InstanceTelemetry.ElapsedSeconds(start));
 
                 if (!_ssl) await client.NetworkStream.WriteAsync(data, 0, data.Length, token).ConfigureAwait(false);
                 else await client.SslStream.WriteAsync(data, 0, data.Length, token).ConfigureAwait(false);
@@ -1116,13 +1254,19 @@
                 else await client.SslStream.FlushAsync(token).ConfigureAwait(false);
 
                 _statistics.AddSentBytes(data.Length);
+                Telemetry.BytesSent(data.Length);
                 _events.HandleDataSent(this, new DataSentEventArgs(ipPort, data.Length));
-            }
-            catch (TaskCanceledException)
-            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeSuccess, null, data.Length);
             }
             catch (OperationCanceledException)
             {
+                // Includes TaskCanceledException.  Cancellation is reported, not thrown, to preserve existing behavior.
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeCanceled, null, data.Length);
+            }
+            catch (Exception e)
+            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeError, e, data.Length);
+                throw;
             }
             finally
             {
@@ -1132,8 +1276,15 @@
 
         private void SendInternal(string ipPort, long contentLength, Stream stream)
         {
-            if (!_clients.TryGetValue(ipPort, out ClientMetadata client)) return;
-            if (client == null) return;
+            Activity activity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanSend, ActivityKind.Client);
+            InstanceTelemetry.SetPeer(activity, ipPort);
+            long start = InstanceTelemetry.Timestamp();
+
+            if (!_clients.TryGetValue(ipPort, out ClientMetadata client) || client == null)
+            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeNotFound, null, 0);
+                return;
+            }
 
             long bytesRemaining = contentLength;
             int bytesRead = 0;
@@ -1145,6 +1296,7 @@
             try
             {
                 client.SendLock.Wait();
+                Telemetry.SendLockWaited(InstanceTelemetry.ElapsedSeconds(start));
 
                 while (bytesRemaining > 0)
                 {
@@ -1159,11 +1311,18 @@
 
                     bytesRemaining -= bytesRead;
                     _statistics.AddSentBytes(bytesRead);
+                    Telemetry.BytesSent(bytesRead);
                 }
 
                 if (!_ssl) client.NetworkStream.Flush();
                 else client.SslStream.Flush();
                 _events.HandleDataSent(this, new DataSentEventArgs(ipPort, contentLength));
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeSuccess, null, contentLength - bytesRemaining);
+            }
+            catch (Exception e)
+            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeError, e, contentLength - bytesRemaining);
+                throw;
             }
             finally
             {
@@ -1178,6 +1337,10 @@
         {
             ClientMetadata client = null;
             bool sendLockHeld = false;
+            long bytesRemaining = contentLength;
+            Activity activity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanSend, ActivityKind.Client);
+            InstanceTelemetry.SetPeer(activity, ipPort);
+            long start = InstanceTelemetry.Timestamp();
 #if NET6_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
             byte[] buffer = ArrayPool<byte>.Shared.Rent(_settings.StreamBufferSize);
 #else
@@ -1185,14 +1348,17 @@
 #endif
             try
             {
-                if (!_clients.TryGetValue(ipPort, out client)) return;
-                if (client == null) return;
+                if (!_clients.TryGetValue(ipPort, out client) || client == null)
+                {
+                    Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeNotFound, null, 0);
+                    return;
+                }
 
-                long bytesRemaining = contentLength;
                 int bytesRead = 0;
 
                 await client.SendLock.WaitAsync(token).ConfigureAwait(false);
                 sendLockHeld = true;
+                Telemetry.SendLockWaited(InstanceTelemetry.ElapsedSeconds(start));
 
                 while (bytesRemaining > 0)
                 {
@@ -1207,17 +1373,23 @@
 
                     bytesRemaining -= bytesRead;
                     _statistics.AddSentBytes(bytesRead);
+                    Telemetry.BytesSent(bytesRead);
                 }
 
                 if (!_ssl) await client.NetworkStream.FlushAsync(token).ConfigureAwait(false);
                 else await client.SslStream.FlushAsync(token).ConfigureAwait(false);
                 _events.HandleDataSent(this, new DataSentEventArgs(ipPort, contentLength));
-            }
-            catch (TaskCanceledException)
-            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeSuccess, null, contentLength - bytesRemaining);
             }
             catch (OperationCanceledException)
             {
+                // Includes TaskCanceledException.  Cancellation is reported, not thrown, to preserve existing behavior.
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeCanceled, null, contentLength - bytesRemaining);
+            }
+            catch (Exception e)
+            {
+                Telemetry.EndSend(activity, start, SimpleTcpTelemetryNames.OutcomeError, e, contentLength - bytesRemaining);
+                throw;
             }
             finally
             {
@@ -1241,22 +1413,72 @@
             // to be handled before (or concurrently with) an earlier one, corrupting message
             // reassembly for stream-oriented consumers. See issue #236.
             const int workerCount = 1;
-            _asyncDataReceivedDispatcher = new AsyncEventDispatcher<DataReceivedEventArgs>(
-                args => _events.HandleDataReceived(this, args),
+            _asyncDataReceivedDispatcher = new AsyncEventDispatcher<DataReceivedWorkItem>(
+                item =>
+                {
+                    Telemetry.DispatchDequeued(InstanceTelemetry.ElapsedSeconds(item.EnqueuedTimestamp));
+                    InvokeDataReceived(item.Args, item.ParentContext, SimpleTcpTelemetryNames.DispatchAsync);
+                },
                 workerCount);
         }
 
         private void QueueDataReceived(string ipPort, ArraySegment<byte> data)
         {
             var args = new DataReceivedEventArgs(ipPort, data);
-            if (_settings.UseAsyncDataReceivedEvents)
-            {
-                EnsureAsyncDataReceivedDispatcher();
-                _asyncDataReceivedDispatcher.Enqueue(args);
-                return;
-            }
 
-            _events.HandleDataReceived(this, args);
+            Activity receiveActivity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanReceive, ActivityKind.Consumer);
+            InstanceTelemetry.SetPeer(receiveActivity, ipPort);
+            InstanceTelemetry.SetTag(receiveActivity, SimpleTcpTelemetryNames.AttributeBytes, data.Count);
+            ActivityContext parentContext = receiveActivity != null ? receiveActivity.Context : default(ActivityContext);
+
+            try
+            {
+                if (_settings.UseAsyncDataReceivedEvents)
+                {
+                    EnsureAsyncDataReceivedDispatcher();
+                    Telemetry.DispatchEnqueued();
+                    _asyncDataReceivedDispatcher.Enqueue(new DataReceivedWorkItem(args, parentContext, InstanceTelemetry.Timestamp()));
+                    InstanceTelemetry.SetOutcome(receiveActivity, SimpleTcpTelemetryNames.OutcomeSuccess);
+                    return;
+                }
+
+                InvokeDataReceived(args, parentContext, SimpleTcpTelemetryNames.DispatchSync);
+                InstanceTelemetry.SetOutcome(receiveActivity, SimpleTcpTelemetryNames.OutcomeSuccess);
+            }
+            catch (Exception e)
+            {
+                InstanceTelemetry.SetException(receiveActivity, SimpleTcpTelemetryNames.OutcomeError, e);
+                throw;
+            }
+            finally
+            {
+                InstanceTelemetry.Stop(receiveActivity);
+            }
+        }
+
+        private void InvokeDataReceived(DataReceivedEventArgs args, ActivityContext parentContext, string dispatchMode)
+        {
+            Activity processActivity = Telemetry.StartActivity(SimpleTcpTelemetryNames.SpanProcess, ActivityKind.Internal, parentContext);
+            InstanceTelemetry.SetPeer(processActivity, args.IpPort);
+            InstanceTelemetry.SetTag(processActivity, SimpleTcpTelemetryNames.AttributeDispatchMode, dispatchMode);
+            long start = InstanceTelemetry.Timestamp();
+
+            try
+            {
+                _events.HandleDataReceived(this, args);
+                InstanceTelemetry.SetOutcome(processActivity, SimpleTcpTelemetryNames.OutcomeSuccess);
+                Telemetry.HandlerCompleted(dispatchMode, SimpleTcpTelemetryNames.OutcomeSuccess, InstanceTelemetry.ElapsedSeconds(start), null);
+            }
+            catch (Exception e)
+            {
+                InstanceTelemetry.SetException(processActivity, SimpleTcpTelemetryNames.OutcomeError, e);
+                Telemetry.HandlerCompleted(dispatchMode, SimpleTcpTelemetryNames.OutcomeError, InstanceTelemetry.ElapsedSeconds(start), e);
+                throw;
+            }
+            finally
+            {
+                InstanceTelemetry.Stop(processActivity);
+            }
         }
 
         private void DisconnectClientInternal(ClientMetadata client)
@@ -1398,9 +1620,10 @@
 
 #endif
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 Logger?.Invoke($"{_header}keepalives not supported on this platform, disabled");
+                Telemetry.Error(SimpleTcpTelemetryNames.OperationKeepalive, e);
             }
         }
 
@@ -1444,9 +1667,10 @@
 
 #endif
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 Logger?.Invoke($"{_header}keepalives not supported on this platform, disabled");
+                Telemetry.Error(SimpleTcpTelemetryNames.OperationKeepalive, e);
                 _keepalive.EnableTcpKeepAlives = false;
             }
         }

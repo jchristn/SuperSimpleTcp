@@ -3,8 +3,8 @@
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.1;net461;net462;net48;net8.0;net10.0</TargetFrameworks>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<Version>3.1.1</Version>
-		<PackageReleaseNotes>Async DataReceived dispatch now uses a single ordered worker to guarantee in-order, non-overlapping delivery (issue #236)</PackageReleaseNotes>
+		<Version>3.2.0</Version>
+		<PackageReleaseNotes>Built-in observability: metrics and traces through a BCL Meter and ActivitySource named SuperSimpleTcp (connections, accept, TLS, connect, send, receive, DataReceived handler and dispatch queue, monitors, errors). No exporter dependency; see TELEMETRY.md.</PackageReleaseNotes>
 		<Authors>Joel Christner</Authors>
 		<Description>Simple wrapper for TCP client and server in C# with SSL support</Description>
 		<Copyright>(c)2026 Joel Christner</Copyright>
@@ -12,7 +12,7 @@
 		<PackageProjectUrl>https://github.com/jchristn/supersimpletcp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/jchristn/supersimpletcp</RepositoryUrl>
 		<RepositoryType>Github</RepositoryType>
-		<PackageTags>tcp messaging socket message sockets api rpc</PackageTags>
+		<PackageTags>tcp messaging socket message sockets api rpc telemetry opentelemetry metrics tracing</PackageTags>
 		<PackageId>SuperSimpleTcp</PackageId>
 		<Product>SuperSimpleTcp</Product>
 		<PackageIconUrl></PackageIconUrl>
@@ -25,6 +25,16 @@
 		<IncludeSymbols>True</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net461'">
+		<!-- System.Diagnostics.DiagnosticSource 8.x (Meter, UpDownCounter) is not officially tested on net461, which is out of support. -->
+		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' != 'net8.0' And '$(TargetFramework)' != 'net10.0'">
+		<!-- Meter and ActivitySource ship in-box on net8.0 and later; older targets get them from this package. -->
+		<PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.1" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="..\..\README.md">

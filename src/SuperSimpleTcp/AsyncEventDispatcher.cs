@@ -3,6 +3,7 @@ namespace SuperSimpleTcp
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -43,6 +44,17 @@ namespace SuperSimpleTcp
             }
         }
 
+        internal int DrainPending()
+        {
+            int count = 0;
+            while (_queue.TryDequeue(out T _))
+            {
+                count++;
+            }
+
+            return count;
+        }
+
         public void Dispose()
         {
             if (_disposed) return;
@@ -81,6 +93,10 @@ namespace SuperSimpleTcp
 
         private async Task WorkerLoopAsync(CancellationToken token)
         {
+            // The worker is started from whatever flow called Start() or Connect(); do not let handler
+            // spans inherit that ambient span.  Each item carries its own parent context instead.
+            Activity.Current = null;
+
             while (true)
             {
                 try

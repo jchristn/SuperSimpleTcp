@@ -2,11 +2,20 @@
 
 ## Current Version
 
+v3.2.0
+
+- Built-in observability through the .NET base class library: a `Meter` and an `ActivitySource`, both named `SuperSimpleTcp`. No exporter or Radiant dependency; hosts subscribe by name. See `TELEMETRY.md`
+- Metrics: `connections.active`/`limit`/`opened`/`closed`/`rejected`, `connection.duration`, `listeners.active`, `accept.duration`, `tls.handshake.duration`, `connect.duration`, `send.duration`, `send.lock.wait.duration`, `sent.bytes`, `received.bytes`, `receive.segment.size`, `handler.duration`, `dispatch.queue.depth`, `dispatch.queue.wait`, `monitor.runs`, `errors`, `build.info` (all prefixed `supersimpletcp.`), with bounded labels only
+- Spans: `accept`, `tls_handshake`, `connect`, `connect_with_retries`, `send`, `receive`, `process`, `disconnect` with explicit status and exception events; the async `DataReceived` hand-off carries trace context so handler spans nest under the receive span; background loops start fresh traces
+- New `SimpleTcpTelemetrySettings` (`Enable`, `EnableMetrics`, `EnableTraces`, `InstanceName`) exposed as `Settings.Telemetry` on server and client, and `SimpleTcpTelemetryNames` with every meter, instrument, span, and attribute name as public constants
+- Adds a dependency on `System.Diagnostics.DiagnosticSource` 8.0.1 for `netstandard2.1`, `net461`, `net462`, and `net48` (in-box on `net8.0` and later)
+- Instrumentation is best-effort and never changes control flow; a throwing listener cannot affect networking
+
+## Previous Versions
+
 v3.1.1
 
 - Async `DataReceived` dispatch (`UseAsyncDataReceivedEvents`, enabled by default) now uses a single dedicated worker, guaranteeing handlers run one-at-a-time and in the exact order data was received, preventing out-of-order or overlapping delivery from corrupting message reassembly (thank you @aa53420, issue #236)
-
-## Previous Versions
 
 v3.1.0
 

@@ -158,6 +158,24 @@
             }
         }
 
+        /// <summary>
+        /// Telemetry settings (metrics and traces emitted on the SuperSimpleTcp Meter and ActivitySource).
+        /// Enabled by default; costs effectively nothing until a collector subscribes.  Setting null restores the defaults.
+        /// See TELEMETRY.md for the catalog of metrics and spans.
+        /// </summary>
+        public SimpleTcpTelemetrySettings Telemetry
+        {
+            get
+            {
+                return _telemetry;
+            }
+            set
+            {
+                if (value == null) _telemetry = new SimpleTcpTelemetrySettings();
+                else _telemetry = value;
+            }
+        }
+
         #endregion
 
         #region Private-Members
@@ -169,6 +187,7 @@
         private int _idleClientEvaluationIntervalMs = 5000;
         private List<string> _permittedIPs = new List<string>();
         private List<string> _blockedIPs = new List<string>();
+        private SimpleTcpTelemetrySettings _telemetry = new SimpleTcpTelemetrySettings();
 
         #endregion
 

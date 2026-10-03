@@ -89,6 +89,15 @@ Configuration is managed through settings objects:
 
 **Send Synchronization**: Both client and server use `SemaphoreSlim` to ensure thread-safe sending (`_sendLock` in client, `SendLock` in `ClientMetadata` for server)
 
+### Telemetry
+
+Metrics and traces are emitted through the BCL only (`Meter` and `ActivitySource`, both named `SuperSimpleTcp`); the library must never take an exporter, Radiant, or OpenTelemetry SDK dependency. See `TELEMETRY.md` for the catalog.
+- `SimpleTcpTelemetryNames` holds every public name (meter, source, instruments, spans, attribute keys/values). Treat these strings as a public API.
+- `SimpleTcpInstrumentation` (internal, static) owns the `Meter`, `ActivitySource`, and instruments; `InstanceTelemetry` (internal, one per server/client) records with base labels and swallows any listener exception.
+- `Settings.Telemetry` (`SimpleTcpTelemetrySettings`) controls `Enable`, `EnableMetrics`, `EnableTraces`, `InstanceName` per instance.
+- Background loops (accept, receive, monitors, dispatch worker) call `InstanceTelemetry.DetachAmbientSpan()` / clear `Activity.Current` so their spans start new traces. The async dispatch hand-off carries the receive span context in `DataReceivedWorkItem`.
+- Instrumentation must not change control flow and metric labels must stay bounded (no IPs, ports, ids, or payloads on metrics). `TelemetryTest` covers each instrument and the failure paths.
+
 ### SSL/TLS Support
 
 SSL connections use `SslStream` wrapper over `NetworkStream`:

@@ -42,6 +42,8 @@
 
         internal byte[] ProbeBuffer { get; } = new byte[1];
 
+        internal long ConnectedTimestamp { get; set; }
+
         internal long LastSeenTimestamp
         {
             get { return Interlocked.Read(ref _lastSeenTimestamp); }
