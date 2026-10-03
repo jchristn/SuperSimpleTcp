@@ -92,7 +92,10 @@ namespace SuperSimpleTcp.UnitTest
                 var receivedData = Encoding.UTF8.GetString(e.Data);
                 Trace.WriteLine($"{nameof(ClientDataReceived)} - {receivedData}");
 
-                if (!Enumerable.SequenceEqual(e.Data, acknowledgeData))
+                // TCP may coalesce several acknowledgements into one read, so accept any whole repetition.
+                if (e.Data.Count == 0
+                    || e.Data.Count % acknowledgeData.Length != 0
+                    || !Enumerable.SequenceEqual(e.Data, Enumerable.Repeat(acknowledgeData, e.Data.Count / acknowledgeData.Length).SelectMany(b => b)))
                 {
                     clientReceiveError = true;
                 }
@@ -136,7 +139,7 @@ namespace SuperSimpleTcp.UnitTest
             var testData = StringHelper.RandomString(65535);
 
             var serverReceiveError = false;
-            var serverReceivedData = "";
+            var serverReceivedData = new StringBuilder();
 
             var clientSendCount = 10;
             var expectedClientConnectedCount = 1;
@@ -157,7 +160,7 @@ namespace SuperSimpleTcp.UnitTest
 
             void ServerDataReceived(object? sender, DataReceivedEventArgs e)
             {
-                serverReceivedData += Encoding.UTF8.GetString(e.Data);
+                lock (serverReceivedData) serverReceivedData.Append(Encoding.UTF8.GetString(e.Data));
             }
 
             using var simpleTcpServer = new SimpleTcpServer(ipAddress, 0);
@@ -176,15 +179,24 @@ namespace SuperSimpleTcp.UnitTest
             }
             simpleTcpClient.Disconnect();
 
-            await Task.Delay(250);
+            var deadline = Stopwatch.StartNew();
+            while (deadline.ElapsedMilliseconds < 10000)
+            {
+                lock (serverReceivedData)
+                {
+                    if (serverReceivedData.Length >= expectedClientDataReceivedBytes) break;
+                }
+                await Task.Delay(50);
+            }
 
             simpleTcpServer.Events.ClientConnected -= ServerClientConnected;
             simpleTcpServer.Events.DataReceived -= ServerDataReceived;
             simpleTcpServer.Stop();
 
             Assert.AreEqual(expectedClientConnectedCount, clientConnectedCount);
-            Assert.IsTrue(serverReceivedData == expectedClientData, $"Server did not receive expected data");
-            Assert.IsTrue(serverReceivedData.Length == expectedClientDataReceivedBytes, $"Server received: {serverReceivedData} byte(s), expected: {expectedClientDataReceivedBytes}");
+            var received = serverReceivedData.ToString();
+            Assert.IsTrue(received.Length == expectedClientDataReceivedBytes, $"Server received: {received.Length} byte(s), expected: {expectedClientDataReceivedBytes}");
+            Assert.IsTrue(received == expectedClientData, $"Server did not receive expected data");
             Assert.IsFalse(serverReceiveError, "Server receive error detected");
         }
     }

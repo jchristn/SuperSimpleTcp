@@ -1493,11 +1493,11 @@ internal static partial class RuntimeSuites
                     "SimpleTcpServerSettings.UseAsyncDataReceivedEvents dispatches asynchronously without overlapping handlers",
                     async token =>
                     {
-                        ConcurrencyTracker tracker = new(expectedEvents: 100);
+                        ConcurrencyTracker tracker = new(expectedBytes: MessageSeriesByteCount(100));
 
                         using SimpleTcpServer server = new(TestEnvironment.LoopbackIp, 0);
                         server.Settings.UseAsyncDataReceivedEvents = true;
-                        server.Events.DataReceived += (_, _) => tracker.Record();
+                        server.Events.DataReceived += (_, e) => tracker.Record(e.Data.Count);
                         server.Start();
 
                         using SimpleTcpClient client = new($"{TestEnvironment.LoopbackIp}:{server.Port}");
@@ -1525,11 +1525,11 @@ internal static partial class RuntimeSuites
                     "SimpleTcpServerSettings.UseAsyncDataReceivedEvents=false prevents concurrent event execution",
                     async token =>
                     {
-                        ConcurrencyTracker tracker = new(expectedEvents: 100);
+                        ConcurrencyTracker tracker = new(expectedBytes: MessageSeriesByteCount(100));
 
                         using SimpleTcpServer server = new(TestEnvironment.LoopbackIp, 0);
                         server.Settings.UseAsyncDataReceivedEvents = false;
-                        server.Events.DataReceived += (_, _) => tracker.Record();
+                        server.Events.DataReceived += (_, e) => tracker.Record(e.Data.Count);
                         server.Start();
 
                         using SimpleTcpClient client = new($"{TestEnvironment.LoopbackIp}:{server.Port}");
@@ -1557,14 +1557,14 @@ internal static partial class RuntimeSuites
                     "SimpleTcpClientSettings.UseAsyncDataReceivedEvents=false prevents concurrent client event execution",
                     async token =>
                     {
-                        ConcurrencyTracker tracker = new(expectedEvents: 100);
+                        ConcurrencyTracker tracker = new(expectedBytes: MessageSeriesByteCount(100));
 
                         using SimpleTcpServer server = new(TestEnvironment.LoopbackIp, 0);
                         server.Start();
 
                         using SimpleTcpClient client = new($"{TestEnvironment.LoopbackIp}:{server.Port}");
                         client.Settings.UseAsyncDataReceivedEvents = false;
-                        client.Events.DataReceived += (_, _) => tracker.Record();
+                        client.Events.DataReceived += (_, e) => tracker.Record(e.Data.Count);
                         client.Connect();
                         await TestEnvironment.DelayForIoAsync(token).ConfigureAwait(false);
 
@@ -1618,20 +1618,21 @@ internal static partial class RuntimeSuites
         private readonly TaskCompletionSource<bool> _completed =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly List<int> _callingThreadIds = new();
-        private readonly int _expectedEvents;
+        private readonly int _expectedBytes;
         private int _activeCount;
-        private int _receivedCount;
+        private int _receivedBytes;
 
-        public ConcurrencyTracker(int expectedEvents)
+        // TCP may coalesce several sends into one read, so completion is measured in bytes, not events.
+        public ConcurrencyTracker(int expectedBytes)
         {
-            _expectedEvents = expectedEvents;
+            _expectedBytes = expectedBytes;
         }
 
         public IReadOnlyList<int> CallingThreadIds => _callingThreadIds;
 
         public bool ConcurrencyDetected { get; private set; }
 
-        public void Record()
+        public void Record(int byteCount)
         {
             if (Interlocked.Increment(ref _activeCount) > 1)
                 ConcurrencyDetected = true;
@@ -1641,7 +1642,7 @@ internal static partial class RuntimeSuites
                 _callingThreadIds.Add(Thread.CurrentThread.ManagedThreadId);
             }
 
-            if (Interlocked.Increment(ref _receivedCount) >= _expectedEvents)
+            if (Interlocked.Add(ref _receivedBytes, byteCount) >= _expectedBytes)
                 _completed.TrySetResult(true);
 
             Interlocked.Decrement(ref _activeCount);
@@ -1652,8 +1653,16 @@ internal static partial class RuntimeSuites
             return TestEnvironment.WithTimeoutAsync(
                 _completed.Task,
                 timeout,
-                "Expected event count was not observed.");
+                "Expected byte count was not observed.");
         }
+    }
+
+    private static int MessageSeriesByteCount(int count)
+    {
+        int total = 0;
+        for (int i = 0; i < count; i++)
+            total += Encoding.UTF8.GetByteCount($"Message {i}");
+        return total;
     }
 
     private static async Task ObserveServerTaskAsync(Task task)

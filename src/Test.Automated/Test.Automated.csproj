@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Touchstone.Cli" Version="0.1.12" />
+    <PackageReference Include="Touchstone.Cli" Version="0.2.0" />
   </ItemGroup>
 
   <ItemGroup>

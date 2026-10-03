@@ -2,11 +2,17 @@
 
 ## Current Version
 
+v3.2.2
+
+- Dependency update: `System.Diagnostics.DiagnosticSource` 8.0.1 -> 10.0.12 for `netstandard2.1`, `net461`, `net462`, and `net48` (in-box on `net8.0` and later; no API changes)
+- Test dependency updates: MSTest 4.4.1, Microsoft.NET.Test.Sdk 18.10.1, coverlet.collector 10.1.0, NUnit 5.0.0, NUnit.Analyzers 4.15.0, NUnit3TestAdapter 6.3.0, Touchstone 0.2.0
+- Tests: integration tests that assumed one `DataReceived` event per send now tolerate TCP coalescing (byte-count completion), and the client-disconnect drain test waits for data instead of a fixed delay
+
+## Previous Versions
+
 v3.2.1
 
 - Fix: with `UseAsyncDataReceivedEvents` enabled (the default), an exception thrown by a `DataReceived` handler stopped the dispatch worker for that server or client, so every later segment was queued but never delivered. The worker now catches the exception, reports it through `Logger` (and the existing `errors{operation="handler"}` metric and `process` span), and continues with the next segment
-
-## Previous Versions
 
 v3.2.0
 

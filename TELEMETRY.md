@@ -64,7 +64,7 @@ dotnet-counters monitor -n MyApp --counters SuperSimpleTcp
 
 Runtime metrics (GC, thread pool, lock contention) are a host concern. Radiant includes them by default (`Metrics.IncludeRuntime`); with the OpenTelemetry SDK add `OpenTelemetry.Instrumentation.Runtime`. Thread-pool starvation shows up in SuperSimpleTcp as rising `dispatch.queue.wait` and `send.lock.wait.duration`, so it is worth having both on the same dashboard.
 
-On .NET 8 and later the BCL types are in-box. On `netstandard2.1`, `net461`, `net462`, and `net48` the package depends on `System.Diagnostics.DiagnosticSource` 8.0.1.
+On .NET 8 and later the BCL types are in-box. On `netstandard2.1`, `net461`, `net462`, and `net48` the package depends on `System.Diagnostics.DiagnosticSource` 10.0.12.
 
 ## Configuration
 
@@ -307,4 +307,4 @@ Link the panels to Tempo with a span search on `resource.service.name` plus `nam
 - **Cardinality.** Labels are limited to the fixed sets above plus `InstanceName`, which you control.
 - **Overhead.** With nothing subscribed, recording is a settings check plus `Stopwatch.GetTimestamp()` calls, and spans are not created. With traces sampled at 100%, every segment produces a `receive` and a `process` span; at very high message rates use a ratio sampler or set `EnableTraces = false`.
 - **Not covered.** Bytes are counted per send and per read, not per application message (the library has no framing). Cross-process trace propagation requires a header in your own protocol (see [Trace topology](#trace-topology)). TCP keepalive configuration failures are counted in `errors{operation="keepalive"}` but are platform-dependent and not exercised by the test suite.
-- **net461.** `System.Diagnostics.DiagnosticSource` 8.x is not officially tested by Microsoft on .NET Framework 4.6.1 (out of support), and consumers targeting net461 will see an informational build warning. net462 and later are fully supported.
+- **net461.** `System.Diagnostics.DiagnosticSource` 10.x is not officially tested by Microsoft on .NET Framework 4.6.1 (out of support), and consumers targeting net461 will see an informational build warning. net462 and later are fully supported.

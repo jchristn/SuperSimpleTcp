@@ -13,6 +13,10 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
+## New in v3.2.2
+
+- Dependency update: `System.Diagnostics.DiagnosticSource` 10.0.12 (from 8.0.1) for `netstandard2.1`, `net461`, `net462`, and `net48`
+
 ## New in v3.2.1
 
 - Fix: a `DataReceived` handler that throws no longer stops asynchronous event dispatch; later data is still delivered and the exception is reported through `Logger` and telemetry. Catching exceptions in your own handler is still recommended
