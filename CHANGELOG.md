@@ -2,13 +2,21 @@
 
 ## Current Version
 
+v3.2.3
+
+- Fix: remove synchronous socket readiness polling from the client receive loop, restoring asynchronous I/O without occupying one thread-pool worker per idle connection (thank you @Hyperlink9371, issue #237)
+- Preserve transport closure on disconnect, disposal, connection loss, and idle timeout to unblock pending reads on older frameworks
+- Clarify that ReadTimeoutMs is retained for compatibility and is not used by background asynchronous receives; use IdleServerTimeoutMs for inactivity disconnection
+- Use SDK-managed per-target XML documentation paths to prevent parallel builds from producing incomplete package documentation
+- Add 19 shared regression cases covering idle worker usage, delayed/ordered TCP and TLS delivery in both event modes, pending-read teardown, idle timeout reset, and peer FIN/reset
+
+## Previous Versions
+
 v3.2.2
 
 - Dependency update: `System.Diagnostics.DiagnosticSource` 8.0.1 -> 10.0.12 for `netstandard2.1`, `net461`, `net462`, and `net48` (in-box on `net8.0` and later; no API changes)
 - Test dependency updates: MSTest 4.4.1, Microsoft.NET.Test.Sdk 18.10.1, coverlet.collector 10.1.0, NUnit 5.0.0, NUnit.Analyzers 4.15.0, NUnit3TestAdapter 6.3.0, Touchstone 0.2.0
 - Tests: integration tests that assumed one `DataReceived` event per send now tolerate TCP coalescing (byte-count completion), and the client-disconnect drain test waits for data instead of a fixed delay
-
-## Previous Versions
 
 v3.2.1
 

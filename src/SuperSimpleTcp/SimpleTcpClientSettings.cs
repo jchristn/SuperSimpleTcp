@@ -77,7 +77,8 @@
         }
 
         /// <summary>
-        /// The number of milliseconds to wait when attempting to read before returning null.
+        /// Retained for compatibility. Background asynchronous receives wait for incoming data and do not use this value.
+        /// Use IdleServerTimeoutMs to disconnect when the server is inactive.
         /// </summary>
         public int ReadTimeoutMs
         {

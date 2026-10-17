@@ -16,6 +16,7 @@ public static class SuperSimpleTcpTestSuites
             ConfigurationSuites.StatisticsSuite(),
             RuntimeSuites.ClientSendValidationSuite(),
             RuntimeSuites.ServerSendValidationSuite(),
+            RuntimeSuites.ReceiveRegressionSuite(),
             RuntimeSuites.ConnectivitySuite(),
             RuntimeSuites.EventSuite(),
             RuntimeSuites.AsyncConnectivitySuite(),

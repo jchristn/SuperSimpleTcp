@@ -13,6 +13,12 @@ SuperSimpleTcp provides simple methods for creating your own TCP-based sockets a
 
 **I would highly encourage you to fully understand what message framing is and why it's important before using this library: https://blog.stephencleary.com/2009/04/message-framing.html**
 
+## New in v3.2.3
+
+- Fix: idle clients no longer occupy a thread-pool worker per connection. Receives now await transport I/O directly instead of repeatedly calling `Socket.Poll` (thank you @Hyperlink9371, [issue #237](https://github.com/jchristn/SuperSimpleTcp/issues/237))
+- `ReadTimeoutMs` is retained for compatibility but is not used by background asynchronous receives. Use `IdleServerTimeoutMs` to disconnect from an inactive server; its deadline resets when data is received
+- Expanded regression tests cover idle worker usage, delayed and ordered delivery, TCP/TLS teardown, peer FIN/reset, and idle timeout reset behavior
+
 ## New in v3.2.2
 
 - Dependency update: `System.Diagnostics.DiagnosticSource` 10.0.12 (from 8.0.1) for `netstandard2.1`, `net461`, `net462`, and `net48`

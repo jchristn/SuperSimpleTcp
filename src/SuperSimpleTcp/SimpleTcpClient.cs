@@ -1066,12 +1066,9 @@
             {
                 try
                 {
-                    bool ready = await WaitForReadReadyAsync(token).ConfigureAwait(false);
-                    if (!ready)
-                    {
-                        continue;
-                    }
-
+                    // Await transport I/O directly: synchronous readiness polling holds a
+                    // thread-pool worker for every idle connection (issue #237).
+                    // Teardown closes the transport to unblock reads on older frameworks.
                     var data = await DataReadAsync(token).ConfigureAwait(false);
                     if (data.Array == null)
                     {
@@ -1697,41 +1694,6 @@
             {
                 InstanceTelemetry.Stop(processActivity);
             }
-        }
-
-        private async Task<bool> WaitForReadReadyAsync(CancellationToken token)
-        {
-            if (_client?.Client == null)
-            {
-                return false;
-            }
-
-            await Task.Yield();
-
-            long started = MonotonicTime.GetTimestamp();
-            int sliceMs = 1;
-
-            while (!token.IsCancellationRequested)
-            {
-                Socket socket = _client?.Client;
-                if (socket == null)
-                {
-                    return false;
-                }
-
-                if (socket.Poll(sliceMs * 1000, SelectMode.SelectRead))
-                {
-                    return true;
-                }
-
-                if (MonotonicTime.HasElapsed(started, _settings.ReadTimeoutMs))
-                {
-                    return false;
-                }
-            }
-
-            token.ThrowIfCancellationRequested();
-            return false;
         }
 
         private void CloseTransport()
